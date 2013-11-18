@@ -33,6 +33,7 @@ setup(name='pyzmq-rpc',
           'pyzmq',
           'msgpack-python',
           'tornado',
+          'toro',
           'futures',
           ],
       tests_require=[
