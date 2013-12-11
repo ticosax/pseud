@@ -1,6 +1,4 @@
 """
-RPC implementation on top of MDP protocol v1
-http://rfc.zeromq.org/spec:7
 """
 import importlib
 import __builtin__
@@ -14,7 +12,6 @@ import uuid
 import msgpack
 import tornado.concurrent
 import tornado.gen
-import toro
 import zmq
 from zmq.eventloop import ioloop, zmqstream
 
@@ -44,8 +41,8 @@ def format_remote_traceback(traceback):
 
 
 class AttributeWrapper(object):
-    def __init__(self, client, name):
-        self.client = client
+    def __init__(self, rpc, name):
+        self.rpc = rpc
         self._part_names = name.split('.')
 
     def __getattr__(self, name, default=_marker):
@@ -68,10 +65,28 @@ class AttributeWrapper(object):
 
     @tornado.gen.coroutine
     def __call__(self, *args, **kw):
-        return self.client._send_work(self.name, *args, **kw)
+        return self.rpc._send_work(self.rpc.peer_identity, self.name,
+                                   *args, **kw)
 
 
 class BaseRPC(object):
+    def __init__(self, identity, peer_identity=None,
+                 context_module_name=None,
+                 context=None, io_loop=None, timeout=5):
+        self.identity = identity
+        self.context_module_name = context_module_name
+        self.context = context or zmq.Context.instance()
+        self.internal_loop = False
+        self.timeout = timeout * 1000
+        self.peer_identity = peer_identity
+        self.future_pool = {}
+        self.initialized = False
+        if io_loop is None:
+            self.internal_loop = True
+            self.io_loop = ioloop.IOLoop.instance()
+        else:
+            self.io_loop = io_loop
+
     def _make_socket(self):
         socket = self.context.socket(self.socket_type)
         socket.identity = self.identity
@@ -83,9 +98,14 @@ class BaseRPC(object):
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):
             return functools.partial(self.connect_or_bind, name)
-        if default is _marker:
-            return super(BaseRPC, self).__getattr__(name)
-        return super(BaseRPC, self).__getattr__(name, default=default)
+        try:
+            if default is _marker:
+                return super(BaseRPC, self).__getattr__(name)
+            return super(BaseRPC, self).__getattr__(name, default=default)
+        except AttributeError:
+            if not self.initialized:
+                raise RuntimeError('You must connect or bind first')
+            return AttributeWrapper(self, name)
 
     def connect_or_bind(self, name, endpoint):
         self.socket = self._make_socket()
@@ -93,6 +113,111 @@ class BaseRPC(object):
         caller(self.socket)
         self.stream = zmqstream.ZMQStream(self.socket, self.io_loop)
         self.initialized = True
+
+    @tornado.gen.coroutine
+    def _send_work(self, peer_identity, name, *args, **kw):
+        work = msgpack.packb((name, args, kw))
+        uid = uuid.uuid4().bytes
+        message = [peer_identity, VERSION, uid, WORK, work]
+        print 'sending work', message
+        yield tornado.gen.Task(self.stream.send_multipart, message)
+        print 'work sent'
+        # XXX make sure we destroy the future if no answer is comming
+        self.future_pool[uid] = future = tornado.concurrent.Future()
+        yield self.start()
+        raise tornado.gen.Return(future)
+
+    def on_socket_ready(self, response):
+        print 'Worker received', response
+        if len(response) == 7:
+            # When client uses REQ socket
+            zid, _, peer_id, version, message_uuid, message_type,\
+                message = response
+        else:
+            # When client uses ROUTER socket
+            zid = None
+            peer_id, version, message_uuid, message_type, message =\
+                response
+        assert version == VERSION
+        if message_type == HELLO:
+            self._handle_hello(message, message_uuid)
+        elif message_type == WORK:
+            self._handle_work(message, zid, peer_id, message_uuid)
+        elif message_type == OK:
+            self._handle_ok(message, message_uuid)
+        elif message_type == ERROR:
+            self._handle_error(message, message_uuid)
+        else:
+            print repr(message_type)
+            raise NotImplementedError
+
+    @tornado.gen.coroutine
+    def start(self):
+        self.stream.on_recv(self.on_socket_ready)
+        if self.internal_loop:
+            print self.__class__.__name__, 'ready'
+            self.io_loop.start()
+
+    def _handle_hello(self, message, message_uuid):
+        print 'new client {}'.format(message)
+        self.socket.send_multipart([message, message_uuid, OK,
+                                    'Welcome'])
+
+    def _handle_work(self, message, zid, peer_id, message_uuid):
+        locator, args, kw = msgpack.unpackb(message)
+        if '.' in locator:
+            splitted = locator.split('.')
+            module_path, function_name = splitted[:-1], splitted[-1]
+            context_module = importlib.import_module(*module_path)
+        elif self.context_module_name:
+            context_module = sys.modules[self.context_module_name]
+            function_name = locator
+        else:
+            raise NotImplementedError
+        try:
+            try:
+                worker_callable = getattr(context_module, function_name)
+            except AttributeError:
+                raise ServiceNotFoundError(locator)
+            result = worker_callable(*args, **kw)
+        except Exception:
+            exc_type, exc_value = sys.exc_info()[:2]
+            traceback_ = traceback.format_exc()
+            name = exc_type.__name__
+            message = str(exc_value)
+            result = (name, message, traceback_)
+            status = ERROR
+        else:
+            status = OK
+        response = msgpack.packb(result)
+        message = [peer_id, VERSION, message_uuid, status, response]
+        if zid:
+            message.insert(0, '')
+            message.insert(0, zid)
+        print 'worker send reply', message
+        self.stream.send_multipart(message)
+
+    def _handle_ok(self, message, message_uuid):
+        value = msgpack.unpackb(message)
+        print 'Client result {!r} from {!r}'.format(value, message_uuid)
+        future = self.future_pool.pop(message_uuid)
+        future.set_result(value)
+
+    def _handle_error(self, message, message_uuid):
+        value = msgpack.unpackb(message)
+        future = self.future_pool.pop(message_uuid)
+        klass, message, trace_back = value
+        full_message = '\n'.join((format_remote_traceback(trace_back),
+                                  message))
+        try:
+            exception = getattr(__builtin__, klass)(full_message)
+        except AttributeError:
+            # Not stdlib Exception
+            # fallback on something that expose informations received
+            # from remote worker
+            future.set_exception(Exception('\n'.join((klass, full_message))))
+        else:
+            future.set_exception(exception)
 
     @tornado.gen.coroutine
     def stop(self):
@@ -105,138 +230,26 @@ class BaseRPC(object):
 class Client(BaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, server_identity,
+    def __init__(self, identity, peer_identity, context_module_name=None,
                  context=None, io_loop=None, timeout=5):
-        self.context = context or zmq.Context.instance()
-        self.identity = identity
-        self.server_identity = server_identity
-        self.timeout = timeout
-        self.initialized = False
-        self.internal_loop = False
-        self.timeout_condition = toro.Condition()
-        if io_loop is None:
-            self.internal_loop = True
-            self.io_loop = ioloop.IOLoop.instance()
-        else:
-            self.io_loop = io_loop
-
-    def __getattr__(self, name, default=_marker):
-        try:
-            if default is _marker:
-                return super(Client, self).__getattr__(name)
-            return super(Client, self).__getattr__(name, default=default)
-        except AttributeError:
-            if not self.initialized:
-                raise RuntimeError('You must connect or bind first')
-            return AttributeWrapper(self, name)
-
-    @tornado.gen.coroutine
-    def _send_work(self, name, *args, **kw):
-        work = msgpack.packb((name, args, kw))
-        uid = uuid.uuid4().bytes
-        message = [self.server_identity, VERSION, uid, WORK, work]
-        print 'sending work', message
-        yield tornado.gen.Task(self.stream.send_multipart, message)
-        print 'work sent'
-        print 'client waiting for worker response'
-        response = yield tornado.gen.Task(self.stream.on_recv)
-        print 'finish waiting'
-        print 'client got response for work'
-        self.stream.stop_on_recv()
-        _, version, message_uuid, message_type, value = response
-        value = msgpack.unpackb(value)
-        if message_type == ERROR:
-            klass, message, trace_back = value
-            full_message = '\n'.join((format_remote_traceback(trace_back),
-                                      message))
-            try:
-                exception = getattr(__builtin__, klass)(full_message)
-            except AttributeError:
-                # Not stdlib Exception
-                # fallback on something that expose informations received
-                # from remote worker
-                raise Exception('\n'.join((klass, full_message)))
-            raise exception
-        elif message_type == OK:
-            raise tornado.gen.Return(value)
-        else:
-            raise NotImplementedError
+        super(Client, self).__init__(identity, peer_identity=peer_identity,
+                                     context_module_name=context_module_name,
+                                     context=context, io_loop=io_loop,
+                                     timeout=timeout)
 
 
 class Server(BaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, context_module_name,
+    def __init__(self, identity, context_module_name=None,
                  context=None, io_loop=None, timeout=5):
-        self.identity = identity
-        self.context_module_name = context_module_name
-        self.context = context or zmq.Context.instance()
-        self.internal_loop = False
-        self.timeout = timeout * 1000
-        if io_loop is None:
-            self.internal_loop = True
-            self.io_loop = ioloop.IOLoop.instance()
-        else:
-            self.io_loop = io_loop
+        super(Server, self).__init__(identity,
+                                     context_module_name=context_module_name,
+                                     context=context, io_loop=io_loop,
+                                     timeout=timeout)
 
-    @tornado.gen.coroutine
-    def start(self):
-        while True:
-            response = yield tornado.gen.Task(self.stream.on_recv)
-            print 'Worker received', response
-            if len(response) == 7:
-                # When client uses REQ socket
-                zid, _, peer_id, version, message_uuid, message_type,\
-                    message = response
-            else:
-                # When client uses ROUTER socket
-                zid = None
-                peer_id, version, message_uuid, message_type, message =\
-                    response
-            assert version == VERSION
-            if message_type == HELLO:
-                print 'new client {}'.format(message)
-                self.socket.send_multipart([message, message_uuid, OK,
-                                            'Welcome'])
-            elif message_type == WORK:
-                locator, args, kw = msgpack.unpackb(message)
-                if '.' in locator:
-                    splitted = locator.split('.')
-                    module_path, function_name = splitted[:-1], splitted[-1]
-                    context_module = importlib.import_module(*module_path)
-                elif self.context_module_name:
-                    context_module = sys.modules[self.context_module_name]
-                    function_name = locator
-                else:
-                    raise NotImplementedError
-                try:
-                    try:
-                        worker_callable = getattr(context_module,
-                                                  function_name)
-                    except AttributeError:
-                        raise ServiceNotFoundError(locator)
-                    result = worker_callable(*args, **kw)
-                except Exception:
-                    exc_type, exc_value = sys.exc_info()[:2]
-                    traceback_ = traceback.format_exc()
-                    name = exc_type.__name__
-                    message = str(exc_value)
-                    result = (name, message, traceback_)
-                    status = ERROR
-                else:
-                    status = OK
-                response = msgpack.packb(result)
-                message = [peer_id, VERSION, message_uuid, status, response]
-                if zid:
-                    message.insert(0, '')
-                    message.insert(0, zid)
-                print 'worker send reply', message
-                yield tornado.gen.Task(self.stream.send_multipart, message)
-            elif message_type == OK:
-                print 'Client result {} from {}'.format(message, message_uuid)
-            else:
-                print repr(message_type)
-                raise NotImplementedError
-            if self.internal_loop:
-                print self.__class__.__name__, 'ready'
-                self.io_loop.start()
+    def __enter__(self, peer_identity):
+        self.peer_identity = peer_identity
+
+    def __exit__(self, args):
+        self.peer_identity = None

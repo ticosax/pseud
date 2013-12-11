@@ -35,9 +35,9 @@ setup(name='pyzmq-rpc',
           'tornado',
           'toro',
           'futures',
-          ],
+      ],
       tests_require=[
           'pytest',
-          ],
+      ],
       cmdclass={'test': PyTest},
       )
