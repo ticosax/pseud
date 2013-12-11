@@ -47,8 +47,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout
-                             ).result(timeout=self.timeout) == 'HELLO'
+        assert future.result(timeout=self.timeout) == 'HELLO'
 
     @tornado.testing.gen_test
     def test_server_can_send(self):
@@ -82,5 +81,4 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout
-                             ).result(timeout=self.timeout) == 'scream'
+        assert future.result(timeout=self.timeout) == 'scream'

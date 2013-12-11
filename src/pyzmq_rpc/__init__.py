@@ -63,7 +63,6 @@ class AttributeWrapper(object):
 
     name = property(name_getter, name_setter)
 
-    @tornado.gen.coroutine
     def __call__(self, *args, **kw):
         return self.rpc._send_work(self.rpc.peer_identity, self.name,
                                    *args, **kw)
