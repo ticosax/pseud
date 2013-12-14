@@ -1,11 +1,9 @@
 import uuid
-# import sys
 
-# from concurrent.futures import TimeoutError
+from concurrent.futures import TimeoutError
 import msgpack
 import pytest
 import tornado.testing
-# from tornado.testing import get_async_test_timeout
 import zmq
 from zmq.eventloop import ioloop, zmqstream
 
@@ -20,6 +18,7 @@ def test_client_creation():
     client = Client(identity, peer_identity)
     assert client.peer_identity == peer_identity
     assert client.identity == identity
+    assert client.security_plugin == 'noop_auth_backend'
     # assert client._timeout == 5000
 
 
@@ -43,9 +42,6 @@ def test_client_can_connect():
 
 class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
-
-    # def get_new_ioloop(self):
-    #     return ioloop.IOLoop.instance()
 
     def make_one_server_socket(self, identity, endpoint):
         context = zmq.Context.instance()
@@ -72,16 +68,19 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
             # If not connected can not call anything
             wrapper = getattr(client, method_name)
         client.connect(endpoint)
+        yield client.start()
         wrapper = getattr(client, method_name)
         assert isinstance(wrapper, AttributeWrapper)
         assert wrapper._part_names == method_name.split('.')
         assert wrapper.name == method_name
-        self.io_loop.add_timeout(self.io_loop.time() + .1, self.io_loop.stop)
+        self.io_loop.add_timeout(self.io_loop.time() + 1,
+                                 self.io_loop.stop)
         print 'waiting for result'
         with pytest.raises(TimeoutError):
             future = yield wrapper()
             self.io_loop.start()
-            future.exception(timeout=1)
+            future.exception(timeout=.2)
+        yield client.stop()
 
     @tornado.testing.gen_test
     def test_job_executed(self):

@@ -14,20 +14,30 @@ import tornado.concurrent
 import tornado.gen
 import zmq
 from zmq.eventloop import ioloop, zmqstream
+import zope.component
+import zope.interface
 
-from .interfaces import ServiceNotFoundError
+from .interfaces import (AUTHENTICATED,
+                         IAuthenticationBackend,
+                         IClient,
+                         IServer,
+                         ServiceNotFoundError,
+                         OK,
+                         HELLO,
+                         WORK,
+                         ERROR,
+                         UNAUTHORIZED,
+                         VERSION,
+                         )
+from .utils import async_sleep
+
+# Register explicitely internal adapters
+import zcml
 
 
 ioloop.install()
 
 _marker = object()
-
-OK = '\x01'
-HELLO = '\x02'
-WORK = '\x03'
-ERROR = '\x12'
-
-VERSION = 'v1'
 
 
 def format_remote_traceback(traceback):
@@ -64,35 +74,40 @@ class AttributeWrapper(object):
     name = property(name_getter, name_setter)
 
     def __call__(self, *args, **kw):
-        return self.rpc._send_work(self.rpc.peer_identity, self.name,
-                                   *args, **kw)
+        return self.rpc.send_work(self.rpc.peer_identity, self.name,
+                                  *args, **kw)
 
 
 class BaseRPC(object):
     def __init__(self, identity, peer_identity=None,
-                 context_module_name=None,
-                 context=None, io_loop=None, timeout=5):
+                 context_module_name=None, context=None, io_loop=None,
+                 security_plugin='noop_auth_backend',
+                 public_key=None, private_key=None,
+                 peer_public_key=None, timeout=5,
+                 password=None):
         self.identity = identity
         self.context_module_name = context_module_name
         self.context = context or zmq.Context.instance()
         self.internal_loop = False
-        self.timeout = timeout * 1000
+        # self.timeout = timeout * 1000
         self.peer_identity = peer_identity
+        self.security_plugin = security_plugin
         self.future_pool = {}
         self.initialized = False
+        self.auth_backend = zope.component.getAdapter(self,
+                                                      IAuthenticationBackend,
+                                                      name=self.security_plugin
+                                                      )
+        self.public_key = public_key
+        self.private_key = private_key
+        self.peer_public_key = peer_public_key
+        self.password = password
+        self.current_untrusted_key = None
         if io_loop is None:
             self.internal_loop = True
             self.io_loop = ioloop.IOLoop.instance()
         else:
             self.io_loop = io_loop
-
-    def _make_socket(self):
-        socket = self.context.socket(self.socket_type)
-        socket.identity = self.identity
-        # if self.timeout:
-        #     socket.rcvtimeo = self.timeout * 1000
-        socket.linger = 0
-        return socket
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):
@@ -107,11 +122,19 @@ class BaseRPC(object):
             return AttributeWrapper(self, name)
 
     def connect_or_bind(self, name, endpoint):
-        self.socket = self._make_socket()
+        socket = self.context.socket(self.socket_type)
+        self.socket = socket
+        socket.identity = self.identity
+        # socket.linger = 0
+        socket.ROUTER_MANDATORY = True
+        self.auth_backend.configure()
         caller = operator.methodcaller(name, endpoint)
-        caller(self.socket)
-        self.stream = zmqstream.ZMQStream(self.socket, self.io_loop)
+        caller(socket)
+        self.stream = zmqstream.ZMQStream(socket, self.io_loop)
         self.initialized = True
+
+    def send_work(self, *args, **kw):
+        return self._send_work(*args, **kw)
 
     @tornado.gen.coroutine
     def _send_work(self, peer_identity, name, *args, **kw):
@@ -119,6 +142,7 @@ class BaseRPC(object):
         uid = uuid.uuid4().bytes
         message = [peer_identity, VERSION, uid, WORK, work]
         print 'sending work', message
+        self.auth_backend.save_last_work(message)
         yield tornado.gen.Task(self.stream.send_multipart, message)
         print 'work sent'
         # XXX make sure we destroy the future if no answer is comming
@@ -127,25 +151,26 @@ class BaseRPC(object):
         raise tornado.gen.Return(future)
 
     def on_socket_ready(self, response):
-        print 'Worker received', response
-        if len(response) == 7:
-            # When client uses REQ socket
-            zid, _, peer_id, version, message_uuid, message_type,\
-                message = response
-        else:
-            # When client uses ROUTER socket
-            zid = None
-            peer_id, version, message_uuid, message_type, message =\
-                response
+        print 'Message received for {}'.format(self), response
+        # When client uses ROUTER socket
+        peer_id, version, message_uuid, message_type, message = response
         assert version == VERSION
-        if message_type == HELLO:
-            self._handle_hello(message, message_uuid)
+        if (not self.auth_backend.is_authenticated(peer_id)
+                and message_type != HELLO):
+            self.auth_backend.handle_authentication(peer_id, message_uuid)
         elif message_type == WORK:
-            self._handle_work(message, zid, peer_id, message_uuid)
+            self._handle_work(message, peer_id, message_uuid)
         elif message_type == OK:
             self._handle_ok(message, message_uuid)
         elif message_type == ERROR:
             self._handle_error(message, message_uuid)
+        elif message_type == AUTHENTICATED:
+            self.auth_backend.handle_authenticated(message)
+        elif message_type == UNAUTHORIZED:
+            self.auth_backend.handle_authentication(peer_id, message_uuid)
+        elif message_type == HELLO:
+            self.auth_backend.handle_hello(peer_id, message_uuid,
+                                           message)
         else:
             print repr(message_type)
             raise NotImplementedError
@@ -153,16 +178,15 @@ class BaseRPC(object):
     @tornado.gen.coroutine
     def start(self):
         self.stream.on_recv(self.on_socket_ready)
+        # Warmup delay !!
+        yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
             print self.__class__.__name__, 'ready'
             self.io_loop.start()
 
-    def _handle_hello(self, message, message_uuid):
-        print 'new client {}'.format(message)
-        self.socket.send_multipart([message, message_uuid, OK,
-                                    'Welcome'])
-
-    def _handle_work(self, message, zid, peer_id, message_uuid):
+    def _handle_work(self, message, peer_id, message_uuid):
+        # TODO provide sandboxing to disallow
+        # untrusted user to call any module
         locator, args, kw = msgpack.unpackb(message)
         if '.' in locator:
             splitted = locator.split('.')
@@ -190,9 +214,6 @@ class BaseRPC(object):
             status = OK
         response = msgpack.packb(result)
         message = [peer_id, VERSION, message_uuid, status, response]
-        if zid:
-            message.insert(0, '')
-            message.insert(0, zid)
         print 'worker send reply', message
         self.stream.send_multipart(message)
 
@@ -220,35 +241,47 @@ class BaseRPC(object):
 
     @tornado.gen.coroutine
     def stop(self):
+        self.stream.on_recv(None)
         self.stream.flush()
         self.stream.close()
+        self.auth_backend.stop()
         if self.internal_loop:
             self.io_loop.stop()
 
 
+@zope.interface.implementer(IClient)
 class Client(BaseRPC):
     socket_type = zmq.ROUTER
 
     def __init__(self, identity, peer_identity, context_module_name=None,
-                 context=None, io_loop=None, timeout=5):
+                 context=None, io_loop=None,
+                 security_plugin='noop_auth_backend', timeout=5,
+                 public_key=None, private_key=None, peer_public_key=None,
+                 password=None,
+                 ):
         super(Client, self).__init__(identity, peer_identity=peer_identity,
                                      context_module_name=context_module_name,
                                      context=context, io_loop=io_loop,
-                                     timeout=timeout)
+                                     security_plugin=security_plugin,
+                                     timeout=timeout, public_key=public_key,
+                                     private_key=private_key,
+                                     peer_public_key=peer_public_key,
+                                     password=password,
+                                     )
 
 
+@zope.interface.implementer(IServer)
 class Server(BaseRPC):
     socket_type = zmq.ROUTER
 
     def __init__(self, identity, context_module_name=None,
-                 context=None, io_loop=None, timeout=5):
+                 context=None, io_loop=None,
+                 security_plugin='noop_auth_backend', timeout=5,
+                 private_key=None, public_key=None):
         super(Server, self).__init__(identity,
                                      context_module_name=context_module_name,
                                      context=context, io_loop=io_loop,
-                                     timeout=timeout)
-
-    def __enter__(self, peer_identity):
-        self.peer_identity = peer_identity
-
-    def __exit__(self, args):
-        self.peer_identity = None
+                                     security_plugin=security_plugin,
+                                     timeout=timeout,
+                                     public_key=public_key,
+                                     private_key=private_key)

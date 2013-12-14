@@ -35,6 +35,7 @@ setup(name='pyzmq-rpc',
           'tornado',
           'toro',
           'futures',
+          'zope.component'
       ],
       tests_require=[
           'pytest',
