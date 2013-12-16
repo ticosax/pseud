@@ -84,7 +84,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_executed(self):
-        from pybidirpc import OK, VERSION, WORK
+        from pybidirpc.interfaces import OK, VERSION, WORK
         identity = 'client0'
         peer_identity = 'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__)

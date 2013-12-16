@@ -5,7 +5,7 @@ import zmq
 from zmq.eventloop import zmqstream
 import tornado.testing
 
-from pybidirpc import auth, heartbeat
+from pybidirpc import auth, heartbeat  # NOQA
 
 
 def test_server_creation():
@@ -66,7 +66,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_running(self):
-        from pybidirpc import OK, VERSION, WORK
+        from pybidirpc.interfaces import OK, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -87,7 +87,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_job_not_found(self):
         import pybidirpc
-        from pybidirpc import ERROR, VERSION, WORK
+        from pybidirpc.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'ipc://{}'.format(self.__class__.__name__)
@@ -113,7 +113,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_raise(self):
-        from pybidirpc import ERROR, VERSION, WORK
+        from pybidirpc.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'ipc://{}'.format(self.__class__.__name__)
