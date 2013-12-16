@@ -1,3 +1,4 @@
+import os.path
 import time
 
 import msgpack
@@ -82,7 +83,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
                                  self.io_loop.stop)
         self.io_loop.start()
         assert response == [identity, VERSION, '', OK, msgpack.packb(True)]
-        yield server.stop()
+        server.stop()
 
     @tornado.testing.gen_test
     def test_job_not_found(self):
@@ -107,9 +108,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         assert klass == 'ServiceNotFoundError'
         assert message == 'thisIsNotAFunction'
         # pybidirpc.__file__ might ends with .pyc
-        assert any((pybidirpc.__file__ in traceback,
-                    pybidirpc.__file__[:-1] in traceback))
-        yield server.stop()
+        assert os.path.dirname(pybidirpc.__file__) in traceback
+        server.stop()
 
     @tornado.testing.gen_test
     def test_job_raise(self):
@@ -132,4 +132,4 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         assert klass == 'ValueError'
         assert message == 'too bad'
         assert __file__ in traceback
-        yield server.stop()
+        server.stop()

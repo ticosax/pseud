@@ -57,7 +57,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_client_method_wrapper(self):
-        from pybidirpc import AttributeWrapper
+        from pybidirpc.common import AttributeWrapper
         endpoint = 'tcp://127.0.0.1:5000'
         identity = __name__
         peer_identity = 'echo'
