@@ -7,45 +7,45 @@ from zope.interface.verify import verifyClass
 
 
 def test_noop_auth_backend_client():
-    from pyzmq_rpc.auth import NoOpAuthenticationBackendForClient
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import NoOpAuthenticationBackendForClient
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend,
                        NoOpAuthenticationBackendForClient)
 
 
 def test_noop_auth_backend_server():
-    from pyzmq_rpc.auth import NoOpAuthenticationBackendForServer
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import NoOpAuthenticationBackendForServer
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend,
                        NoOpAuthenticationBackendForServer)
 
 
 def test_trusted_curve_client():
-    from pyzmq_rpc.auth import CurveWithTrustedKeyForClient
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import CurveWithTrustedKeyForClient
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForClient)
 
 
 def test_trusted_curve_server():
-    from pyzmq_rpc.auth import CurveWithTrustedKeyForServer
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import CurveWithTrustedKeyForServer
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForServer)
 
 
 def test_untrusted_curve_client():
-    from pyzmq_rpc.auth import CurveWithUntrustedKeyForClient
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import CurveWithUntrustedKeyForClient
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForClient)
 
 
 def test_untrusted_curve_server():
-    from pyzmq_rpc.auth import CurveWithUntrustedKeyForServer
-    from pyzmq_rpc.interfaces import IAuthenticationBackend
+    from pybidirpc.auth import CurveWithUntrustedKeyForServer
+    from pybidirpc.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForServer)
 
@@ -55,7 +55,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_trusted_curve(self):
-        from pyzmq_rpc import Client, Server
+        from pybidirpc import Client, Server
         client_id = 'client'
         server_id = 'server'
         endpoint = 'tcp://127.0.0.1:8998'
@@ -86,12 +86,12 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
                                  self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
-        yield server.stop()
-        yield client.stop()
+        server.stop()
+        client.stop()
 
     @tornado.testing.gen_test
     def test_trusted_curve_with_wrong_peer_public_key(self):
-        from pyzmq_rpc import Client, Server
+        from pybidirpc import Client, Server
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://{}'.format(__name__)
@@ -115,20 +115,20 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
 
-        yield server.start()
-        yield client.start()
+        server.start()
+        client.start()
         future = yield client.string.lower('BAR')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
         with pytest.raises(TimeoutError):
             future.result(timeout=self.timeout)
-        yield server.stop()
-        yield client.stop()
+        server.stop()
+        client.stop()
 
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_allowed_password(self):
-        from pyzmq_rpc import Client, Server
+        from pybidirpc import Client, Server
 
         client_id = 'john'
         server_id = 'server'
@@ -169,13 +169,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
         assert future2.result(timeout=self.timeout) == 'foo_jj'
-        yield server.stop()
-        yield client.stop()
+        server.stop()
+        client.stop()
 
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_wrong_password(self):
-        from pyzmq_rpc import Client, Server
-        from pyzmq_rpc.interfaces import UnauthorizedError
+        from pybidirpc import Client, Server
+        from pybidirpc.interfaces import UnauthorizedError
 
         client_id = 'john'
         server_id = 'server'
@@ -215,5 +215,5 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         with pytest.raises(UnauthorizedError):
             future.result(timeout=self.timeout)
-        yield server.stop()
-        yield client.stop()
+        server.stop()
+        client.stop()

@@ -1,8 +1,8 @@
 import tornado.testing
 from zmq.eventloop import ioloop
 
-from pyzmq_rpc import auth
-from pyzmq_rpc import heartbeat
+from pybidirpc import auth
+from pybidirpc import heartbeat
 
 ioloop.install()
 
@@ -12,13 +12,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     def make_one_server(self, identity, context_module_name, endpoint,
                         io_loop=None):
-        from pyzmq_rpc import Server
+        from pybidirpc import Server
         server = Server(identity, context_module_name,
                         io_loop=io_loop)
         return server
 
     def make_one_client(self, identity, peer_identity, io_loop=None):
-        from pyzmq_rpc import Client
+        from pybidirpc import Client
         client = Client(identity, peer_identity,
                         io_loop=io_loop)
         return client
@@ -35,29 +35,23 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client = self.make_one_client(client_id, server_id,
                                       io_loop=self.io_loop)
 
-        @tornado.gen.coroutine
-        def bind_and_start(server, endpoint):
-            server.bind(endpoint)
-            yield server.start()
+        server.bind(endpoint)
+        yield server.start()
 
-        @tornado.gen.coroutine
-        def connect_and_start(client, endpoint):
-            client.connect(endpoint)
-            yield client.start()
+        client.connect(endpoint)
+        yield client.start()
 
-        yield bind_and_start(server, endpoint)
-        yield connect_and_start(client, endpoint)
         future = yield client.string.upper('hello')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'HELLO'
-        yield client.stop()
-        yield server.stop()
+        client.stop()
+        server.stop()
 
     @tornado.testing.gen_test
     def test_server_can_send(self):
-        from pyzmq_rpc.utils import peer_identity_provider
+        from pybidirpc.utils import peer_identity_provider
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -89,12 +83,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
                                  self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'scream'
-        yield client.stop()
-        yield server.stop()
+        client.stop()
+        server.stop()
 
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
-        from pyzmq_rpc.utils import peer_identity_provider
+        from pybidirpc.utils import peer_identity_provider
         server_id = 'server'
         endpoint = 'inproc://here'
 
@@ -125,6 +119,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert future1.result(timeout=self.timeout) == 'scream1'
         assert future2.result(timeout=self.timeout) == 'scream2'
-        yield client1.stop()
-        yield client2.stop()
-        yield server.stop()
+        client1.stop()
+        client2.stop()
+        server.stop()

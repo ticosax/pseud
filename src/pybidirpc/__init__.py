@@ -162,27 +162,29 @@ class BaseRPC(object):
         if not self.auth_backend.is_authenticated(peer_id):
             if message_type != HELLO:
                 self.auth_backend.handle_authentication(peer_id, message_uuid)
+            else:
+                self.auth_backend.handle_hello(peer_id, message_uuid,
+                                               message)
         else:
             self.heartbeat_backend.handle_heartbeat(peer_id)
-        if message_type == WORK:
-            self._handle_work(message, peer_id, message_uuid)
-        elif message_type == OK:
-            self._handle_ok(message, message_uuid)
-        elif message_type == ERROR:
-            self._handle_error(message, message_uuid)
-        elif message_type == AUTHENTICATED:
-            self.auth_backend.handle_authenticated(message)
-        elif message_type == UNAUTHORIZED:
-            self.auth_backend.handle_authentication(peer_id, message_uuid)
-        elif message_type == HELLO:
-            self.auth_backend.handle_hello(peer_id, message_uuid,
-                                           message)
-        elif message_type == HEARTBEAT:
-            # Can ignore, because every message is an heartbeat
-            pass
-        else:
-            print repr(message_type)
-            raise NotImplementedError
+            if message_type == WORK:
+                self._handle_work(message, peer_id, message_uuid)
+            elif message_type == OK:
+                self._handle_ok(message, message_uuid)
+            elif message_type == ERROR:
+                self._handle_error(message, message_uuid)
+            elif message_type == AUTHENTICATED:
+                self.auth_backend.handle_authenticated(message)
+            elif message_type == UNAUTHORIZED:
+                self.auth_backend.handle_authentication(peer_id, message_uuid)
+            elif message_type == HELLO:
+                self.auth_backend.handle_hello(peer_id, message_uuid, message)
+            elif message_type == HEARTBEAT:
+                # Can ignore, because every message is an heartbeat
+                pass
+            else:
+                print repr(message_type)
+                raise NotImplementedError
 
     @tornado.gen.coroutine
     def start(self):
@@ -191,7 +193,7 @@ class BaseRPC(object):
         yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
             print self.__class__.__name__, 'ready'
-            self.io_loop.start()
+            yield self.io_loop.start()
 
     def _handle_work(self, message, peer_id, message_uuid):
         # TODO provide sandboxing to disallow

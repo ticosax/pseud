@@ -20,20 +20,19 @@ class PyTest(TestCommand):
 version = '0.0.1dev'
 
 
-setup(name='pyzmq-rpc',
+setup(name='pybidirpc',
       version=version,
-      description='RPC Api on top of pzmq',
+      description='Bidirectionnal RPC Api on top of pzmq',
       author='Nicolas Delaby',
       author_email='nicolas.delaby@ezeep.com',
       url='',
       package_dir={'': 'src'},
-      packages=['pyzmq_rpc'],
+      packages=['pybidirpc'],
       zip_safe=True,
       install_requires=[
           'pyzmq',
           'msgpack-python',
           'tornado',
-          'toro',
           'futures',
           'zope.component'
       ],

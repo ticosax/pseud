@@ -5,39 +5,38 @@ import zmq
 import zope.interface.verify
 from zmq.eventloop import ioloop, zmqstream
 
-from pyzmq_rpc import auth
-from pyzmq_rpc import heartbeat
+from pybidirpc import auth, heartbeat
 
 ioloop.install()
 
 
 def test_noop_heartbeat_backend_client():
-    from pyzmq_rpc.heartbeat import NoOpHeartbeatBackendForClient
-    from pyzmq_rpc.interfaces import IHeartbeatBackend
+    from pybidirpc.heartbeat import NoOpHeartbeatBackendForClient
+    from pybidirpc.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForClient)
 
 
 def test_noop_heartbeat_backend_server():
-    from pyzmq_rpc.heartbeat import NoOpHeartbeatBackendForServer
-    from pyzmq_rpc.interfaces import IHeartbeatBackend
+    from pybidirpc.heartbeat import NoOpHeartbeatBackendForServer
+    from pybidirpc.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForServer)
 
 
 def test_testing_heartbeat_backend_client():
-    from pyzmq_rpc.heartbeat import TestingHeartbeatBackendForClient
-    from pyzmq_rpc.interfaces import IHeartbeatBackend
+    from pybidirpc.heartbeat import TestingHeartbeatBackendForClient
+    from pybidirpc.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForClient)
 
 
 def test_testing_heartbeat_backend_server():
-    from pyzmq_rpc.heartbeat import TestingHeartbeatBackendForServer
-    from pyzmq_rpc.interfaces import IHeartbeatBackend
+    from pybidirpc.heartbeat import TestingHeartbeatBackendForServer
+    from pybidirpc.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForServer)
@@ -49,7 +48,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
     def make_one_server(self, identity, context_module_name, endpoint,
                         heartbeat_plugin,
                         io_loop=None):
-        from pyzmq_rpc import Server
+        from pybidirpc import Server
         server = Server(identity, context_module_name,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -58,7 +57,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
     def make_one_client(self, identity, peer_identity,
                         heartbeat_plugin,
                         io_loop=None):
-        from pyzmq_rpc import Client
+        from pybidirpc import Client
         client = Client(identity, peer_identity,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -101,8 +100,8 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert len(sink) >= 10
         assert all([client_id == i for i in sink])
-        yield client.stop()
-        yield server.stop()
+        client.stop()
+        server.stop()
 
     @tornado.testing.gen_test
     def test_basic_heartbeating_with_disconnection(self):
@@ -132,6 +131,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         sink = []
 
         def collector(sink, message):
+            print 'collecting', message
             sink.extend(message)
 
         stream.on_recv(functools.partial(collector, sink))
@@ -143,4 +143,4 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert len(sink) < 10
         assert "Gone 'client'" in sink
-        yield server.stop()
+        server.stop()

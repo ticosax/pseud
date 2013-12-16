@@ -85,6 +85,7 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
         self.periodic_callback.start()
 
     def stop(self):
+        print 'stop TestingHeartbeatBackendForClient'
         self.periodic_callback.stop()
 
 
@@ -119,5 +120,6 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
         self.monitoring_socket.bind('inproc://testing_heartbeating_backend')
 
     def stop(self):
+        print 'stop TestingHeartbeatBackendForServer'
         self.monitoring_socket.close()
         itertools.imap(lambda c: c.stop(), self.callback_pool.itervalues())

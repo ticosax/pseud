@@ -12,7 +12,7 @@ ioloop.install()
 
 
 def test_client_creation():
-    from pyzmq_rpc import Client
+    from pybidirpc import Client
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
@@ -23,7 +23,7 @@ def test_client_creation():
 
 
 def test_client_can_bind():
-    from pyzmq_rpc import Client
+    from pybidirpc import Client
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -32,7 +32,7 @@ def test_client_can_bind():
 
 
 def test_client_can_connect():
-    from pyzmq_rpc import Client
+    from pybidirpc import Client
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -51,13 +51,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         return router_sock
 
     def make_one_client(self, identity, peer_identity, io_loop=None):
-        from pyzmq_rpc import Client
+        from pybidirpc import Client
         client = Client(identity, peer_identity, io_loop=io_loop)
         return client
 
     @tornado.testing.gen_test
     def test_client_method_wrapper(self):
-        from pyzmq_rpc import AttributeWrapper
+        from pybidirpc import AttributeWrapper
         endpoint = 'tcp://127.0.0.1:5000'
         identity = __name__
         peer_identity = 'echo'
@@ -80,11 +80,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
             future = yield wrapper()
             self.io_loop.start()
             future.exception(timeout=.2)
-        yield client.stop()
+        client.stop()
 
     @tornado.testing.gen_test
     def test_job_executed(self):
-        from pyzmq_rpc import OK, VERSION, WORK
+        from pybidirpc import OK, VERSION, WORK
         identity = 'client0'
         peer_identity = 'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__)
@@ -118,3 +118,4 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         self.io_loop.start()
         assert future.result() is True
         assert not client.future_pool
+        client.stop()

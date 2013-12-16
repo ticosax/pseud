@@ -5,11 +5,11 @@ import zmq
 from zmq.eventloop import zmqstream
 import tornado.testing
 
-from pyzmq_rpc import auth, heartbeat
+from pybidirpc import auth, heartbeat
 
 
 def test_server_creation():
-    from pyzmq_rpc import Server
+    from pybidirpc import Server
     identity = 'echo'
     context_module_name = __name__
     server = Server(identity, context_module_name)
@@ -19,7 +19,7 @@ def test_server_creation():
 
 
 def test_server_can_bind():
-    from pyzmq_rpc import Server
+    from pybidirpc import Server
     identity = 'echo'
     context_module_name = __name__
     endpoint = 'ipc://{}'.format(__name__)
@@ -29,7 +29,7 @@ def test_server_can_bind():
 
 
 def test_server_can_connect():
-    from pyzmq_rpc import Server
+    from pybidirpc import Server
     identity = 'echo'
     context_module_name = __name__
     endpoint = 'tcp://127.0.0.1:5000'
@@ -59,14 +59,14 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         return req_sock
 
     def make_one_server(self, identity, context_module_name, endpoint):
-        from pyzmq_rpc import Server
+        from pybidirpc import Server
         server = Server(identity, context_module_name, io_loop=self.io_loop)
         server.bind(endpoint)
         return server
 
     @tornado.testing.gen_test
     def test_job_running(self):
-        from pyzmq_rpc import OK, VERSION, WORK
+        from pybidirpc import OK, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -86,8 +86,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_not_found(self):
-        import pyzmq_rpc
-        from pyzmq_rpc import ERROR, VERSION, WORK
+        import pybidirpc
+        from pybidirpc import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'ipc://{}'.format(self.__class__.__name__)
@@ -106,14 +106,14 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
         assert message == 'thisIsNotAFunction'
-        # pyzmq_rpc.__file__ might ends with .pyc
-        assert any((pyzmq_rpc.__file__ in traceback,
-                    pyzmq_rpc.__file__[:-1] in traceback))
+        # pybidirpc.__file__ might ends with .pyc
+        assert any((pybidirpc.__file__ in traceback,
+                    pybidirpc.__file__[:-1] in traceback))
         yield server.stop()
 
     @tornado.testing.gen_test
     def test_job_raise(self):
-        from pyzmq_rpc import ERROR, VERSION, WORK
+        from pybidirpc import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
         endpoint = 'ipc://{}'.format(self.__class__.__name__)
