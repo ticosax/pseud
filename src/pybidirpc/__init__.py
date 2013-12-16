@@ -39,8 +39,7 @@ _marker = object()
 
 
 def format_remote_traceback(traceback):
-    indent = 3 * 4 * ' '
-    pivot = '\n{}'.format(indent)
+    pivot = '\n{}'.format(3 * 4 * ' ')  # like three tabs
     return textwrap.dedent("""
         -- Beginning of remote traceback --
             {}
