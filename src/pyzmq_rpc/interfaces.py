@@ -2,11 +2,12 @@ import zope.interface
 
 
 AUTHENTICATED = '\x04'
-OK = '\x01'
-HELLO = '\x02'
-WORK = '\x03'
 ERROR = '\x10'
+HEARTBEAT = '\x06'
+HELLO = '\x02'
+OK = '\x01'
 UNAUTHORIZED = '\x11'
+WORK = '\x03'
 
 VERSION = 'v1'
 
@@ -58,6 +59,27 @@ class IClient(zope.interface.Interface):
     """
     Interface for Clients
     """
+
+
+class IHeartbeatBackend(zope.interface.Interface):
+    """
+    Interface for heartbeat backend
+    """
+    def handle_heartbeat(peer_id):
+        """
+        """
+
+    def handle_timeout(peer_id):
+        """
+        """
+
+    def configure():
+        """
+        """
+
+    def stop():
+        """
+        """
 
 
 class IServer(zope.interface.Interface):

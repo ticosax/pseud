@@ -18,22 +18,20 @@ import zope.component
 import zope.interface
 
 from .interfaces import (AUTHENTICATED,
+                         ERROR,
+                         HEARTBEAT,
+                         HELLO,
                          IAuthenticationBackend,
                          IClient,
+                         IHeartbeatBackend,
                          IServer,
-                         ServiceNotFoundError,
                          OK,
-                         HELLO,
-                         WORK,
-                         ERROR,
+                         ServiceNotFoundError,
                          UNAUTHORIZED,
                          VERSION,
+                         WORK,
                          )
 from .utils import async_sleep
-
-# Register explicitely internal adapters
-import zcml
-
 
 ioloop.install()
 
@@ -84,7 +82,8 @@ class BaseRPC(object):
                  security_plugin='noop_auth_backend',
                  public_key=None, private_key=None,
                  peer_public_key=None, timeout=5,
-                 password=None):
+                 password=None,
+                 heartbeat_plugin='noop_heartbeat_backend'):
         self.identity = identity
         self.context_module_name = context_module_name
         self.context = context or zmq.Context.instance()
@@ -102,7 +101,10 @@ class BaseRPC(object):
         self.private_key = private_key
         self.peer_public_key = peer_public_key
         self.password = password
-        self.current_untrusted_key = None
+        self.heartbeat_backend = zope.component.getAdapter(
+            self,
+            IHeartbeatBackend,
+            name=heartbeat_plugin)
         if io_loop is None:
             self.internal_loop = True
             self.io_loop = ioloop.IOLoop.instance()
@@ -118,7 +120,8 @@ class BaseRPC(object):
             return super(BaseRPC, self).__getattr__(name, default=default)
         except AttributeError:
             if not self.initialized:
-                raise RuntimeError('You must connect or bind first')
+                raise RuntimeError('You must connect or bind first'
+                                   ' in order to call {!r}'.format(name))
             return AttributeWrapper(self, name)
 
     def connect_or_bind(self, name, endpoint):
@@ -128,6 +131,7 @@ class BaseRPC(object):
         # socket.linger = 0
         socket.ROUTER_MANDATORY = True
         self.auth_backend.configure()
+        self.heartbeat_backend.configure()
         caller = operator.methodcaller(name, endpoint)
         caller(socket)
         self.stream = zmqstream.ZMQStream(socket, self.io_loop)
@@ -155,10 +159,12 @@ class BaseRPC(object):
         # When client uses ROUTER socket
         peer_id, version, message_uuid, message_type, message = response
         assert version == VERSION
-        if (not self.auth_backend.is_authenticated(peer_id)
-                and message_type != HELLO):
-            self.auth_backend.handle_authentication(peer_id, message_uuid)
-        elif message_type == WORK:
+        if not self.auth_backend.is_authenticated(peer_id):
+            if message_type != HELLO:
+                self.auth_backend.handle_authentication(peer_id, message_uuid)
+        else:
+            self.heartbeat_backend.handle_heartbeat(peer_id)
+        if message_type == WORK:
             self._handle_work(message, peer_id, message_uuid)
         elif message_type == OK:
             self._handle_ok(message, message_uuid)
@@ -171,6 +177,9 @@ class BaseRPC(object):
         elif message_type == HELLO:
             self.auth_backend.handle_hello(peer_id, message_uuid,
                                            message)
+        elif message_type == HEARTBEAT:
+            # Can ignore, because every message is an heartbeat
+            pass
         else:
             print repr(message_type)
             raise NotImplementedError
@@ -245,6 +254,7 @@ class BaseRPC(object):
         self.stream.flush()
         self.stream.close()
         self.auth_backend.stop()
+        self.heartbeat_backend.stop()
         if self.internal_loop:
             self.io_loop.stop()
 
@@ -258,6 +268,7 @@ class Client(BaseRPC):
                  security_plugin='noop_auth_backend', timeout=5,
                  public_key=None, private_key=None, peer_public_key=None,
                  password=None,
+                 heartbeat_plugin='noop_heartbeat_backend',
                  ):
         super(Client, self).__init__(identity, peer_identity=peer_identity,
                                      context_module_name=context_module_name,
@@ -267,6 +278,7 @@ class Client(BaseRPC):
                                      private_key=private_key,
                                      peer_public_key=peer_public_key,
                                      password=password,
+                                     heartbeat_plugin=heartbeat_plugin,
                                      )
 
 
@@ -277,11 +289,13 @@ class Server(BaseRPC):
     def __init__(self, identity, context_module_name=None,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend', timeout=5,
-                 private_key=None, public_key=None):
+                 private_key=None, public_key=None,
+                 heartbeat_plugin='noop_heartbeat_backend'):
         super(Server, self).__init__(identity,
                                      context_module_name=context_module_name,
                                      context=context, io_loop=io_loop,
                                      security_plugin=security_plugin,
                                      timeout=timeout,
                                      public_key=public_key,
-                                     private_key=private_key)
+                                     private_key=private_key,
+                                     heartbeat_plugin=heartbeat_plugin)
