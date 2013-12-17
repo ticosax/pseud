@@ -17,6 +17,12 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
+def read_that_file(path):
+    with open(path) as open_file:
+        return open_file.read()
+
+long_description = '\n'.join((read_that_file('README.rst'),))
+
 version = '0.0.1dev'
 
 
@@ -28,6 +34,7 @@ setup(name='pybidirpc',
       url='',
       package_dir={'': 'src'},
       packages=['pybidirpc'],
+      include_package_data=True,
       zip_safe=True,
       install_requires=[
           'pyzmq',
