@@ -32,10 +32,10 @@ setup(name='pybidirpc',
       install_requires=[
           'pyzmq',
           'msgpack-python',
-          'tornado',
-          'futures',
           'zope.component'
       ],
+      extras_require={'Tornado': ('tornado', 'futures'),
+                      'Gevent': ('gevent',)},
       tests_require=[
           'pytest',
       ],
