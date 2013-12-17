@@ -56,6 +56,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve(self):
         from pybidirpc import Client, Server
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'tcp://127.0.0.1:8998'
@@ -92,6 +93,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve_with_wrong_peer_public_key(self):
         from pybidirpc import Client, Server
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://{}'.format(__name__)
@@ -129,6 +131,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_allowed_password(self):
         from pybidirpc import Client, Server
+        from pybidirpc import auth, heartbeat  # NOQA
 
         client_id = 'john'
         server_id = 'server'
@@ -176,6 +179,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_untrusted_curve_with_wrong_password(self):
         from pybidirpc import Client, Server
         from pybidirpc.interfaces import UnauthorizedError
+        from pybidirpc import auth, heartbeat  # NOQA
 
         client_id = 'john'
         server_id = 'server'

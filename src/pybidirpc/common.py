@@ -116,11 +116,7 @@ class BaseRPC(object):
         self.heartbeat_backend.configure()
         caller = operator.methodcaller(name, endpoint)
         caller(socket)
-        self._prepare_stream()
         self.initialized = True
-
-    def send_work(self, *args, **kw):
-        return self._send_work(*args, **kw)
 
     def _prepare_work(self, peer_identity, name, *args, **kw):
         work = msgpack.packb((name, args, kw))
@@ -191,7 +187,7 @@ class BaseRPC(object):
         response = msgpack.packb(result)
         message = [peer_id, VERSION, message_uuid, status, response]
         print 'worker send reply', message
-        self.stream.send_multipart(message)
+        self.send_message(message)
 
     def _handle_ok(self, message, message_uuid):
         value = msgpack.unpackb(message)

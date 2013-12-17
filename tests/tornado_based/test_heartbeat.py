@@ -100,6 +100,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert len(sink) >= 10
         assert all([client_id == i for i in sink])
+        monitoring_socket.close()
         client.stop()
         server.stop()
 
@@ -143,4 +144,5 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         self.wait()
         assert len(sink) < 10
         assert "Gone 'client'" in sink
+        monitoring_socket.close()
         server.stop()

@@ -1,9 +1,6 @@
 import tornado.testing
 from zmq.eventloop import ioloop
 
-from pybidirpc import auth
-from pybidirpc import heartbeat
-
 ioloop.install()
 
 
@@ -25,6 +22,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_client_can_send(self):
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -39,7 +37,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
 
         client.connect(endpoint)
-        yield client.start()
 
         future = yield client.string.upper('hello')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
@@ -52,6 +49,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_server_can_send(self):
         from pybidirpc.utils import peer_identity_provider
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -89,6 +87,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
         from pybidirpc.utils import peer_identity_provider
+        from pybidirpc import auth, heartbeat  # NOQA
         server_id = 'server'
         endpoint = 'inproc://here'
 

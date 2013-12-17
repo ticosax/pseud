@@ -1,10 +1,7 @@
 import functools
-import itertools
 import uuid
 
-import tornado
 import zmq
-from zmq.eventloop import ioloop
 import zope.component
 import zope.interface
 
@@ -72,21 +69,20 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 
     def handle_heartbeat(self, peer_id):
         uid = uuid.uuid4().bytes
-        self.rpc.stream.send_multipart([self.rpc.peer_identity, VERSION,
-                                        uid, HEARTBEAT, ''])
+        self.rpc.send_message([self.rpc.peer_identity, VERSION,
+                               uid, HEARTBEAT, ''])
 
     def configure(self):
-        self.periodic_callback = tornado.ioloop.PeriodicCallback(
+        self.periodic_callback = self.rpc.create_periodic_callback(
             functools.partial(self.handle_heartbeat, self.rpc.identity),
-            callback_time=100,
-            io_loop=self.rpc.io_loop
-        )
-        print 'Heartbeat starting'
-        self.periodic_callback.start()
+            .1)
 
     def stop(self):
         print 'stop TestingHeartbeatBackendForClient'
-        self.periodic_callback.stop()
+        try:
+            self.periodic_callback.stop()
+        except:
+            self.periodic_callback.kill()
 
 
 @register_heartbeat_backend
@@ -94,26 +90,24 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     name = 'testing_heartbeat_backend'
-    max_time_before_dead = 200
+    max_time_before_dead = .2
     callback_pool = {}
 
     def handle_timeout(self, peer_id):
-        callback = self.callback_pool.pop(peer_id)
-        callback.stop()
-        callback = None
+        print 'Timeout detected'
         self.monitoring_socket.send('Gone {!r}'.format(peer_id))
 
     def handle_heartbeat(self, peer_id):
         self.monitoring_socket.send(peer_id)
         previous = self.callback_pool.pop(peer_id, None)
         if previous is not None:
-            previous.stop()
-            previous = None
-        callback = self.callback_pool[peer_id] = ioloop.DelayedCallback(
+            try:
+                self.rpc.io_loop.remove_timeout(previous)
+            except AttributeError:
+                previous.kill()
+        self.callback_pool[peer_id] = self.rpc.create_later_callback(
             functools.partial(self.handle_timeout, peer_id),
-            self.max_time_before_dead,
-            io_loop=self.rpc.io_loop)
-        callback.start()
+            self.max_time_before_dead)
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
@@ -122,4 +116,8 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     def stop(self):
         print 'stop TestingHeartbeatBackendForServer'
         self.monitoring_socket.close()
-        itertools.imap(lambda c: c.stop(), self.callback_pool.itervalues())
+        for callback in self.callback_pool.itervalues():
+            try:
+                self.rpc.io_loop.remove_timeout(callback)
+            except AttributeError:
+                callback.kill()

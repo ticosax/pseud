@@ -1,3 +1,5 @@
+import functools
+
 import tornado.concurrent
 import tornado.gen
 import zmq
@@ -21,6 +23,7 @@ class TornadoBaseRPC(BaseRPC):
         return zmq.Context.instance()
 
     def _backend_init(self, io_loop=None):
+        self.stream = None
         self.internal_loop = False
         if io_loop is None:
             self.internal_loop = True
@@ -29,16 +32,16 @@ class TornadoBaseRPC(BaseRPC):
             self.io_loop = io_loop
 
     @tornado.gen.coroutine
-    def _send_work(self, peer_identity, name, *args, **kw):
+    def send_work(self, peer_identity, name, *args, **kw):
+        yield self.start()
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         print 'sending work', message
         self.auth_backend.save_last_work(message)
-        yield tornado.gen.Task(self.stream.send_multipart, message)
+        self.send_message(message)
         print 'work sent'
         self.future_pool[uid] = future = tornado.concurrent.Future()
         self.io_loop.add_future(future,
                                 functools.partial(self._cleanup_future, uid))
-        yield self.start()
         raise tornado.gen.Return(future)
 
     def _cleanup_future(self, uuid, future):
@@ -47,25 +50,49 @@ class TornadoBaseRPC(BaseRPC):
         except KeyError:
             pass
 
+    @tornado.gen.coroutine
+    def send_message(self, message):
+        yield tornado.gen.Task(self.stream.send_multipart, message)
+
     def _store_result_in_future(self, future, result):
         future.set_result(result)
 
     @tornado.gen.coroutine
     def start(self):
-        self.stream.on_recv(self.on_socket_ready)
+        if self.stream is None:
+            self.stream = self.read_forever(self.socket,
+                                            self.on_socket_ready)
         # Warmup delay !!
         yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
             print self.__class__.__name__, 'ready'
             yield self.io_loop.start()
 
-    def _prepare_stream(self):
-        self.stream = zmqstream.ZMQStream(self.socket, self.io_loop)
+    def read_forever(self, socket, callback):
+        stream = zmqstream.ZMQStream(socket,
+                                     io_loop=self.io_loop)
+        stream.on_recv(callback)
+        return stream
+
+    def create_periodic_callback(self, callback, timer):
+        periodic_callback = tornado.ioloop.PeriodicCallback(
+            callback,
+            callback_time=timer * 1000,
+            io_loop=self.io_loop)
+        print 'Heartbeat starting'
+        periodic_callback.start()
+        return periodic_callback
+
+    def create_later_callback(self, callback, timer):
+        return self.io_loop.add_timeout(
+            self.io_loop.time() + timer,
+            callback)
 
     def stop(self):
-        self.stream.on_recv(None)
-        self.stream.flush()
-        self.stream.close()
+        if self.stream is not None:
+            self.stream.on_recv(None)
+            self.stream.flush()
+            self.stream.close()
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
         if self.internal_loop:

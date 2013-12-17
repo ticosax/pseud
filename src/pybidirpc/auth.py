@@ -3,7 +3,6 @@ import itertools
 import zope.component
 import zope.interface
 import zmq
-from zmq.eventloop import zmqstream
 
 from .interfaces import (AUTHENTICATED,
                          IAuthenticationBackend,
@@ -104,11 +103,6 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     def __init__(self, rpc):
         self.rpc = rpc
 
-    def stop(self):
-        self.stream.on_recv_stream(None)
-        self.stream.flush()
-        self.stream.close()
-
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
         self.rpc.socket.curve_secretkey = self.rpc.private_key
@@ -118,11 +112,10 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.REP)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
-        self.stream = zmqstream.ZMQStream(zap_socket,
-                                          io_loop=self.rpc.io_loop)
-        self.stream.on_recv_stream(self._zap_handler)
+        self.rpc.read_forever(zap_socket,
+                              self._zap_handler)
 
-    def _zap_handler(self, stream, message):
+    def _zap_handler(self, message):
         """
         http://rfc.zeromq.org/spec:27
         """
@@ -131,7 +124,7 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         assert version == '1.0'
         assert mechanism == 'CURVE'
         reply = [version, sequence, '200', 'OK', self.name, '']
-        stream.send_multipart(reply)
+        self.zap_socket.send_multipart(reply)
 
     def handle_hello(self, *args):
         pass
@@ -144,6 +137,9 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
 
     def is_authenticated(self, peer_id):
         return True
+
+    def stop(self):
+        self.zap_socket.close()
 
 
 @register_auth_backend
@@ -172,14 +168,14 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
             future.set_exception(UnauthorizedError('Max authentication'
                                                    ' retries reached'))
         else:
-            self.rpc.stream.send_multipart([peer_id, VERSION, message_uuid,
-                                            HELLO, self.rpc.password])
+            self.rpc.send_message([peer_id, VERSION, message_uuid,
+                                   HELLO, self.rpc.password])
 
     def handle_hello(self, *args):
         pass
 
     def handle_authenticated(self, message_uuid):
-        self.rpc.stream.send_multipart(self.last_message)
+        self.rpc.send_message(self.last_message)
         self.last_message = None
 
     def save_last_work(self, message):
@@ -214,7 +210,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
     user_map = {}
     current_untrusted_key = None
 
-    def _zap_handler(self, stream, message):
+    def _zap_handler(self, message):
         """
         http://rfc.zeromq.org/spec:27
         """
@@ -225,7 +221,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         if key not in self.trusted_keys:
             self.current_untrusted_key = key
         reply = [version, sequence, '200', 'OK', self.name, '']
-        stream.send_multipart(reply)
+        self.zap_socket.send_multipart(reply)
 
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
@@ -236,9 +232,8 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.REP)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
-        self.stream = zmqstream.ZMQStream(zap_socket,
-                                          io_loop=self.rpc.io_loop)
-        self.stream.on_recv_stream(self._zap_handler)
+        self.reader = self.rpc.read_forever(zap_socket,
+                                            self._zap_handler)
 
     def handle_hello(self, peer_id, message_uuid, message):
         if peer_id in self.user_map and self.user_map[peer_id] == message:
@@ -249,8 +244,8 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             reply = 'Authentication Error'
             status = UNAUTHORIZED
         print 'Sending Hello reply', reply
-        self.rpc.stream.send_multipart([peer_id, VERSION, message_uuid,
-                                        status, reply])
+        self.rpc.send_message([peer_id, VERSION, message_uuid,
+                               status, reply])
 
     def handle_authenticated(self, message):
         pass
@@ -261,8 +256,8 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             self.current_untrusted_key = None
         reply = 'Authentication Error'
         status = UNAUTHORIZED
-        self.rpc.stream.send_multipart([peer_id, VERSION, message_uuid,
-                                        status, reply])
+        self.rpc.send_message([peer_id, VERSION, message_uuid,
+                               status, reply])
 
     def is_authenticated(self, peer_id):
         return (self.current_untrusted_key is None
@@ -270,9 +265,12 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
                      or peer_id in self.trusted_keys.values()))
 
     def stop(self):
-        self.stream.on_recv_stream(None)
-        self.stream.flush()
-        self.stream.close()
+        try:
+            self.reader.kill()
+        except AttributeError:
+            pass
+
+        self.zap_socket.close()
 
     def save_last_work(self, message):
         pass
