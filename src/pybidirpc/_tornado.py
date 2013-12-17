@@ -35,10 +35,17 @@ class TornadoBaseRPC(BaseRPC):
         self.auth_backend.save_last_work(message)
         yield tornado.gen.Task(self.stream.send_multipart, message)
         print 'work sent'
-        # XXX make sure we destroy the future if no answer is comming
         self.future_pool[uid] = future = tornado.concurrent.Future()
+        self.io_loop.add_future(future,
+                                functools.partial(self._cleanup_future, uid))
         yield self.start()
         raise tornado.gen.Return(future)
+
+    def _cleanup_future(self, uuid, future):
+        try:
+            del self.future_pool[uuid]
+        except KeyError:
+            pass
 
     def _store_result_in_future(self, future, result):
         future.set_result(result)
