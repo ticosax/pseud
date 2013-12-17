@@ -8,13 +8,8 @@ from pybidirpc import auth, heartbeat  # NOQA
 def collector(sink, socket):
     gevent.sleep(.1)
     while True:
-        try:
-            message = socket.recv_multipart()
-        except zmq.ZMQError:
-            gevent.sleep(.1)
-        else:
-            print 'collecting from gevent', message
-            sink.extend(message)
+        message = socket.recv_multipart()
+        sink.extend(message)
 
 
 def test_noop_heartbeat_backend_client():
