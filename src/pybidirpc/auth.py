@@ -153,8 +153,12 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     2. CURVE (trusted version)
     """
     name = 'untrusted_curve'
-    last_message = None
-    counter = itertools.count()
+    max_retries = 2
+
+    def __init__(self, *args, **kw):
+        super(CurveWithUntrustedKeyForClient, self).__init__(*args, **kw)
+        self.counter = itertools.count()
+        self.last_message = None
 
     def configure(self):
         self.rpc.socket.curve_serverkey = self.rpc.peer_public_key
@@ -163,8 +167,8 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         assert self.rpc.socket.mechanism == zmq.CURVE
 
     def handle_authentication(self, peer_id, message_uuid):
-        if next(self.counter) >= 3:
-            future = self.rpc.future_pool[message_uuid]
+        if next(self.counter) >= self.max_retries:
+            future = self.rpc.future_pool.pop(message_uuid)
             future.set_exception(UnauthorizedError('Max authentication'
                                                    ' retries reached'))
         else:
