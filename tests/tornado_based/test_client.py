@@ -77,7 +77,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert wrapper.name == method_name
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.io_loop.stop)
-        print 'waiting for result'
         with pytest.raises(TimeoutError):
             future = yield wrapper()
             self.io_loop.start()
@@ -97,9 +96,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         future = yield client.please.do_that_job(1, 2, 3, b=4)
-        print 'waiting for client work'
         request = yield tornado.gen.Task(stream.on_recv)
-        print 'receive from client', request
         stream.stop_on_recv()
         server_id, version, uid, message_type, message = request
         assert version == VERSION
@@ -112,11 +109,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
         reply = [identity, version, uid, OK, msgpack.packb(True)]
-        print 'reply from test', reply
         yield tornado.gen.Task(stream.send_multipart, reply)
         self.io_loop.add_timeout(self.io_loop.time() + .1,
                                  self.io_loop.stop)
-        print 'waiting for result'
         self.io_loop.start()
         assert future.result() is True
         assert not client.future_pool

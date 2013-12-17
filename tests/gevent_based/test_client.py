@@ -75,7 +75,6 @@ def test_client_method_wrapper():
     assert isinstance(wrapper, AttributeWrapper)
     assert wrapper._part_names == method_name.split('.')
     assert wrapper.name == method_name
-    print 'waiting for result'
     with pytest.raises(Timeout):
         future = wrapper()
         future.get(timeout=.2)
@@ -94,9 +93,7 @@ def test_job_executed():
     client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
-    print 'waiting for client work'
     request = gevent.spawn(read_once, socket).get()
-    print 'receive from client', request
     server_id, version, uid, message_type, message = request
     assert version == VERSION
     assert uid
@@ -108,9 +105,7 @@ def test_job_executed():
     assert args == [1, 2, 3]
     assert kw == {'b': 4}
     reply = [identity, version, uid, OK, msgpack.packb(True)]
-    print 'reply from test', reply
     gevent.spawn(socket.send_multipart, reply)
-    print 'waiting for result'
     assert future.get() is True
     assert not client.future_pool
     client.stop()

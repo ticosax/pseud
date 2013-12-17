@@ -72,14 +72,10 @@ def test_job_running():
     context_module_name = __name__
     endpoint = 'inproc://{}'.format(__name__)
     server = make_one_server(identity, context_module_name, endpoint)
-    print 'starting server'
     server.start()
-    print 'server started'
     socket = make_one_client_socket('client', endpoint)
     work = msgpack.packb((job_success.func_name, (1, 2, 3), {'d': False}))
-    print 'client is sending work'
     gevent.spawn(socket.send_multipart, [identity, VERSION, '', WORK, work])
-    print 'waiting for response'
     result = gevent.event.AsyncResult()
     gevent.spawn(read_once, socket).link(result)
     response = result.get()

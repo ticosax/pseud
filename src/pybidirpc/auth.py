@@ -1,4 +1,5 @@
 import itertools
+import logging
 
 import zope.component
 import zope.interface
@@ -14,6 +15,8 @@ from .interfaces import (AUTHENTICATED,
                          VERSION,
                          )
 from .utils import register_auth_backend
+
+logger = logging.getLogger(__name__)
 
 
 class _BaseAuthBackend(object):
@@ -112,8 +115,8 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.REP)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
-        self.rpc.read_forever(zap_socket,
-                              self._zap_handler)
+        self.reader = self.rpc.read_forever(zap_socket,
+                                            self._zap_handler)
 
     def _zap_handler(self, message):
         """
@@ -139,6 +142,12 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         return True
 
     def stop(self):
+        try:
+            self.reader.kill()
+        except AttributeError:
+            self.reader.on_recv(None)
+            self.reader.flush()
+            self.reader.close()
         self.zap_socket.close()
 
 
@@ -247,7 +256,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         else:
             reply = 'Authentication Error'
             status = UNAUTHORIZED
-        print 'Sending Hello reply', reply
+        logger.debug('Sending Hello reply: {!r}'.format(reply))
         self.rpc.send_message([peer_id, VERSION, message_uuid,
                                status, reply])
 
@@ -258,7 +267,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         if self.current_untrusted_key is not None:
             self.pending_keys[peer_id] = self.current_untrusted_key
             self.current_untrusted_key = None
-        reply = 'Authentication Error'
+        reply = 'Authentication Required'
         status = UNAUTHORIZED
         self.rpc.send_message([peer_id, VERSION, message_uuid,
                                status, reply])
@@ -272,8 +281,9 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         try:
             self.reader.kill()
         except AttributeError:
-            pass
-
+            self.reader.on_recv(None)
+            self.reader.flush()
+            self.reader.close()
         self.zap_socket.close()
 
     def save_last_work(self, message):

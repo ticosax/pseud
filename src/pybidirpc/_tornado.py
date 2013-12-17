@@ -1,4 +1,5 @@
 import functools
+import logging
 
 import tornado.concurrent
 import tornado.gen
@@ -10,6 +11,8 @@ from .common import BaseRPC
 from .interfaces import IClient, IServer
 
 ioloop.install()
+
+logger = logging.getLogger(__name__)
 
 
 def async_sleep(io_loop, duration):
@@ -23,7 +26,7 @@ class TornadoBaseRPC(BaseRPC):
         return zmq.Context.instance()
 
     def _backend_init(self, io_loop=None):
-        self.stream = None
+        self.reader = None
         self.internal_loop = False
         if io_loop is None:
             self.internal_loop = True
@@ -35,10 +38,10 @@ class TornadoBaseRPC(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         yield self.start()
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
-        print 'sending work', message
+        logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
         self.send_message(message)
-        print 'work sent'
+        logger.debug('Work sent')
         self.future_pool[uid] = future = tornado.concurrent.Future()
         self.io_loop.add_future(future,
                                 functools.partial(self._cleanup_future, uid))
@@ -52,20 +55,20 @@ class TornadoBaseRPC(BaseRPC):
 
     @tornado.gen.coroutine
     def send_message(self, message):
-        yield tornado.gen.Task(self.stream.send_multipart, message)
+        yield tornado.gen.Task(self.reader.send_multipart, message)
 
     def _store_result_in_future(self, future, result):
         future.set_result(result)
 
     @tornado.gen.coroutine
     def start(self):
-        if self.stream is None:
-            self.stream = self.read_forever(self.socket,
+        if self.reader is None:
+            self.reader = self.read_forever(self.socket,
                                             self.on_socket_ready)
         # Warmup delay !!
         yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
-            print self.__class__.__name__, 'ready'
+            logger.debug('{} sent'.format(self.__class__.__name__))
             yield self.io_loop.start()
 
     def read_forever(self, socket, callback):
@@ -79,7 +82,6 @@ class TornadoBaseRPC(BaseRPC):
             callback,
             callback_time=timer * 1000,
             io_loop=self.io_loop)
-        print 'Heartbeat starting'
         periodic_callback.start()
         return periodic_callback
 
@@ -89,10 +91,10 @@ class TornadoBaseRPC(BaseRPC):
             callback)
 
     def stop(self):
-        if self.stream is not None:
-            self.stream.on_recv(None)
-            self.stream.flush()
-            self.stream.close()
+        if self.reader is not None:
+            self.reader.on_recv(None)
+            self.reader.flush()
+            self.reader.close()
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
         if self.internal_loop:

@@ -1,6 +1,7 @@
 import __builtin__
 import importlib
 import functools
+import logging
 import operator
 import sys
 import textwrap
@@ -23,6 +24,8 @@ from .interfaces import (AUTHENTICATED,
                          VERSION,
                          WORK,
                          )
+
+logger = logging.getLogger(__name__)
 
 _marker = object()
 
@@ -125,7 +128,7 @@ class BaseRPC(object):
         return message, uid
 
     def on_socket_ready(self, response):
-        print 'Message received for {}'.format(self), response
+        logger.debug('Message received for {!r}: {!r}'.format(self, response))
         # When client uses ROUTER socket
         peer_id, version, message_uuid, message_type, message = response
         assert version == VERSION
@@ -153,7 +156,8 @@ class BaseRPC(object):
                 # Can ignore, because every message is an heartbeat
                 pass
             else:
-                print repr(message_type)
+                logger.error('Unknown message_type'
+                             ' received {!r}'.format(message_type))
                 raise NotImplementedError
 
     def _handle_work(self, message, peer_id, message_uuid):
@@ -186,12 +190,13 @@ class BaseRPC(object):
             status = OK
         response = msgpack.packb(result)
         message = [peer_id, VERSION, message_uuid, status, response]
-        print 'worker send reply', message
+        logger.debug('Worker send reply {!r}'.format(message))
         self.send_message(message)
 
     def _handle_ok(self, message, message_uuid):
         value = msgpack.unpackb(message)
-        print 'Client result {!r} from {!r}'.format(value, message_uuid)
+        logger.debug('Client result {!r} from {!r}'.format(value,
+                                                           message_uuid))
         future = self.future_pool.pop(message_uuid)
         self._store_result_in_future(future, value)
 

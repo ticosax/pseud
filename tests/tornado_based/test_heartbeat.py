@@ -5,7 +5,6 @@ import zmq
 import zope.interface.verify
 from zmq.eventloop import ioloop, zmqstream
 
-from pybidirpc import auth, heartbeat
 
 ioloop.install()
 
@@ -49,6 +48,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         heartbeat_plugin,
                         io_loop=None):
         from pybidirpc import Server
+        from pybidirpc import auth, heartbeat  # NOQA
         server = Server(identity, context_module_name,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -58,6 +58,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         heartbeat_plugin,
                         io_loop=None):
         from pybidirpc import Client
+        from pybidirpc import auth, heartbeat  # NOQA
         client = Client(identity, peer_identity,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -65,6 +66,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating(self):
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -106,6 +108,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating_with_disconnection(self):
+        from pybidirpc import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -132,7 +135,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         sink = []
 
         def collector(sink, message):
-            print 'collecting', message
             sink.extend(message)
 
         stream.on_recv(functools.partial(collector, sink))

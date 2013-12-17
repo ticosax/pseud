@@ -1,9 +1,13 @@
+import logging
 import gevent
 import zmq.green as zmq
 import zope.interface
 
 from .common import BaseRPC
 from .interfaces import IClient, IServer
+
+
+logger = logging.getLogger(__name__)
 
 
 def periodic_loop(callback, timer):
@@ -29,10 +33,10 @@ class GeventBaseRPC(BaseRPC):
 
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
-        print 'sending work', message
+        logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
         self.send_message(message)
-        print 'work sent'
+        logger.debug('Work sent')
         # XXX make sure we destroy the future if no answer is comming
         self.future_pool[uid] = future = gevent.event.AsyncResult()
         self.start()

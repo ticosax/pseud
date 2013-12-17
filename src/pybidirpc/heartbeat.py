@@ -1,4 +1,5 @@
 import functools
+import logging
 import uuid
 
 import zmq
@@ -12,6 +13,8 @@ from .interfaces import (IClient,
                          VERSION)
 
 from .utils import register_heartbeat_backend
+
+logger = logging.getLogger(__name__)
 
 
 class _BaseHeartbeatBackend(object):
@@ -78,10 +81,9 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
             .1)
 
     def stop(self):
-        print 'stop TestingHeartbeatBackendForClient'
         try:
             self.periodic_callback.stop()
-        except:
+        except AttributeError:
             self.periodic_callback.kill()
 
 
@@ -94,7 +96,7 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     callback_pool = {}
 
     def handle_timeout(self, peer_id):
-        print 'Timeout detected'
+        logger.debug('Timeout detected for {!r}'.format(peer_id))
         self.monitoring_socket.send('Gone {!r}'.format(peer_id))
 
     def handle_heartbeat(self, peer_id):
@@ -114,7 +116,6 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
         self.monitoring_socket.bind('inproc://testing_heartbeating_backend')
 
     def stop(self):
-        print 'stop TestingHeartbeatBackendForServer'
         self.monitoring_socket.close()
         for callback in self.callback_pool.itervalues():
             try:
