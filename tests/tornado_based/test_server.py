@@ -23,7 +23,7 @@ def test_server_can_bind():
     from pybidirpc import Server
     identity = 'echo'
     context_module_name = __name__
-    endpoint = 'ipc://{}'.format(__name__)
+    endpoint = 'inproc://{}'.format(__name__)
     server = Server(identity, context_module_name,
                     security_plugin='noop_auth_backend')
     server.bind(endpoint)
@@ -91,7 +91,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         from pybidirpc.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
-        endpoint = 'ipc://{}'.format(self.__class__.__name__)
+        endpoint = 'inproc://{}'.format(self.__class__.__name__)
         server = self.make_one_server(identity, context_module_name, endpoint)
         socket = self.make_one_client_socket('client', endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
@@ -116,7 +116,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         from pybidirpc.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
         context_module_name = __name__
-        endpoint = 'ipc://{}'.format(self.__class__.__name__)
+        endpoint = 'inproc://{}'.format(self.__class__.__name__)
         server = self.make_one_server(identity, context_module_name, endpoint)
         socket = self.make_one_client_socket('client', endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)

@@ -24,20 +24,22 @@ def test_client_creation():
 
 def test_client_can_bind():
     from pybidirpc import Client
-    endpoint = 'tcp://127.0.0.1:5000'
+    endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
     client.bind(endpoint)
+    client.stop()
 
 
 def test_client_can_connect():
     from pybidirpc import Client
-    endpoint = 'tcp://127.0.0.1:5000'
+    endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
     client.connect(endpoint)
+    client.stop()
 
 
 class ClientTestCase(tornado.testing.AsyncTestCase):
@@ -58,7 +60,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_client_method_wrapper(self):
         from pybidirpc.common import AttributeWrapper
-        endpoint = 'tcp://127.0.0.1:5000'
+        endpoint = 'inproc://{}'.format(__name__)
         identity = __name__
         peer_identity = 'echo'
         client = self.make_one_client(identity, peer_identity,
@@ -87,7 +89,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pybidirpc.interfaces import OK, VERSION, WORK
         identity = 'client0'
         peer_identity = 'echo'
-        endpoint = 'ipc://{}'.format(self.__class__.__name__)
+        endpoint = 'inproc://{}'.format(self.__class__.__name__)
         socket = self.make_one_server_socket(peer_identity, endpoint)
         client = self.make_one_client(identity, peer_identity,
                                       io_loop=self.io_loop)

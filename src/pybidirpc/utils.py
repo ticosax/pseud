@@ -1,4 +1,3 @@
-import tornado.gen
 import zope.component
 import zope.interface
 
@@ -16,12 +15,6 @@ class peer_identity_provider(object):
 
     def __exit__(self, *args):
         self.server.peer_identity = None
-
-
-def async_sleep(io_loop, duration):
-    return tornado.gen.Task(
-        io_loop.add_timeout,
-        io_loop.time() + duration)
 
 
 registry = zope.component.getGlobalSiteManager()
