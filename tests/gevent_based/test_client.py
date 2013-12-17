@@ -13,6 +13,7 @@ def read_once(socket):
 
 def test_client_creation():
     from pybidirpc._gevent import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
@@ -23,6 +24,7 @@ def test_client_creation():
 
 def test_client_can_bind():
     from pybidirpc import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -33,6 +35,7 @@ def test_client_can_bind():
 
 def test_client_can_connect():
     from pybidirpc import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -45,12 +48,13 @@ def make_one_server_socket(identity, endpoint):
     context = zmq.Context.instance()
     router_sock = context.socket(zmq.ROUTER)
     router_sock.identity = identity
-    router_sock.bind(endpoint)
-    return router_sock
+    port = router_sock.bind_to_random_port(endpoint)
+    return port, router_sock
 
 
 def make_one_client(identity, peer_identity):
     from pybidirpc._gevent import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     client = Client(identity, peer_identity)
     return client
 
@@ -80,18 +84,18 @@ def test_client_method_wrapper():
 
 def test_job_executed():
     from pybidirpc.interfaces import OK, VERSION, WORK
+    from pybidirpc import auth, heartbeat  # NOQA
     identity = 'client0'
     peer_identity = 'echo'
-    endpoint = 'inproc://{}'.format(__name__)
-    socket = make_one_server_socket(peer_identity, endpoint)
+    endpoint = 'tcp://127.0.0.1'
+    port, socket = make_one_server_socket(peer_identity, endpoint)
+
     client = make_one_client(identity, peer_identity)
-    client.connect(endpoint)
+    client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
     print 'waiting for client work'
-    result = gevent.event.AsyncResult()
-    gevent.spawn(read_once, socket).link(result)
-    request = result.get()
+    request = gevent.spawn(read_once, socket).get()
     print 'receive from client', request
     server_id, version, uid, message_type, message = request
     assert version == VERSION
@@ -110,3 +114,4 @@ def test_job_executed():
     assert future.get() is True
     assert not client.future_pool
     client.stop()
+    socket.close()

@@ -6,44 +6,63 @@ from .common import BaseRPC
 from .interfaces import IClient, IServer
 
 
+def periodic_loop(callback, timer):
+    while True:
+        gevent.sleep(timer)
+        callback()
+
+
+def forever_loop(socket, callback):
+    while True:
+        message = socket.recv_multipart()
+        callback(message)
+
+
 class GeventBaseRPC(BaseRPC):
 
     def _make_context(self):
         return zmq.Context.instance()
 
     def _backend_init(self, io_loop=None):
+        self.io_loop = None
         pass
 
-    def _send_work(self, peer_identity, name, *args, **kw):
+    def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         print 'sending work', message
         self.auth_backend.save_last_work(message)
-        gevent.spawn(self.socket.send_multipart, message)
+        self.send_message(message)
         print 'work sent'
         # XXX make sure we destroy the future if no answer is comming
         self.future_pool[uid] = future = gevent.event.AsyncResult()
         self.start()
         return future
 
+    def send_message(self, message):
+        gevent.spawn(self.socket.send_multipart, message)
+
     def _store_result_in_future(self, future, result):
         future.set(result)
 
-    def _receiver(self):
-        while True:
-            request = self.socket.recv_multipart()
-            self.on_socket_ready(request)
-
     def start(self):
-        self.receiver = gevent.spawn(self._receiver)
+        self.reader = self.read_forever(self.socket,
+                                        self.on_socket_ready)
         gevent.sleep(.1)
 
     def stop(self):
-        self.receiver.kill()
+        self.socket.close()
+        self.reader.kill()
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
 
-    def _prepare_stream(self):
-        pass
+    def read_forever(self, socket, callback):
+        return gevent.spawn(forever_loop, socket, callback)
+
+    def create_periodic_callback(self, callback, timer):
+        return gevent.spawn(periodic_loop, callback, timer)
+
+    def create_later_callback(self, callback, timer):
+        return gevent.spawn_later(timer, callback)
 
 
 @zope.interface.implementer(IClient)
