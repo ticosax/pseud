@@ -34,11 +34,11 @@ class GeventBaseRPC(BaseRPC):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
+        self.start()
         self.send_message(message)
         logger.debug('Work sent')
         # XXX make sure we destroy the future if no answer is comming
         self.future_pool[uid] = future = gevent.event.AsyncResult()
-        self.start()
         return future
 
     def send_message(self, message):
