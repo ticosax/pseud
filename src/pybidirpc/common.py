@@ -99,6 +99,7 @@ class BaseRPC(object):
             IHeartbeatBackend,
             name=heartbeat_plugin)
         self._backend_init(io_loop=io_loop)
+        self.reader = None
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):

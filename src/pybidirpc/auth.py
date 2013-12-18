@@ -167,7 +167,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     def __init__(self, *args, **kw):
         super(CurveWithUntrustedKeyForClient, self).__init__(*args, **kw)
         self.counter = itertools.count()
-        self.last_message = None
+        self.last_messages = []
 
     def configure(self):
         self.rpc.socket.curve_serverkey = self.rpc.peer_public_key
@@ -188,11 +188,11 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         pass
 
     def handle_authenticated(self, message_uuid):
-        self.rpc.send_message(self.last_message)
+        self.rpc.send_message(self.last_messages.pop(0))
         self.last_message = None
 
     def save_last_work(self, message):
-        self.last_message = message
+        self.last_messages.append(message)
 
     def is_authenticated(self, peer_id):
         return True
@@ -218,10 +218,12 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
     """
     name = 'untrusted_curve'
 
-    trusted_keys = {}
-    pending_keys = {}
-    user_map = {}
-    current_untrusted_key = None
+    def __init__(self, rpc):
+        self.rpc = rpc
+        self.trusted_keys = {}
+        self.pending_keys = {}
+        self.user_map = {}
+        self.current_untrusted_key = None
 
     def _zap_handler(self, message):
         """
@@ -250,7 +252,8 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
 
     def handle_hello(self, peer_id, message_uuid, message):
         if peer_id in self.user_map and self.user_map[peer_id] == message:
-            self.trusted_keys[self.pending_keys.pop(peer_id)] = peer_id
+            key = self.pending_keys[peer_id]
+            self.trusted_keys[key] = peer_id
             reply = 'Welcome {}'.format(peer_id)
             status = AUTHENTICATED
         else:
@@ -273,9 +276,15 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
                                status, reply])
 
     def is_authenticated(self, peer_id):
-        return (self.current_untrusted_key is None
-                and (peer_id not in self.pending_keys
-                     or peer_id in self.trusted_keys.values()))
+        if (self.current_untrusted_key is None
+            and (peer_id not in self.pending_keys
+                 or peer_id in self.trusted_keys.values())):
+            try:
+                self.pending_keys[peer_id]
+            except KeyError:
+                pass
+            return True
+        return False
 
     def stop(self):
         try:
