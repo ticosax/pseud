@@ -75,7 +75,7 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
     def configure(self):
         self.rpc.socket.curve_serverkey = self.rpc.peer_public_key
         self.rpc.socket.curve_publickey = self.rpc.public_key
-        self.rpc.socket.curve_secretkey = self.rpc.private_key
+        self.rpc.socket.curve_secretkey = self.rpc.secret_key
         assert self.rpc.socket.mechanism == zmq.CURVE
 
     def stop(self):
@@ -108,7 +108,7 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
 
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
-        self.rpc.socket.curve_secretkey = self.rpc.private_key
+        self.rpc.socket.curve_secretkey = self.rpc.secret_key
         self.rpc.socket.curve_server = True
         assert self.rpc.socket.mechanism == zmq.CURVE
         assert self.rpc.socket.get(zmq.CURVE_SERVER)
@@ -172,7 +172,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     def configure(self):
         self.rpc.socket.curve_serverkey = self.rpc.peer_public_key
         self.rpc.socket.curve_publickey = self.rpc.public_key
-        self.rpc.socket.curve_secretkey = self.rpc.private_key
+        self.rpc.socket.curve_secretkey = self.rpc.secret_key
         assert self.rpc.socket.mechanism == zmq.CURVE
 
     def handle_authentication(self, peer_id, message_uuid):
@@ -238,7 +238,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
 
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
-        self.rpc.socket.curve_secretkey = self.rpc.private_key
+        self.rpc.socket.curve_secretkey = self.rpc.secret_key
         self.rpc.socket.curve_server = True
         assert self.rpc.socket.mechanism == zmq.CURVE
         assert self.rpc.socket.get(zmq.CURVE_SERVER)

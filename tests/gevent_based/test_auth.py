@@ -61,12 +61,12 @@ def test_trusted_curve():
     client = Client(client_id, server_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
-                    private_key=client_secret,
+                    secret_key=client_secret,
                     peer_public_key=server_public)
 
     server = Server(server_id, security_plugin=security_plugin,
                     public_key=server_public,
-                    private_key=server_secret)
+                    secret_key=server_secret)
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -93,12 +93,12 @@ def test_trusted_curve_with_wrong_peer_public_key():
     client = Client(client_id, server_id,
                     security_plugin='trusted_curve',
                     public_key=client_public,
-                    private_key=client_secret,
+                    secret_key=client_secret,
                     peer_public_key=z85.encode('R' * 32))
 
     server = Server(server_id, security_plugin='trusted_curve',
                     public_key=server_public,
-                    private_key=server_secret)
+                    secret_key=server_secret)
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -128,14 +128,14 @@ def test_untrusted_curve_with_allowed_password():
     client = Client(client_id, server_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
-                    private_key=client_secret,
+                    secret_key=client_secret,
                     peer_public_key=server_public,
                     password=password)
 
     server = Server(server_id,
                     security_plugin=security_plugin,
                     public_key=server_public,
-                    private_key=server_secret)
+                    secret_key=server_secret)
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -171,14 +171,14 @@ def test_untrusted_curve_with_wrong_password():
     client = Client(client_id, server_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
-                    private_key=client_secret,
+                    secret_key=client_secret,
                     peer_public_key=server_public,
                     password=password)
 
     server = Server(server_id,
                     security_plugin=security_plugin,
                     public_key=server_public,
-                    private_key=server_secret)
+                    secret_key=server_secret)
 
     server.bind(endpoint)
     client.connect(endpoint)

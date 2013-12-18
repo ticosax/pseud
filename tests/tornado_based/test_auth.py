@@ -66,13 +66,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client = Client(client_id, server_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
-                        private_key=client_secret,
+                        secret_key=client_secret,
                         peer_public_key=server_public,
                         io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin=security_plugin,
                         public_key=server_public,
-                        private_key=server_secret,
+                        secret_key=server_secret,
                         io_loop=self.io_loop)
 
         server.bind(endpoint)
@@ -103,13 +103,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client = Client(client_id, server_id,
                         security_plugin='trusted_curve',
                         public_key=client_public,
-                        private_key=client_secret,
+                        secret_key=client_secret,
                         peer_public_key=z85.encode('R' * 32),
                         io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin='trusted_curve',
                         public_key=server_public,
-                        private_key=server_secret,
+                        secret_key=server_secret,
                         io_loop=self.io_loop)
 
         server.bind(endpoint)
@@ -144,7 +144,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client = Client(client_id, server_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
-                        private_key=client_secret,
+                        secret_key=client_secret,
                         peer_public_key=server_public,
                         password=password,
                         io_loop=self.io_loop)
@@ -152,7 +152,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         server = Server(server_id,
                         security_plugin=security_plugin,
                         public_key=server_public,
-                        private_key=server_secret,
+                        secret_key=server_secret,
                         io_loop=self.io_loop)
 
         server.bind(endpoint)
@@ -192,7 +192,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client = Client(client_id, server_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
-                        private_key=client_secret,
+                        secret_key=client_secret,
                         peer_public_key=server_public,
                         password=password,
                         io_loop=self.io_loop)
@@ -200,7 +200,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         server = Server(server_id,
                         security_plugin=security_plugin,
                         public_key=server_public,
-                        private_key=server_secret,
+                        secret_key=server_secret,
                         io_loop=self.io_loop)
 
         server.bind(endpoint)

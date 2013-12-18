@@ -71,7 +71,7 @@ class BaseRPC(object):
     def __init__(self, identity, peer_identity=None,
                  context_module_name=None, context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
-                 public_key=None, private_key=None,
+                 public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend'):
@@ -87,7 +87,7 @@ class BaseRPC(object):
                                                       name=self.security_plugin
                                                       )
         self.public_key = public_key
-        self.private_key = private_key
+        self.secret_key = secret_key
         self.peer_public_key = peer_public_key
         self.password = password
         self.heartbeat_backend = zope.component.getAdapter(
