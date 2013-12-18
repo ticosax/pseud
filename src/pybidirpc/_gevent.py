@@ -29,7 +29,6 @@ class GeventBaseRPC(BaseRPC):
 
     def _backend_init(self, io_loop=None):
         self.io_loop = None
-        pass
 
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
