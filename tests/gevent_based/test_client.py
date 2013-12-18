@@ -49,6 +49,7 @@ def make_one_server_socket(identity, endpoint):
     router_sock = context.socket(zmq.ROUTER)
     router_sock.identity = identity
     port = router_sock.bind_to_random_port(endpoint)
+    gevent.sleep(.1)
     return port, router_sock
 
 
