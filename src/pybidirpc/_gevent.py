@@ -49,13 +49,15 @@ class GeventBaseRPC(BaseRPC):
         future.set(result)
 
     def start(self):
-        self.reader = self.read_forever(self.socket,
-                                        self.on_socket_ready)
-        gevent.sleep(.1)
+        if self.reader is None:
+            self.reader = self.read_forever(self.socket,
+                                            self.on_socket_ready)
+            gevent.sleep(.1)
 
     def stop(self):
         self.socket.close()
-        self.reader.kill()
+        if self.reader is not None:
+            self.reader.kill()
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
 
