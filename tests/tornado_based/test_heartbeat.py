@@ -148,3 +148,4 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         assert "Gone 'client'" in sink
         monitoring_socket.close()
         server.stop()
+        client.stop()

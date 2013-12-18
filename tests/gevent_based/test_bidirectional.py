@@ -1,3 +1,4 @@
+import pytest
 import zmq.green as zmq  # NOQA
 
 
@@ -19,7 +20,7 @@ def test_client_can_send():
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, None, endpoint)
+    server = make_one_server(server_id, '', endpoint)
 
     client = make_one_client(client_id, server_id)
 
@@ -42,7 +43,7 @@ def test_server_can_send():
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, None, endpoint)
+    server = make_one_server(server_id, '', endpoint)
 
     client = make_one_client(client_id, server_id)
 
@@ -66,7 +67,7 @@ def test_server_can_send_to_several_client():
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, None, endpoint)
+    server = make_one_server(server_id, '', endpoint)
 
     client1 = make_one_client('client1', server_id)
     client2 = make_one_client('client2', server_id)
@@ -89,3 +90,22 @@ def test_server_can_send_to_several_client():
     client1.stop()
     client2.stop()
     server.stop()
+
+
+def test_raises_if_module_not_found():
+    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc.interfaces import ServiceNotFoundError
+    server_id = 'server'
+    endpoint = 'inproc://here'
+    server = make_one_server(server_id, __name__, endpoint)
+
+    client = make_one_client('client', server_id)
+    server.bind(endpoint)
+    client.connect(endpoint)
+    server.start()
+    client.start()
+    future = client.string.lower('QWERTY')
+    with pytest.raises(ServiceNotFoundError):
+        future.get()
+    server.stop()
+    client.close()

@@ -127,5 +127,6 @@ def test_basic_heartbeating_with_disconnection():
         assert "Gone 'client'" in sink
     finally:
         monitoring_socket.close()
+        client.stop()
         server.stop()
         spawning.kill()

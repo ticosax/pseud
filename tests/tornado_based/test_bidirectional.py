@@ -1,3 +1,4 @@
+import pytest
 import tornado.testing
 from zmq.eventloop import ioloop
 
@@ -27,7 +28,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, None, endpoint,
+        server = self.make_one_server(server_id, '', endpoint,
                                       io_loop=self.io_loop)
 
         client = self.make_one_client(client_id, server_id,
@@ -54,7 +55,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, None, endpoint,
+        server = self.make_one_server(server_id, '', endpoint,
                                       io_loop=self.io_loop)
 
         client = self.make_one_client(client_id, server_id,
@@ -91,7 +92,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, None, endpoint,
+        server = self.make_one_server(server_id, '', endpoint,
                                       io_loop=self.io_loop)
 
         client1 = self.make_one_client('client1', server_id,
@@ -121,3 +122,27 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client1.stop()
         client2.stop()
         server.stop()
+
+    @tornado.testing.gen_test
+    def test_raises_if_module_not_found(self):
+        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc.interfaces import ServiceNotFoundError
+        server_id = 'server'
+        endpoint = 'inproc://here'
+        server = self.make_one_server(server_id, __name__, endpoint,
+                                      io_loop=self.io_loop)
+
+        client = self.make_one_client('client', server_id,
+                                      io_loop=self.io_loop)
+        server.bind(endpoint)
+        client.connect(endpoint)
+        yield server.start()
+        yield client.start()
+        future = yield client.string.lower('QWERTY')
+        self.io_loop.add_timeout(self.io_loop.time() + 1,
+                                 self.stop)
+        self.wait()
+        with pytest.raises(ServiceNotFoundError):
+            future.result()
+        server.close()
+        client.close()

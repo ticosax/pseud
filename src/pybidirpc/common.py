@@ -7,6 +7,7 @@ import sys
 import textwrap
 import traceback
 import uuid
+import warnings
 
 import msgpack
 import zope.component
@@ -69,13 +70,16 @@ class AttributeWrapper(object):
 
 class BaseRPC(object):
     def __init__(self, identity, peer_identity=None,
-                 context_module_name=None, context=None, io_loop=None,
+                 context_module_name='', context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend'):
         self.identity = identity
+        if not context_module_name:
+            warnings.warn('You are about to expose all modules'
+                          ' through this proxy')
         self.context_module_name = context_module_name
         self.context = context or self._make_context()
         self.peer_identity = peer_identity
@@ -161,22 +165,23 @@ class BaseRPC(object):
                 raise NotImplementedError
 
     def _handle_work(self, message, peer_id, message_uuid):
-        # TODO provide sandboxing to disallow
-        # untrusted user to call any module
         locator, args, kw = msgpack.unpackb(message)
-        if '.' in locator:
-            splitted = locator.split('.')
-            module_path, function_name = splitted[:-1], splitted[-1]
-            context_module = importlib.import_module(*module_path)
-        elif self.context_module_name:
-            context_module = sys.modules[self.context_module_name]
-            function_name = locator
+        if self.context_module_name:
+            context_path = '.'.join((self.context_module_name,
+                                     locator))
         else:
-            raise NotImplementedError
+            context_path = locator
+        splitted = context_path.split('.')
         try:
+            if len(splitted) < 2:
+                raise ValueError('path is too short.'
+                                 ' You need to target'
+                                 ' a module: {!r}'.format(context_path))
+            module_path, function_name = splitted[:-1], splitted[-1]
             try:
+                context_module = importlib.import_module('.'.join(module_path))
                 worker_callable = getattr(context_module, function_name)
-            except AttributeError:
+            except (AttributeError, ImportError):
                 raise ServiceNotFoundError(locator)
             result = worker_callable(*args, **kw)
         except Exception:
@@ -209,9 +214,15 @@ class BaseRPC(object):
         try:
             exception = getattr(__builtin__, klass)(full_message)
         except AttributeError:
-            # Not stdlib Exception
-            # fallback on something that expose informations received
-            # from remote worker
-            future.set_exception(Exception('\n'.join((klass, full_message))))
+            if klass == 'ServiceNotFoundError':
+                # XXX Unhardcode me
+                exception = ServiceNotFoundError(full_message)
+                future.set_exception(exception)
+            else:
+                # Not stdlib Exception
+                # fallback on something that expose informations received
+                # from remote worker
+                future.set_exception(Exception('\n'.join((klass,
+                                                          full_message))))
         else:
             future.set_exception(exception)
