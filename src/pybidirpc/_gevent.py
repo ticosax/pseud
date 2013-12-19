@@ -1,6 +1,8 @@
 import functools
 import logging
+
 import gevent
+from gevent.timeout import Timeout
 import zmq.green as zmq
 import zope.interface
 
@@ -33,6 +35,7 @@ class GeventBaseRPC(BaseRPC):
 
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
+        self.create_timeout_detector(uid)
         logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
         self.start()
@@ -69,6 +72,9 @@ class GeventBaseRPC(BaseRPC):
 
     def create_later_callback(self, callback, timer):
         return gevent.spawn_later(timer, callback)
+
+    def timeout_task(self, uuid):
+        self.future_pool[uuid].set_exception(Timeout)
 
 
 @zope.interface.implementer(IClient)

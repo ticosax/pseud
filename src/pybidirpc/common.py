@@ -94,6 +94,7 @@ class BaseRPC(object):
         self.secret_key = secret_key
         self.peer_public_key = peer_public_key
         self.password = password
+        self.timeout = timeout
         self.heartbeat_backend = zope.component.getAdapter(
             self,
             IHeartbeatBackend,
@@ -132,6 +133,10 @@ class BaseRPC(object):
         message = [peer_identity, VERSION, uid, WORK, work]
         return message, uid
 
+    def create_timeout_detector(self, uuid):
+        self.create_later_callback(functools.partial(self.timeout_task, uuid),
+                                   self.timeout)
+
     def cleanup_future(self, uuid, future):
         try:
             del self.future_pool[uuid]
@@ -140,7 +145,6 @@ class BaseRPC(object):
 
     def on_socket_ready(self, response):
         logger.debug('Message received for {!r}: {!r}'.format(self, response))
-        # When client uses ROUTER socket
         peer_id, version, message_uuid, message_type, message = response
         assert version == VERSION
         if not self.auth_backend.is_authenticated(peer_id):

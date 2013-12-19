@@ -13,6 +13,7 @@ ioloop.install()
 
 def test_client_creation():
     from pybidirpc import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
@@ -24,6 +25,7 @@ def test_client_creation():
 
 def test_client_can_bind():
     from pybidirpc import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
@@ -34,6 +36,7 @@ def test_client_can_bind():
 
 def test_client_can_connect():
     from pybidirpc import Client
+    from pybidirpc import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
@@ -52,14 +55,19 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         router_sock.bind(endpoint)
         return router_sock
 
-    def make_one_client(self, identity, peer_identity, io_loop=None):
+    def make_one_client(self, identity, peer_identity, timeout=5,
+                        io_loop=None):
         from pybidirpc import Client
-        client = Client(identity, peer_identity, io_loop=io_loop)
+        from pybidirpc import auth, heartbeat  # NOQA
+        client = Client(identity, peer_identity,
+                        timeout=timeout,
+                        io_loop=io_loop)
         return client
 
     @tornado.testing.gen_test
     def test_client_method_wrapper(self):
         from pybidirpc.common import AttributeWrapper
+        from pybidirpc import auth, heartbeat  # NOQA
         endpoint = 'inproc://{}'.format(__name__)
         identity = __name__
         peer_identity = 'echo'
@@ -86,6 +94,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_job_executed(self):
         from pybidirpc.interfaces import OK, VERSION, WORK
+        from pybidirpc import auth, heartbeat  # NOQA
         identity = 'client0'
         peer_identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -114,5 +123,40 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
                                  self.io_loop.stop)
         self.io_loop.start()
         assert future.result() is True
+        assert not client.future_pool
+        client.stop()
+
+    @tornado.testing.gen_test
+    def test_job_server_never_reply(self):
+        from pybidirpc.interfaces import VERSION, WORK
+        from pybidirpc import auth, heartbeat  # NOQA
+        identity = 'client0'
+        peer_identity = 'echo'
+        endpoint = 'inproc://{}'.format(self.__class__.__name__)
+        socket = self.make_one_server_socket(peer_identity, endpoint)
+        client = self.make_one_client(identity, peer_identity,
+                                      timeout=1,
+                                      io_loop=self.io_loop)
+        client.connect(endpoint)
+
+        stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
+        future = yield client.please.do_that_job(1, 2, 3, b=4)
+        request = yield tornado.gen.Task(stream.on_recv)
+        stream.stop_on_recv()
+        server_id, version, uid, message_type, message = request
+        assert version == VERSION
+        assert uid
+        # check it is a real uuid
+        uuid.UUID(bytes=uid)
+        assert message_type == WORK
+        locator, args, kw = msgpack.unpackb(message)
+        assert locator == 'please.do_that_job'
+        assert args == [1, 2, 3]
+        assert kw == {'b': 4}
+        self.io_loop.add_timeout(self.io_loop.time() + 1.1,
+                                 self.io_loop.stop)
+        self.io_loop.start()
+        with pytest.raises(TimeoutError):
+            assert future.result()
         assert not client.future_pool
         client.stop()

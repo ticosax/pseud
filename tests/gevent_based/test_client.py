@@ -53,10 +53,11 @@ def make_one_server_socket(identity, endpoint):
     return port, router_sock
 
 
-def make_one_client(identity, peer_identity):
+def make_one_client(identity, peer_identity, timeout=5):
     from pybidirpc._gevent import Client
     from pybidirpc import auth, heartbeat  # NOQA
-    client = Client(identity, peer_identity)
+    client = Client(identity, peer_identity,
+                    timeout=timeout)
     return client
 
 
@@ -108,6 +109,36 @@ def test_job_executed():
     reply = [identity, version, uid, OK, msgpack.packb(True)]
     gevent.spawn(socket.send_multipart, reply)
     assert future.get() is True
+    assert not client.future_pool
+    client.stop()
+    socket.close()
+
+
+def test_job_server_never_reply():
+    from pybidirpc.interfaces import VERSION, WORK
+    from pybidirpc import auth, heartbeat  # NOQA
+    identity = 'client0'
+    peer_identity = 'echo'
+    endpoint = 'tcp://127.0.0.1'
+    port, socket = make_one_server_socket(peer_identity, endpoint)
+    client = make_one_client(identity, peer_identity,
+                             timeout=.5)
+    client.connect(endpoint + ':{}'.format(port))
+
+    future = client.please.do_that_job(1, 2, 3, b=4)
+    request = gevent.spawn(read_once, socket).get()
+    server_id, version, uid, message_type, message = request
+    assert version == VERSION
+    assert uid
+    # check it is a real uuid
+    uuid.UUID(bytes=uid)
+    assert message_type == WORK
+    locator, args, kw = msgpack.unpackb(message)
+    assert locator == 'please.do_that_job'
+    assert args == [1, 2, 3]
+    assert kw == {'b': 4}
+    with pytest.raises(Timeout):
+        assert future.get()
     assert not client.future_pool
     client.stop()
     socket.close()

@@ -1,6 +1,7 @@
 import functools
 import logging
 
+from concurrent.futures import TimeoutError
 import tornado.concurrent
 import tornado.gen
 import zmq
@@ -38,13 +39,14 @@ class TornadoBaseRPC(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         yield self.start()
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
+        self.future_pool[uid] = future = tornado.concurrent.Future()
+        self.create_timeout_detector(uid)
         logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
         self.send_message(message)
         logger.debug('Work sent')
-        self.future_pool[uid] = future = tornado.concurrent.Future()
         self.io_loop.add_future(future,
-                                functools.partial(self._cleanup_future, uid))
+                                functools.partial(self.cleanup_future, uid))
         raise tornado.gen.Return(future)
 
     @tornado.gen.coroutine
@@ -83,6 +85,9 @@ class TornadoBaseRPC(BaseRPC):
         return self.io_loop.add_timeout(
             self.io_loop.time() + timer,
             callback)
+
+    def timeout_task(self, uuid):
+        self.future_pool[uuid].set_exception(TimeoutError)
 
     def stop(self):
         if self.reader is not None:
