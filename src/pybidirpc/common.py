@@ -120,6 +120,7 @@ class BaseRPC(object):
         self.socket = socket
         socket.identity = self.identity
         socket.ROUTER_MANDATORY = True
+        socket.SNDTIMEO = int(self.timeout * 1000)
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
         caller = operator.methodcaller(name, endpoint)
