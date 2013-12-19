@@ -76,7 +76,10 @@ class GeventBaseRPC(BaseRPC):
         return gevent.spawn_later(timer, callback)
 
     def timeout_task(self, uuid):
-        self.future_pool[uuid].set_exception(Timeout)
+        try:
+            self.future_pool[uuid].set_exception(Timeout)
+        except KeyError:
+            pass
 
 
 @zope.interface.implementer(IClient)
