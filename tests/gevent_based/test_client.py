@@ -7,10 +7,6 @@ import pytest
 import zmq.green as zmq
 
 
-def read_once(socket):
-    return socket.recv_multipart()
-
-
 def test_client_creation():
     from pybidirpc._gevent import Client
     from pybidirpc import auth, heartbeat  # NOQA
@@ -95,7 +91,7 @@ def test_job_executed():
     client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
-    request = gevent.spawn(read_once, socket).get()
+    request = gevent.spawn(socket.recv_multipart).get()
     server_id, version, uid, message_type, message = request
     assert version == VERSION
     assert uid
@@ -126,7 +122,7 @@ def test_job_server_never_reply():
     client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
-    request = gevent.spawn(read_once, socket).get()
+    request = gevent.spawn(socket.recv_multipart).get()
     server_id, version, uid, message_type, message = request
     assert version == VERSION
     assert uid
