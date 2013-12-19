@@ -119,7 +119,6 @@ class BaseRPC(object):
         socket = self.context.socket(self.socket_type)
         self.socket = socket
         socket.identity = self.identity
-        # socket.linger = 0
         socket.ROUTER_MANDATORY = True
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
