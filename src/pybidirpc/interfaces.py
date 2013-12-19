@@ -51,9 +51,20 @@ class IAuthenticationBackend(zope.interface.Interface):
         """
 
 
-class IClient(zope.interface.Interface):
+class BaseRPC(zope.interface.Interface):
+    """
+    """
+
+
+class IClient(BaseRPC):
     """
     Interface for Clients
+    """
+
+
+class IServer(BaseRPC):
+    """
+    Interface for Servers
     """
 
 
@@ -78,7 +89,6 @@ class IHeartbeatBackend(zope.interface.Interface):
         """
 
 
-class IServer(zope.interface.Interface):
     """
     Interface for Servers
     """
