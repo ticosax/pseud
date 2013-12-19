@@ -51,7 +51,9 @@ def test_untrusted_curve_server():
 
 def test_trusted_curve():
     from pybidirpc._gevent import Client, Server
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pybidirpc.utils import register_rpc
+
     client_id = 'client'
     server_id = 'server'
     endpoint = 'tcp://127.0.0.1:8998'
@@ -75,6 +77,8 @@ def test_trusted_curve():
 
     server.start()
     client.start()
+    import string
+    register_rpc(name='string.lower')(string.lower)
     future = client.string.lower('FOO')
     assert future.get() == 'foo'
     server.stop()
@@ -83,7 +87,7 @@ def test_trusted_curve():
 
 def test_trusted_curve_with_wrong_peer_public_key():
     from pybidirpc._gevent import Client, Server
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://{}'.format(__name__)
@@ -116,7 +120,9 @@ def test_trusted_curve_with_wrong_peer_public_key():
 
 def test_untrusted_curve_with_allowed_password():
     from pybidirpc._gevent import Client, Server
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pybidirpc.utils import register_rpc
+
     client_id = 'john'
     server_id = 'server'
     endpoint = 'tcp://127.0.0.1:8998'
@@ -147,6 +153,8 @@ def test_untrusted_curve_with_allowed_password():
 
     server.start()
     client.start()
+    import string
+    register_rpc(name='string.lower')(string.lower)
     future = client.string.lower('FOO')
     future2 = client.string.lower('FOO_JJ')
     assert future.get() == 'foo'
@@ -158,7 +166,8 @@ def test_untrusted_curve_with_allowed_password():
 def test_untrusted_curve_with_wrong_password():
     from pybidirpc._gevent import Client, Server
     from pybidirpc.interfaces import UnauthorizedError
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pybidirpc.utils import register_rpc
 
     client_id = 'john'
     server_id = 'server'
@@ -190,6 +199,8 @@ def test_untrusted_curve_with_wrong_password():
 
     server.start()
     client.start()
+    import string
+    register_rpc(name='string.lower')(string.lower)
     future = client.string.lower('IMSCREAMING')
     with pytest.raises(UnauthorizedError):
         future.get()

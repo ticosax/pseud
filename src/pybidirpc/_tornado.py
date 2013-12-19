@@ -108,7 +108,7 @@ class TornadoBaseRPC(BaseRPC):
 class Client(TornadoBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, peer_identity, context_module_name='',
+    def __init__(self, identity, peer_identity,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend', timeout=5,
                  public_key=None, secret_key=None, peer_public_key=None,
@@ -116,7 +116,6 @@ class Client(TornadoBaseRPC):
                  heartbeat_plugin='noop_heartbeat_backend',
                  ):
         super(Client, self).__init__(identity, peer_identity=peer_identity,
-                                     context_module_name=context_module_name,
                                      context=context, io_loop=io_loop,
                                      security_plugin=security_plugin,
                                      timeout=timeout, public_key=public_key,
@@ -131,13 +130,12 @@ class Client(TornadoBaseRPC):
 class Server(TornadoBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, context_module_name='',
+    def __init__(self, identity,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend', timeout=5,
                  secret_key=None, public_key=None,
                  heartbeat_plugin='noop_heartbeat_backend'):
         super(Server, self).__init__(identity,
-                                     context_module_name=context_module_name,
                                      context=context, io_loop=io_loop,
                                      security_plugin=security_plugin,
                                      timeout=timeout,

@@ -1,0 +1,73 @@
+import pytest
+
+
+def test_rpc_simple_registration():
+    from pybidirpc.interfaces import ServiceNotFoundError
+    from pybidirpc.utils import (get_rpc_callable,
+                                 register_rpc,
+                                 RPCCallable,
+                                 )
+    import pybidirpc.predicate  # NOQA
+
+    @register_rpc
+    def callme(*args, **kw):
+        return args, kw
+
+    assert isinstance(get_rpc_callable('callme'), RPCCallable)
+    assert get_rpc_callable('callme')() == ((), {})
+    assert get_rpc_callable('callme')('a', foo='goo') == (('a',),
+                                                          {'foo': 'goo'})
+
+    @register_rpc(name='totally.something.else')
+    def callme2(*args, **kw):
+        return args, kw
+
+    with pytest.raises(ServiceNotFoundError):
+        get_rpc_callable('callme2')
+
+    assert isinstance(get_rpc_callable('totally.something.else'),
+                      RPCCallable)
+
+
+def test_rpc_restricted_registration():
+    from pybidirpc.interfaces import ServiceNotFoundError
+    from pybidirpc.utils import (get_rpc_callable,
+                                 register_rpc,
+                                 )
+    import pybidirpc.predicate  # NOQA
+
+    @register_rpc(name='try_to_call_me')
+    def callme(*args, **kw):
+        return 'small power'
+
+    @register_rpc(name='try_to_call_me',
+                  env='restricted')
+    def callme_admin(*args, **kw):
+        return 'great power'
+
+    @register_rpc(name='on.admin.can.call.me',
+                  env='restricted')
+    def callme_admin2(*args, **kw):
+        return 'great power'
+
+    class User(object):
+        def __init__(self, allowed):
+            self.allowed = allowed
+
+        def has_permission(self, perm):
+            return self.allowed
+
+    guest = User(False)
+    admin = User(True)
+
+    assert get_rpc_callable('try_to_call_me', user=guest)() ==\
+        'small power'
+
+    assert get_rpc_callable('try_to_call_me', user=admin)() ==\
+        'great power'
+
+    with pytest.raises(ServiceNotFoundError):
+        get_rpc_callable('on.admin.can.call.me', user=guest)
+
+    assert get_rpc_callable('on.admin.can.call.me', user=admin)() ==\
+        'great power'

@@ -56,7 +56,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve(self):
         from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pybidirpc.utils import register_rpc
+
         client_id = 'client'
         server_id = 'server'
         endpoint = 'tcp://127.0.0.1:8998'
@@ -82,6 +84,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         yield server.start()
         yield client.start()
+
+        import string
+        register_rpc(name='string.lower')(string.lower)
+
         future = yield client.string.lower('FOO')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
@@ -93,7 +99,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve_with_wrong_peer_public_key(self):
         from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pybidirpc.utils import register_rpc
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://{}'.format(__name__)
@@ -119,6 +126,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         server.start()
         client.start()
+
+        import string
+        register_rpc(name='string.lower')(string.lower)
+
         future = yield client.string.lower('BAR')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
@@ -131,7 +142,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_allowed_password(self):
         from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pybidirpc.utils import register_rpc
 
         client_id = 'john'
         server_id = 'server'
@@ -165,6 +177,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         yield server.start()
         yield client.start()
+
+        import string
+        register_rpc(name='string.lower')(string.lower)
+
         future = yield client.string.lower('FOO')
         future2 = yield client.string.lower('FOO_JJ')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
@@ -179,7 +195,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_untrusted_curve_with_wrong_password(self):
         from pybidirpc import Client, Server
         from pybidirpc.interfaces import UnauthorizedError
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pybidirpc.utils import register_rpc
 
         client_id = 'john'
         server_id = 'server'
@@ -213,6 +230,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         yield server.start()
         yield client.start()
+
+        import string
+        register_rpc(name='string.lower')(string.lower)
+
         future = yield client.string.lower('IMSCREAMING')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)

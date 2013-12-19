@@ -89,6 +89,26 @@ class IHeartbeatBackend(zope.interface.Interface):
         """
 
 
+class IRPCCallable(zope.interface.Interface):
     """
-    Interface for Servers
     """
+    def __call__(*args, **kw):
+        """
+        """
+
+    def test(*args, **kw):
+        """
+        """
+
+
+class IRPCRoute(zope.interface.Interface):
+    """
+    """
+
+
+class IPredicate(zope.interface.Interface):
+    """
+    """
+    def test(*args, **kw):
+        """
+        """

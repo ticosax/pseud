@@ -44,10 +44,10 @@ def test_testing_heartbeat_backend_server():
                                       TestingHeartbeatBackendForServer)
 
 
-def make_one_server(identity, context_module_name, endpoint,
-                    heartbeat_plugin):
+def make_one_server(identity, endpoint, heartbeat_plugin):
     from pybidirpc._gevent import Server
-    server = Server(identity, context_module_name,
+    from pybidirpc import predicate, auth , heartbeat  # NOQA
+    server = Server(identity,
                     heartbeat_plugin=heartbeat_plugin)
     return server
 
@@ -55,6 +55,7 @@ def make_one_server(identity, context_module_name, endpoint,
 def make_one_client(identity, peer_identity,
                     heartbeat_plugin):
     from pybidirpc._gevent import Client
+    from pybidirpc import predicate, auth , heartbeat  # NOQA
     client = Client(identity, peer_identity,
                     heartbeat_plugin=heartbeat_plugin)
     return client
@@ -67,7 +68,7 @@ def test_basic_heartbeating():
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
-        server_id, None, endpoint,
+        server_id, endpoint,
         heartbeat_plugin=heartbeat_backend)
 
     client = make_one_client(client_id, server_id,
@@ -103,7 +104,7 @@ def test_basic_heartbeating_with_disconnection():
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
-        server_id, None, endpoint,
+        server_id, endpoint,
         heartbeat_plugin=heartbeat_backend)
 
     client = make_one_client(client_id, server_id,

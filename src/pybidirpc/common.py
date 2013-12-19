@@ -1,5 +1,4 @@
 import __builtin__
-import importlib
 import functools
 import logging
 import operator
@@ -25,6 +24,8 @@ from .interfaces import (AUTHENTICATED,
                          VERSION,
                          WORK,
                          )
+from .utils import get_rpc_callable
+
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +71,13 @@ class AttributeWrapper(object):
 
 class BaseRPC(object):
     def __init__(self, identity, peer_identity=None,
-                 context_module_name='', context=None, io_loop=None,
+                 context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend'):
         self.identity = identity
-        if not context_module_name:
-            warnings.warn('You are about to expose all modules'
-                          ' through this proxy')
-        self.context_module_name = context_module_name
         self.context = context or self._make_context()
         self.peer_identity = peer_identity
         self.security_plugin = security_plugin
@@ -177,23 +174,8 @@ class BaseRPC(object):
 
     def _handle_work(self, message, peer_id, message_uuid):
         locator, args, kw = msgpack.unpackb(message)
-        if self.context_module_name:
-            context_path = '.'.join((self.context_module_name,
-                                     locator))
-        else:
-            context_path = locator
-        splitted = context_path.split('.')
         try:
-            if len(splitted) < 2:
-                raise ValueError('path is too short.'
-                                 ' You need to target'
-                                 ' a module: {!r}'.format(context_path))
-            module_path, function_name = splitted[:-1], splitted[-1]
-            try:
-                context_module = importlib.import_module('.'.join(module_path))
-                worker_callable = getattr(context_module, function_name)
-            except (AttributeError, ImportError):
-                raise ServiceNotFoundError(locator)
+            worker_callable = get_rpc_callable(locator)
             result = worker_callable(*args, **kw)
         except Exception:
             exc_type, exc_value = sys.exc_info()[:2]

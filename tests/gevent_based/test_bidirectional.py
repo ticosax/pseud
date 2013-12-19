@@ -2,25 +2,27 @@ import pytest
 import zmq.green as zmq  # NOQA
 
 
-def make_one_server(identity, context_module_name, endpoint):
+def make_one_server(identity, endpoint):
     from pybidirpc._gevent import Server
-    server = Server(identity, context_module_name)
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    server = Server(identity)
     return server
 
 
 def make_one_client(identity, peer_identity):
     from pybidirpc._gevent import Client
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     client = Client(identity, peer_identity)
     return client
 
 
 def test_client_can_send():
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc.utils import register_rpc
     client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, '', endpoint)
+    server = make_one_server(server_id, endpoint)
 
     client = make_one_client(client_id, server_id)
 
@@ -29,6 +31,9 @@ def test_client_can_send():
 
     client.connect(endpoint)
     client.start()
+
+    import string
+    register_rpc(name='string.upper')(string.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
@@ -38,12 +43,13 @@ def test_client_can_send():
 
 def test_server_can_send():
     from pybidirpc.utils import peer_identity_provider
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc.utils import register_rpc
+
     client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, '', endpoint)
+    server = make_one_server(server_id, endpoint)
 
     client = make_one_client(client_id, server_id)
 
@@ -52,6 +58,9 @@ def test_server_can_send():
 
     client.connect(endpoint)
     client.start()
+
+    import string
+    register_rpc(name='string.lower')(string.lower)
 
     with peer_identity_provider(server, client_id):
         future = server.string.lower('SCREAM')
@@ -63,11 +72,11 @@ def test_server_can_send():
 
 def test_server_can_send_to_several_client():
     from pybidirpc.utils import peer_identity_provider
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc.utils import register_rpc
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, '', endpoint)
+    server = make_one_server(server_id, endpoint)
 
     client1 = make_one_client('client1', server_id)
     client2 = make_one_client('client2', server_id)
@@ -78,6 +87,9 @@ def test_server_can_send_to_several_client():
     server.start()
     client1.start()
     client2.start()
+
+    import string
+    register_rpc(name='string.lower')(string.lower)
 
     with peer_identity_provider(server, 'client1'):
         future1 = server.string.lower('SCREAM1')
@@ -97,15 +109,15 @@ def test_raises_if_module_not_found():
     from pybidirpc.interfaces import ServiceNotFoundError
     server_id = 'server'
     endpoint = 'inproc://here'
-    server = make_one_server(server_id, __name__, endpoint)
+    server = make_one_server(server_id, endpoint)
 
     client = make_one_client('client', server_id)
     server.bind(endpoint)
     client.connect(endpoint)
     server.start()
     client.start()
-    future = client.string.lower('QWERTY')
+    future = client.string.doesnotexists('QWERTY')
     with pytest.raises(ServiceNotFoundError):
-        future.get()
+            future.get()
     server.stop()
     client.close()

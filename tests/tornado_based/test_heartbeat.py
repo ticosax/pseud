@@ -44,13 +44,12 @@ def test_testing_heartbeat_backend_server():
 class HeartbeatTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
-    def make_one_server(self, identity, context_module_name, endpoint,
+    def make_one_server(self, identity, endpoint,
                         heartbeat_plugin,
                         io_loop=None):
         from pybidirpc import Server
         from pybidirpc import auth, heartbeat  # NOQA
-        server = Server(identity, context_module_name,
-                        heartbeat_plugin=heartbeat_plugin,
+        server = Server(identity, heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
         return server
 
@@ -73,7 +72,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
-            server_id, None, endpoint,
+            server_id, endpoint,
             heartbeat_plugin=heartbeat_backend,
             io_loop=self.io_loop)
 
@@ -115,7 +114,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
-            server_id, None, endpoint,
+            server_id, endpoint,
             heartbeat_plugin=heartbeat_backend,
             io_loop=self.io_loop)
 

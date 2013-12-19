@@ -6,46 +6,34 @@ import zmq
 from zmq.eventloop import zmqstream
 import tornado.testing
 
-from pybidirpc import auth, heartbeat  # NOQA
-
 
 def test_server_creation():
     from pybidirpc import Server
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
-    context_module_name = __name__
-    server = Server(identity, context_module_name)
+    server = Server(identity)
     assert server.identity == identity
-    assert server.context_module_name == context_module_name
     assert server.security_plugin == 'noop_auth_backend'
 
 
 def test_server_can_bind():
     from pybidirpc import Server
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
-    context_module_name = __name__
     endpoint = 'inproc://{}'.format(__name__)
-    server = Server(identity, context_module_name,
+    server = Server(identity,
                     security_plugin='noop_auth_backend')
     server.bind(endpoint)
 
 
 def test_server_can_connect():
     from pybidirpc import Server
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
-    context_module_name = __name__
     endpoint = 'tcp://127.0.0.1:5000'
-    server = Server(identity, context_module_name,
+    server = Server(identity,
                     security_plugin='noop_auth_backend')
     server.connect(endpoint)
-
-
-def job_success(a, b, c, d=None):
-    time.sleep(.2)
-    return True
-
-
-def job_buggy(*args, **kw):
-    raise ValueError('too bad')
 
 
 class ServerTestCase(tornado.testing.AsyncTestCase):
@@ -59,19 +47,27 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         req_sock.connect(endpoint)
         return req_sock
 
-    def make_one_server(self, identity, context_module_name, endpoint):
+    def make_one_server(self, identity, endpoint):
         from pybidirpc import Server
-        server = Server(identity, context_module_name, io_loop=self.io_loop)
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        server = Server(identity, io_loop=self.io_loop)
         server.bind(endpoint)
         return server
 
     @tornado.testing.gen_test
     def test_job_running(self):
         from pybidirpc.interfaces import OK, VERSION, WORK
+        from pybidirpc.utils import register_rpc
+
         identity = 'echo'
-        context_module_name = __name__
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
-        server = self.make_one_server(identity, context_module_name, endpoint)
+
+        @register_rpc
+        def job_success(a, b, c, d=None):
+            time.sleep(.2)
+            return True
+
+        server = self.make_one_server(identity, endpoint)
         socket = self.make_one_client_socket('client', endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack.packb((job_success.func_name, (1, 2, 3), {'d': False}))
@@ -90,9 +86,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         import pybidirpc
         from pybidirpc.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
-        context_module_name = __name__
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
-        server = self.make_one_server(identity, context_module_name, endpoint)
+        server = self.make_one_server(identity, endpoint)
         socket = self.make_one_client_socket('client', endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack.packb(('thisIsNotAFunction', (), {}))
@@ -114,10 +109,16 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_job_raise(self):
         from pybidirpc.interfaces import ERROR, VERSION, WORK
+        from pybidirpc.utils import register_rpc
+
         identity = 'echo'
-        context_module_name = __name__
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
-        server = self.make_one_server(identity, context_module_name, endpoint)
+
+        @register_rpc
+        def job_buggy(*args, **kw):
+            raise ValueError('too bad')
+
+        server = self.make_one_server(identity, endpoint)
         socket = self.make_one_client_socket('client', endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack.packb((job_buggy.func_name, (), {}))
