@@ -12,10 +12,6 @@ WORK = '\x03'
 VERSION = 'v1'
 
 
-class TimeoutError(Exception):
-    pass
-
-
 class ServiceNotFoundError(Exception):
     pass
 
