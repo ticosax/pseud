@@ -47,12 +47,6 @@ class TornadoBaseRPC(BaseRPC):
                                 functools.partial(self._cleanup_future, uid))
         raise tornado.gen.Return(future)
 
-    def _cleanup_future(self, uuid, future):
-        try:
-            del self.future_pool[uuid]
-        except KeyError:
-            pass
-
     @tornado.gen.coroutine
     def send_message(self, message):
         yield tornado.gen.Task(self.reader.send_multipart, message)

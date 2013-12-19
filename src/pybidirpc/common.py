@@ -132,6 +132,12 @@ class BaseRPC(object):
         message = [peer_identity, VERSION, uid, WORK, work]
         return message, uid
 
+    def cleanup_future(self, uuid, future):
+        try:
+            del self.future_pool[uuid]
+        except KeyError:
+            pass
+
     def on_socket_ready(self, response):
         logger.debug('Message received for {!r}: {!r}'.format(self, response))
         # When client uses ROUTER socket

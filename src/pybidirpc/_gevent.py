@@ -1,3 +1,4 @@
+import functools
 import logging
 import gevent
 import zmq.green as zmq
@@ -37,8 +38,8 @@ class GeventBaseRPC(BaseRPC):
         self.start()
         self.send_message(message)
         logger.debug('Work sent')
-        # XXX make sure we destroy the future if no answer is comming
         self.future_pool[uid] = future = gevent.event.AsyncResult()
+        future.rawlink(functools.partial(self.cleanup_future, uid))
         return future
 
     def send_message(self, message):
