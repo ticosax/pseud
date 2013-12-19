@@ -43,7 +43,7 @@ class TornadoBaseRPC(BaseRPC):
         self.create_timeout_detector(uid)
         logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
-        self.send_message(message)
+        yield self.send_message(message)
         logger.debug('Work sent')
         self.io_loop.add_future(future,
                                 functools.partial(self.cleanup_future, uid))
