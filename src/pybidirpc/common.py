@@ -6,7 +6,6 @@ import sys
 import textwrap
 import traceback
 import uuid
-import warnings
 
 import msgpack
 import zope.component
@@ -24,7 +23,10 @@ from .interfaces import (AUTHENTICATED,
                          VERSION,
                          WORK,
                          )
-from .utils import get_rpc_callable
+from .utils import (get_rpc_callable,
+                    register_rpc,
+                    registry,
+                    )
 
 
 logger = logging.getLogger(__name__)
@@ -76,7 +78,8 @@ class BaseRPC(object):
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
                  password=None,
-                 heartbeat_plugin='noop_heartbeat_backend'):
+                 heartbeat_plugin='noop_heartbeat_backend',
+                 proxy_to=None):
         self.identity = identity
         self.context = context or self._make_context()
         self.peer_identity = peer_identity
@@ -96,8 +99,11 @@ class BaseRPC(object):
             self,
             IHeartbeatBackend,
             name=heartbeat_plugin)
+        self.proxy_to = proxy_to
         self._backend_init(io_loop=io_loop)
         self.reader = None
+        self.registry = zope.interface.registry.Components(name=identity,
+                                                           bases=(registry,))
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):
@@ -172,11 +178,20 @@ class BaseRPC(object):
                              ' received {!r}'.format(message_type))
                 raise NotImplementedError
 
+    def _handle_work_proxy(self, locator, args, kw, peer_id, message_uuid):
+        worker_callable = get_rpc_callable(locator,
+                                           registry=self.registry)
+        return worker_callable(*args, **kw)
+
     def _handle_work(self, message, peer_id, message_uuid):
         locator, args, kw = msgpack.unpackb(message)
         try:
-            worker_callable = get_rpc_callable(locator)
-            result = worker_callable(*args, **kw)
+            if self.proxy_to is not None:
+                context = self.proxy_to
+            else:
+                context = self
+            result = context._handle_work_proxy(locator, args, kw, peer_id,
+                                                message_uuid)
         except Exception:
             exc_type, exc_value = sys.exc_info()[:2]
             traceback_ = traceback.format_exc()
@@ -219,3 +234,7 @@ class BaseRPC(object):
                                                           full_message))))
         else:
             future.set_exception(exception)
+
+    @property
+    def register_rpc(self):
+        return functools.partial(register_rpc, registry=self.registry)

@@ -18,10 +18,11 @@ class peer_identity_provider(object):
         self.peer_identity = peer_identity
 
     def __enter__(self):
+        self.old_identity = self.server.peer_identity
         self.server.peer_identity = self.peer_identity
 
     def __exit__(self, *args):
-        self.server.peer_identity = None
+        self.server.peer_identity = self.old_identity
 
 
 registry = zope.component.getGlobalSiteManager()
@@ -64,7 +65,7 @@ class RPCCallable(object):
                                          name=self.env).test(*args, **kw)
 
 
-def register_rpc(func=None, name=None, env='default'):
+def register_rpc(func=None, name=None, env='default', registry=registry):
     def wrapper(fn):
         endpoint_name = name or fn.func_name
         registered_name = '{}:{}'.format(endpoint_name, env)
@@ -81,12 +82,12 @@ def register_rpc(func=None, name=None, env='default'):
     return wrapper
 
 
-def get_rpc_callable(name, *args, **kw):
+def get_rpc_callable(name, registry=registry, *args, **kw):
     """
     Supports predicate API (check like checking permissions)
     TODO improve sorting
     """
-    for rpc_call in sorted(zope.component.getAllUtilitiesRegisteredFor(
+    for rpc_call in sorted(registry.getAllUtilitiesRegisteredFor(
             IRPCRoute), key=lambda c: c.env == 'default', reverse=False):
         if rpc_call.name != name:
             continue

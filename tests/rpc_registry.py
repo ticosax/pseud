@@ -1,4 +1,5 @@
 import pytest
+from zope.interface.registry import Components
 
 
 def test_rpc_simple_registration():
@@ -71,3 +72,25 @@ def test_rpc_restricted_registration():
 
     assert get_rpc_callable('on.admin.can.call.me', user=admin)() ==\
         'great power'
+
+
+def test_registration_with_custom_registry():
+    from pybidirpc.utils import (get_rpc_callable,
+                                 register_rpc,
+                                 )
+    import pybidirpc.predicate  # NOQA
+
+    local_registry = Components(name='local')
+
+    @register_rpc(name='try_to_call_me')
+    def callme(*args, **kw):
+        return 'global'
+
+    @register_rpc(name='try_to_call_me',
+                  registry=local_registry)
+    def callme2(*args, **kw):
+        return 'local'
+
+    assert get_rpc_callable('try_to_call_me')() == 'global'
+    assert get_rpc_callable('try_to_call_me',
+                            registry=local_registry)() == 'local'

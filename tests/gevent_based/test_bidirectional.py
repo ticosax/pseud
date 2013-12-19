@@ -2,10 +2,10 @@ import pytest
 import zmq.green as zmq  # NOQA
 
 
-def make_one_server(identity, endpoint):
+def make_one_server(identity, proxy_to=None):
     from pybidirpc._gevent import Server
     from pybidirpc import auth, heartbeat, predicate  # NOQA
-    server = Server(identity)
+    server = Server(identity, proxy_to=proxy_to)
     return server
 
 
@@ -22,7 +22,7 @@ def test_client_can_send():
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, endpoint)
+    server = make_one_server(server_id)
 
     client = make_one_client(client_id, server_id)
 
@@ -49,7 +49,7 @@ def test_server_can_send():
     server_id = 'server'
     endpoint = 'inproc://here'
 
-    server = make_one_server(server_id, endpoint)
+    server = make_one_server(server_id)
 
     client = make_one_client(client_id, server_id)
 
@@ -109,7 +109,7 @@ def test_raises_if_module_not_found():
     from pybidirpc.interfaces import ServiceNotFoundError
     server_id = 'server'
     endpoint = 'inproc://here'
-    server = make_one_server(server_id, endpoint)
+    server = make_one_server(server_id)
 
     client = make_one_client('client', server_id)
     server.bind(endpoint)
@@ -121,3 +121,52 @@ def test_raises_if_module_not_found():
             future.get()
     server.stop()
     client.close()
+
+
+def test_server_can_proxy_another_server():
+    """
+    Client1 --> Server1.string.lower()
+    Client2 --> Server2(Server1.string.lower())
+    """
+    from pybidirpc.interfaces import ServiceNotFoundError
+    from pybidirpc.utils import get_rpc_callable, register_rpc
+
+    server1 = make_one_server('server1')
+    server2 = make_one_server('server2',
+                              proxy_to=server1)
+
+    client1 = make_one_client('client1', 'server1')
+    client2 = make_one_client('client2', 'server2')
+
+    server1.bind('inproc://server1')
+    server2.bind('inproc://server2')
+    client1.connect('inproc://server1')
+    client2.connect('inproc://server2')
+    server1.start()
+    server2.start()
+
+    import string
+    # Local registration
+    server1.register_rpc(name='str.lower')(string.lower)
+
+    # Global registration
+    register_rpc(name='str.upper')(string.upper)
+
+    with pytest.raises(ServiceNotFoundError):
+        get_rpc_callable('str.lower', registry=server2.registry)
+
+    with pytest.raises(ServiceNotFoundError):
+        assert get_rpc_callable('str.lower')
+
+    assert get_rpc_callable('str.lower',
+                            registry=server1.registry)('L') == 'l'
+
+    assert client1.str.lower('SCREAM').get() == 'scream'
+    assert client2.str.lower('SCREAM').get() == 'scream'
+    assert client1.str.upper('whisper').get() == 'WHISPER'
+    assert client2.str.upper('whisper').get() == 'WHISPER'
+
+    client1.stop()
+    client2.stop()
+    server1.stop()
+    server2.stop()

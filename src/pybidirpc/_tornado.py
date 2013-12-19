@@ -114,6 +114,7 @@ class Client(TornadoBaseRPC):
                  public_key=None, secret_key=None, peer_public_key=None,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend',
+                 proxy_to=None,
                  ):
         super(Client, self).__init__(identity, peer_identity=peer_identity,
                                      context=context, io_loop=io_loop,
@@ -123,6 +124,7 @@ class Client(TornadoBaseRPC):
                                      peer_public_key=peer_public_key,
                                      password=password,
                                      heartbeat_plugin=heartbeat_plugin,
+                                     proxy_to=proxy_to,
                                      )
 
 
@@ -134,11 +136,15 @@ class Server(TornadoBaseRPC):
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend', timeout=5,
                  secret_key=None, public_key=None,
-                 heartbeat_plugin='noop_heartbeat_backend'):
+                 heartbeat_plugin='noop_heartbeat_backend',
+                 proxy_to=None,
+                 ):
         super(Server, self).__init__(identity,
                                      context=context, io_loop=io_loop,
                                      security_plugin=security_plugin,
                                      timeout=timeout,
                                      public_key=public_key,
                                      secret_key=secret_key,
-                                     heartbeat_plugin=heartbeat_plugin)
+                                     heartbeat_plugin=heartbeat_plugin,
+                                     proxy_to=proxy_to,
+                                     )

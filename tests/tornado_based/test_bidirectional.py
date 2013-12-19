@@ -8,8 +8,7 @@ ioloop.install()
 class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
-    def make_one_server(self, identity, endpoint,
-                        io_loop=None):
+    def make_one_server(self, identity, io_loop=None):
         from pybidirpc import Server
         from pybidirpc import auth, heartbeat, predicate  # NOQA
         server = Server(identity, io_loop=io_loop)
@@ -30,8 +29,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, endpoint,
-                                      io_loop=self.io_loop)
+        server = self.make_one_server(server_id, io_loop=self.io_loop)
 
         client = self.make_one_client(client_id, server_id,
                                       io_loop=self.io_loop)
@@ -61,8 +59,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, endpoint,
-                                      io_loop=self.io_loop)
+        server = self.make_one_server(server_id, io_loop=self.io_loop)
 
         client = self.make_one_client(client_id, server_id,
                                       io_loop=self.io_loop)
@@ -102,8 +99,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, endpoint,
-                                      io_loop=self.io_loop)
+        server = self.make_one_server(server_id, io_loop=self.io_loop)
 
         client1 = self.make_one_client('client1', server_id,
                                        io_loop=self.io_loop)
@@ -142,8 +138,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server_id = 'server'
         endpoint = 'inproc://here'
-        server = self.make_one_server(server_id, endpoint,
-                                      io_loop=self.io_loop)
+        server = self.make_one_server(server_id, io_loop=self.io_loop)
 
         client = self.make_one_client('client', server_id,
                                       io_loop=self.io_loop)
@@ -160,3 +155,54 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
             future.result()
         server.close()
         client.close()
+
+    def test_server_can_proxy_another_server(self):
+        """
+        Client1 --> Server1.string.lower()
+        Client2 --> Server2(Server1.string.lower())
+        """
+        from pybidirpc.interfaces import ServiceNotFoundError
+        from pybidirpc.utils import get_rpc_callable, register_rpc
+
+        server1 = self.make_one_server('server1')
+        server2 = self.make_one_server('server2', proxy_to=server1)
+
+        client1 = self.make_one_client('client1', 'server1')
+        client2 = self.make_one_client('client2', 'server2')
+
+        server1.bind('inproc://server1')
+        server2.bind('inproc://server2')
+        client1.connect('inproc://server1')
+        client2.connect('inproc://server2')
+        server1.start()
+        server2.start()
+
+        import string
+        # Local registration
+        server1.register_rpc(name='str.lower')(string.lower)
+
+        # Global registration
+        register_rpc(name='str.upper')(string.upper)
+
+        with pytest.raises(ServiceNotFoundError):
+            get_rpc_callable('str.lower', registry=server2.registry)
+
+        with pytest.raises(ServiceNotFoundError):
+            assert get_rpc_callable('str.lower')
+
+        assert get_rpc_callable('str.lower',
+                                registry=server1.registry)('L') == 'l'
+
+        future1 = yield client1.str.lower('SCREAM')
+        future2 = yield client2.str.lower('SCREAM')
+        future3 = yield client1.str.upper('whisper')
+        future4 = yield client2.str.upper('whisper')
+        assert future1.result() == 'scream'
+        assert future2.result() == 'scream'
+        assert future3.result() == 'WHISPER'
+        assert future4.result() == 'WHISPER'
+
+        client1.stop()
+        client2.stop()
+        server1.stop()
+        server2.stop()
