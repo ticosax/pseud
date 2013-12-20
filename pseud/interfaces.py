@@ -63,6 +63,28 @@ class IBaseRPC(zope.interface.Interface):
     All methods that an rpc service must support
     to handle pseud protocol
     """
+    identity = zope.interface.Attribute("""
+        identity of current RPC
+        """)
+    peer_identity = zope.interface.Attribute("""
+        identity of peer to communicate with
+        """)
+    context = zope.interface.Attribute("""
+        ØMQ context
+        """)
+    security_plugin = zope.interface.Attribute("""
+        name of security backend to load
+        """)
+    initialized = zope.interface.Attribute('')
+    public_key = zope.interface.Attribute('')
+    secret_key = zope.interface.Attribute('')
+    peer_public_key = zope.interface.Attribute('')
+    password = zope.interface.Attribute('')
+    heartbeat_plugin = zope.interface.Attribute('')
+    heartbeat_backend = zope.interface.Attribute('')
+    proxy_to = zope.interface.Attribute('')
+    registry = zope.interface.Attribute('')
+    io_loop = zope.interface.Attribute('')
     timeout = zope.interface.Attribute("""
         Max allowed time to send, recv or to wait for a task.
         """)
