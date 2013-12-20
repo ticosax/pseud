@@ -99,7 +99,7 @@ class IBaseRPC(zope.interface.Interface):
         the future linked to given uuid
         """
 
-    def cleanup_future(uuid):
+    def cleanup_future(uuid, future):
         """
         Destroy the future kept in memory if any.
         """
