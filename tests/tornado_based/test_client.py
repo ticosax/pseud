@@ -56,12 +56,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         return router_sock
 
     def make_one_client(self, identity, peer_identity, timeout=5,
-                        io_loop=None):
+                        io_loop=None, registry=None):
         from pybidirpc import Client
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pybidirpc import auth, heartbeat, predicate  # NOQA
         client = Client(identity, peer_identity,
                         timeout=timeout,
-                        io_loop=io_loop)
+                        io_loop=io_loop,
+                        registry=registry)
         return client
 
     @tornado.testing.gen_test
@@ -162,3 +163,18 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
             assert future.result()
         assert not client.future_pool
         client.stop()
+
+    def test_client_registry(self):
+        from pybidirpc.utils import create_local_registry, get_rpc_callable
+        identity = 'client0'
+        peer_identity = 'echo'
+        registry = create_local_registry(identity)
+        client = self.make_one_client(identity, peer_identity,
+                                      registry=registry)
+
+        @client.register_rpc
+        def foo():
+            return 'bar'
+
+        assert get_rpc_callable(name='foo',
+                                registry=client.registry)() == 'bar'

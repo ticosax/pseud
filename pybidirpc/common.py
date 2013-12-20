@@ -26,7 +26,7 @@ from .interfaces import (AUTHENTICATED,
                          )
 from .utils import (get_rpc_callable,
                     register_rpc,
-                    registry,
+                    create_local_registry,
                     )
 
 
@@ -80,7 +80,8 @@ class BaseRPC(object):
                  peer_public_key=None, timeout=5,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend',
-                 proxy_to=None):
+                 proxy_to=None,
+                 registry=None):
         self.identity = identity
         self.context = context or self._make_context()
         self.peer_identity = peer_identity
@@ -103,8 +104,8 @@ class BaseRPC(object):
         self.proxy_to = proxy_to
         self._backend_init(io_loop=io_loop)
         self.reader = None
-        self.registry = zope.interface.registry.Components(name=identity or '',
-                                                           bases=(registry,))
+        self.registry = (registry if registry is not None
+                         else create_local_registry(identity or ''))
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):

@@ -49,6 +49,10 @@ def register_predicate(cls):
     return cls
 
 
+def create_local_registry(name):
+    return zope.interface.registry.Components(name=name, bases=(registry,))
+
+
 @zope.interface.implementer(IRPCCallable)
 class RPCCallable(object):
     def __init__(self, func, name, env='default'):

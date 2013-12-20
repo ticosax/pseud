@@ -49,11 +49,13 @@ def make_one_server_socket(identity, endpoint):
     return port, router_sock
 
 
-def make_one_client(identity, peer_identity, timeout=5):
+def make_one_client(identity, peer_identity, timeout=5,
+                    registry=None):
     from pybidirpc._gevent import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pybidirpc import auth, heartbeat, predicate  # NOQA
     client = Client(identity, peer_identity,
-                    timeout=timeout)
+                    timeout=timeout,
+                    registry=registry)
     return client
 
 
@@ -81,7 +83,6 @@ def test_client_method_wrapper():
 
 def test_job_executed():
     from pybidirpc.interfaces import OK, VERSION, WORK
-    from pybidirpc import auth, heartbeat  # NOQA
     identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
@@ -113,7 +114,6 @@ def test_job_executed():
 
 def test_job_server_never_reply():
     from pybidirpc.interfaces import VERSION, WORK
-    from pybidirpc import auth, heartbeat  # NOQA
     identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
@@ -140,3 +140,18 @@ def test_job_server_never_reply():
     assert not client.future_pool
     client.stop()
     socket.close()
+
+
+def test_client_registry():
+    from pybidirpc.utils import create_local_registry, get_rpc_callable
+    identity = 'client0'
+    peer_identity = 'echo'
+    registry = create_local_registry(identity)
+    client = make_one_client(identity, peer_identity,
+                             registry=registry)
+
+    @client.register_rpc
+    def foo():
+        return 'bar'
+
+    assert get_rpc_callable(name='foo', registry=client.registry)() == 'bar'

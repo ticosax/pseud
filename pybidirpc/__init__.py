@@ -123,6 +123,7 @@ class SyncClient(SyncBaseRPC):
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend',
                  proxy_to=None,
+                 registry=None,
                  ):
         super(SyncClient, self).__init__(identity=identity,
                                          context=context, io_loop=io_loop,
@@ -134,4 +135,5 @@ class SyncClient(SyncBaseRPC):
                                          password=password,
                                          heartbeat_plugin=heartbeat_plugin,
                                          proxy_to=proxy_to,
+                                         registry=registry,
                                          )
