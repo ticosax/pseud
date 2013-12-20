@@ -8,6 +8,7 @@ import traceback
 import uuid
 
 import msgpack
+import zmq
 import zope.component
 import zope.interface
 
@@ -72,7 +73,7 @@ class AttributeWrapper(object):
 
 
 class BaseRPC(object):
-    def __init__(self, identity, peer_identity=None,
+    def __init__(self, identity=None, peer_identity=None,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
@@ -102,7 +103,7 @@ class BaseRPC(object):
         self.proxy_to = proxy_to
         self._backend_init(io_loop=io_loop)
         self.reader = None
-        self.registry = zope.interface.registry.Components(name=identity,
+        self.registry = zope.interface.registry.Components(name=identity or '',
                                                            bases=(registry,))
 
     def __getattr__(self, name, default=_marker):
@@ -121,8 +122,12 @@ class BaseRPC(object):
     def connect_or_bind(self, name, endpoint):
         socket = self.context.socket(self.socket_type)
         self.socket = socket
-        socket.identity = self.identity
-        socket.ROUTER_MANDATORY = True
+        if self.identity:
+            socket.identity = self.identity
+        if self.socket_type == zmq.ROUTER:
+            socket.ROUTER_MANDATORY = True
+        if self.socket_type == zmq.REQ:
+            socket.RCVTIMEO = int(self.timeout * 1000)
         socket.SNDTIMEO = int(self.timeout * 1000)
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
@@ -148,7 +153,14 @@ class BaseRPC(object):
 
     def on_socket_ready(self, response):
         logger.debug('Message received for {!r}: {!r}'.format(self, response))
-        peer_id, version, message_uuid, message_type, message = response
+        if len(response) == 4:
+            # From REQ socket
+            version, message_uuid, message_type, message = response
+            peer_id = None
+        else:
+            # from ROUTER socket
+            peer_id, delimiter, version, message_uuid, message_type, message =\
+                response
         assert version == VERSION
         if not self.auth_backend.is_authenticated(peer_id):
             if message_type != HELLO:
@@ -161,7 +173,7 @@ class BaseRPC(object):
             if message_type == WORK:
                 self._handle_work(message, peer_id, message_uuid)
             elif message_type == OK:
-                self._handle_ok(message, message_uuid)
+                return self._handle_ok(message, message_uuid)
             elif message_type == ERROR:
                 self._handle_error(message, message_uuid)
             elif message_type == AUTHENTICATED:
