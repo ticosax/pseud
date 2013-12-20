@@ -203,8 +203,16 @@ class BaseRPC(object):
                 context = self.proxy_to
             else:
                 context = self
-            result = context._handle_work_proxy(locator, args, kw, peer_id,
-                                                message_uuid)
+            try:
+                result = context._handle_work_proxy(locator, args, kw, peer_id,
+                                                    message_uuid)
+            except ServiceNotFoundError:
+                if context is self:
+                    raise
+                else:
+                    result = self._handle_work_proxy(locator, args, kw,
+                                                     peer_id, message_uuid)
+
         except Exception:
             exc_type, exc_value = sys.exc_info()[:2]
             traceback_ = traceback.format_exc()

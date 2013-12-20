@@ -152,8 +152,17 @@ def test_server_can_proxy_another_server():
     # Global registration
     register_rpc(name='str.upper')(string.upper)
 
+    # local registration only to proxy
+    server2.register_rpc(name='bla.lower')(string.lower)
+
     with pytest.raises(ServiceNotFoundError):
         get_rpc_callable('str.lower', registry=server2.registry)
+
+    with pytest.raises(ServiceNotFoundError):
+        get_rpc_callable('bla.lower', registry=server1.registry)
+
+    with pytest.raises(ServiceNotFoundError):
+        get_rpc_callable('bla.lower')
 
     with pytest.raises(ServiceNotFoundError):
         assert get_rpc_callable('str.lower')
@@ -163,6 +172,7 @@ def test_server_can_proxy_another_server():
 
     assert client1.str.lower('SCREAM').get() == 'scream'
     assert client2.str.lower('SCREAM').get() == 'scream'
+    assert client2.bla.lower('SCREAM').get() == 'scream'
     assert client1.str.upper('whisper').get() == 'WHISPER'
     assert client2.str.upper('whisper').get() == 'WHISPER'
 

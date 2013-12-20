@@ -184,8 +184,17 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         # Global registration
         register_rpc(name='str.upper')(string.upper)
 
+        # local registration only to proxy
+        server2.register_rpc(name='bla.lower')(string.lower)
+
         with pytest.raises(ServiceNotFoundError):
             get_rpc_callable('str.lower', registry=server2.registry)
+
+        with pytest.raises(ServiceNotFoundError):
+            get_rpc_callable('bla.lower', registry=server1.registry)
+
+        with pytest.raises(ServiceNotFoundError):
+            get_rpc_callable('bla.lower')
 
         with pytest.raises(ServiceNotFoundError):
             assert get_rpc_callable('str.lower')
@@ -197,10 +206,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future2 = yield client2.str.lower('SCREAM')
         future3 = yield client1.str.upper('whisper')
         future4 = yield client2.str.upper('whisper')
+        future5 = yield client2.bla.lower('SCREAM').get() == 'scream'
         assert future1.result() == 'scream'
         assert future2.result() == 'scream'
         assert future3.result() == 'WHISPER'
         assert future4.result() == 'WHISPER'
+        assert future5.result() == 'scream'
 
         client1.stop()
         client2.stop()
