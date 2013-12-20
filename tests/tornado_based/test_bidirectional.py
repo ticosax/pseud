@@ -206,7 +206,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future2 = yield client2.str.lower('SCREAM')
         future3 = yield client1.str.upper('whisper')
         future4 = yield client2.str.upper('whisper')
-        future5 = yield client2.bla.lower('SCREAM').get() == 'scream'
+        future5 = yield client2.bla.lower('SCREAM')
         assert future1.result() == 'scream'
         assert future2.result() == 'scream'
         assert future3.result() == 'WHISPER'
