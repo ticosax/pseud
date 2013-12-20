@@ -41,7 +41,8 @@ setup(name='pseud',
           'zope.component'
       ],
       extras_require={'Tornado': ('tornado', 'futures'),
-                      'Gevent': ('gevent',)},
+                      'Gevent': ('gevent',),
+                      'doc': ('sphinx', 'repoze.sphinx.autointerface')},
       tests_require=[
           'pytest',
       ],

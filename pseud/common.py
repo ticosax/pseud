@@ -146,7 +146,7 @@ class BaseRPC(object):
         self.create_later_callback(functools.partial(self.timeout_task, uuid),
                                    self.timeout)
 
-    def cleanup_future(self, uuid, future):
+    def cleanup_future(self, uuid):
         try:
             del self.future_pool[uuid]
         except KeyError:
