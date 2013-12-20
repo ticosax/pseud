@@ -9,7 +9,7 @@ Features
 #. ØMQ transport layer
 #. all native python types supported (msgpack)
 #. First citizen exceptions
-#. Bi-bidirectional (server can initiate connection to connected clients)
+#. Bi-bidirectional (server can initiate calls to connected clients)
 #. Encryption based on CURVE
 #. Pluggable Authentication
 #. Pluggable Heartbeating
