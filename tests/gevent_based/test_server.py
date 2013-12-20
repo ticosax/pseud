@@ -11,8 +11,8 @@ def read_once(socket):
 
 
 def test_server_creation():
-    from pybidirpc._gevent import Server
-    import pybidirpc.auth, pybidirpc.heartbeat  # NOQA
+    from pseud._gevent import Server
+    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     server = Server(identity)
     assert server.identity == identity
@@ -20,8 +20,8 @@ def test_server_creation():
 
 
 def test_server_can_bind():
-    from pybidirpc._gevent import Server
-    import pybidirpc.auth, pybidirpc.heartbeat  # NOQA
+    from pseud._gevent import Server
+    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = Server(identity,
@@ -31,8 +31,8 @@ def test_server_can_bind():
 
 
 def test_server_can_connect():
-    from pybidirpc._gevent import Server
-    import pybidirpc.auth, pybidirpc.heartbeat  # NOQA
+    from pseud._gevent import Server
+    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     endpoint = 'tcp://127.0.0.1:5000'
     server = Server(identity,
@@ -50,17 +50,17 @@ def make_one_client_socket(identity, endpoint):
 
 
 def make_one_server(identity, endpoint):
-    from pybidirpc._gevent import Server
-    import pybidirpc.auth, pybidirpc.heartbeat  # NOQA
-    import pybidirpc.predicate  # NOQA
+    from pseud._gevent import Server
+    import pseud.auth, pseud.heartbeat  # NOQA
+    import pseud.predicate  # NOQA
     server = Server(identity)
     server.bind(endpoint)
     return server
 
 
 def test_job_running():
-    from pybidirpc.interfaces import OK, VERSION, WORK
-    from pybidirpc.utils import register_rpc
+    from pseud.interfaces import OK, VERSION, WORK
+    from pseud.utils import register_rpc
 
     @register_rpc
     def job_success(a, b, c, d=None):
@@ -81,8 +81,8 @@ def test_job_running():
 
 
 def test_job_not_found():
-    import pybidirpc
-    from pybidirpc.interfaces import ERROR, VERSION, WORK
+    import pseud
+    from pseud.interfaces import ERROR, VERSION, WORK
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = make_one_server(identity, endpoint)
@@ -98,14 +98,14 @@ def test_job_not_found():
     klass, message, traceback = msgpack.unpackb(response[-1])
     assert klass == 'ServiceNotFoundError'
     assert message == 'thisIsNotAFunction'
-    # pybidirpc.__file__ might ends with .pyc
-    assert os.path.dirname(pybidirpc.__file__) in traceback
+    # pseud.__file__ might ends with .pyc
+    assert os.path.dirname(pseud.__file__) in traceback
     server.stop()
 
 
 def test_job_raise():
-    from pybidirpc.interfaces import ERROR, VERSION, WORK
-    from pybidirpc.utils import register_rpc
+    from pseud.interfaces import ERROR, VERSION, WORK
+    from pseud.utils import register_rpc
 
     @register_rpc
     def job_buggy(*args, **kw):

@@ -10,32 +10,32 @@ ioloop.install()
 
 
 def test_noop_heartbeat_backend_client():
-    from pybidirpc.heartbeat import NoOpHeartbeatBackendForClient
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import NoOpHeartbeatBackendForClient
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForClient)
 
 
 def test_noop_heartbeat_backend_server():
-    from pybidirpc.heartbeat import NoOpHeartbeatBackendForServer
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import NoOpHeartbeatBackendForServer
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForServer)
 
 
 def test_testing_heartbeat_backend_client():
-    from pybidirpc.heartbeat import TestingHeartbeatBackendForClient
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import TestingHeartbeatBackendForClient
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForClient)
 
 
 def test_testing_heartbeat_backend_server():
-    from pybidirpc.heartbeat import TestingHeartbeatBackendForServer
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import TestingHeartbeatBackendForServer
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForServer)
@@ -47,8 +47,8 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
     def make_one_server(self, identity, endpoint,
                         heartbeat_plugin,
                         io_loop=None):
-        from pybidirpc import Server
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud import Server
+        from pseud import auth, heartbeat  # NOQA
         server = Server(identity, heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
         return server
@@ -56,8 +56,8 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
     def make_one_client(self, identity, peer_identity,
                         heartbeat_plugin,
                         io_loop=None):
-        from pybidirpc import Client
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud import Client
+        from pseud import auth, heartbeat  # NOQA
         client = Client(identity, peer_identity,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -65,7 +65,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating(self):
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -107,7 +107,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating_with_disconnection(self):
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'

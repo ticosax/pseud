@@ -26,13 +26,13 @@ long_description = '\n'.join((read_that_file('README.rst'),))
 version = '0.0.1dev'
 
 
-setup(name='pybidirpc',
+setup(name='pseud',
       version=version,
       description='Bidirectionnal RPC Api on top of pzmq',
       author='Nicolas Delaby',
       author_email='nicolas.delaby@ezeep.com',
       url='',
-      packages=['pybidirpc'],
+      packages=['pseud'],
       include_package_data=True,
       zip_safe=True,
       install_requires=[

@@ -1,7 +1,7 @@
 import zope.component
 
-from pybidirpc.interfaces import IPredicate, IRPCCallable
-from pybidirpc.utils import register_predicate
+from pseud.interfaces import IPredicate, IRPCCallable
+from pseud.utils import register_predicate
 
 
 @register_predicate

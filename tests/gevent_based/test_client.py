@@ -8,8 +8,8 @@ import zmq.green as zmq
 
 
 def test_client_creation():
-    from pybidirpc._gevent import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud._gevent import Client
+    from pseud import auth, heartbeat  # NOQA
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
@@ -19,8 +19,8 @@ def test_client_creation():
 
 
 def test_client_can_bind():
-    from pybidirpc import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud import Client
+    from pseud import auth, heartbeat  # NOQA
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -30,8 +30,8 @@ def test_client_can_bind():
 
 
 def test_client_can_connect():
-    from pybidirpc import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud import Client
+    from pseud import auth, heartbeat  # NOQA
     endpoint = 'tcp://127.0.0.1:5000'
     identity = __name__
     peer_identity = 'echo'
@@ -51,8 +51,8 @@ def make_one_server_socket(identity, endpoint):
 
 def make_one_client(identity, peer_identity, timeout=5,
                     registry=None):
-    from pybidirpc._gevent import Client
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud._gevent import Client
+    from pseud import auth, heartbeat, predicate  # NOQA
     client = Client(identity, peer_identity,
                     timeout=timeout,
                     registry=registry)
@@ -60,7 +60,7 @@ def make_one_client(identity, peer_identity, timeout=5,
 
 
 def test_client_method_wrapper():
-    from pybidirpc.common import AttributeWrapper
+    from pseud.common import AttributeWrapper
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
@@ -82,7 +82,7 @@ def test_client_method_wrapper():
 
 
 def test_job_executed():
-    from pybidirpc.interfaces import OK, VERSION, WORK
+    from pseud.interfaces import OK, VERSION, WORK
     identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
@@ -113,7 +113,7 @@ def test_job_executed():
 
 
 def test_job_server_never_reply():
-    from pybidirpc.interfaces import VERSION, WORK
+    from pseud.interfaces import VERSION, WORK
     identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
@@ -143,7 +143,7 @@ def test_job_server_never_reply():
 
 
 def test_client_registry():
-    from pybidirpc.utils import create_local_registry, get_rpc_callable
+    from pseud.utils import create_local_registry, get_rpc_callable
     identity = 'client0'
     peer_identity = 'echo'
     registry = create_local_registry(identity)

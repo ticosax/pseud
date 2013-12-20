@@ -3,12 +3,12 @@ from zope.interface.registry import Components
 
 
 def test_rpc_simple_registration():
-    from pybidirpc.interfaces import ServiceNotFoundError
-    from pybidirpc.utils import (get_rpc_callable,
+    from pseud.interfaces import ServiceNotFoundError
+    from pseud.utils import (get_rpc_callable,
                                  register_rpc,
                                  RPCCallable,
                                  )
-    import pybidirpc.predicate  # NOQA
+    import pseud.predicate  # NOQA
 
     @register_rpc
     def callme(*args, **kw):
@@ -31,11 +31,11 @@ def test_rpc_simple_registration():
 
 
 def test_rpc_restricted_registration():
-    from pybidirpc.interfaces import ServiceNotFoundError
-    from pybidirpc.utils import (get_rpc_callable,
+    from pseud.interfaces import ServiceNotFoundError
+    from pseud.utils import (get_rpc_callable,
                                  register_rpc,
                                  )
-    import pybidirpc.predicate  # NOQA
+    import pseud.predicate  # NOQA
 
     @register_rpc(name='try_to_call_me')
     def callme(*args, **kw):
@@ -75,10 +75,10 @@ def test_rpc_restricted_registration():
 
 
 def test_registration_with_custom_registry():
-    from pybidirpc.utils import (get_rpc_callable,
+    from pseud.utils import (get_rpc_callable,
                                  register_rpc,
                                  )
-    import pybidirpc.predicate  # NOQA
+    import pseud.predicate  # NOQA
 
     local_registry = Components(name='local')
 

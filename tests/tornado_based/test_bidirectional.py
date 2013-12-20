@@ -9,21 +9,21 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
     def make_one_server(self, identity, io_loop=None):
-        from pybidirpc import Server
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pseud import Server
+        from pseud import auth, heartbeat, predicate  # NOQA
         server = Server(identity, io_loop=io_loop)
         return server
 
     def make_one_client(self, identity, peer_identity, io_loop=None):
-        from pybidirpc import Client
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pseud import Client
+        from pseud import auth, heartbeat, predicate  # NOQA
         client = Client(identity, peer_identity,
                         io_loop=io_loop)
         return client
 
     @tornado.testing.gen_test
     def test_client_can_send(self):
-        from pybidirpc.utils import register_rpc
+        from pseud.utils import register_rpc
 
         client_id = 'client'
         server_id = 'server'
@@ -52,8 +52,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_server_can_send(self):
-        from pybidirpc.utils import peer_identity_provider
-        from pybidirpc.utils import register_rpc
+        from pseud.utils import peer_identity_provider
+        from pseud.utils import register_rpc
 
         client_id = 'client'
         server_id = 'server'
@@ -93,8 +93,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
-        from pybidirpc.utils import peer_identity_provider
-        from pybidirpc.utils import register_rpc
+        from pseud.utils import peer_identity_provider
+        from pseud.utils import register_rpc
 
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -134,7 +134,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_raises_if_module_not_found(self):
-        from pybidirpc.interfaces import ServiceNotFoundError
+        from pseud.interfaces import ServiceNotFoundError
 
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -161,8 +161,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         Client1 --> Server1.string.lower()
         Client2 --> Server2(Server1.string.lower())
         """
-        from pybidirpc.interfaces import ServiceNotFoundError
-        from pybidirpc.utils import get_rpc_callable, register_rpc
+        from pseud.interfaces import ServiceNotFoundError
+        from pseud.utils import get_rpc_callable, register_rpc
 
         server1 = self.make_one_server('server1')
         server2 = self.make_one_server('server2', proxy_to=server1)

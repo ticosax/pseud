@@ -7,45 +7,45 @@ from zope.interface.verify import verifyClass
 
 
 def test_noop_auth_backend_client():
-    from pybidirpc.auth import NoOpAuthenticationBackendForClient
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import NoOpAuthenticationBackendForClient
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend,
                        NoOpAuthenticationBackendForClient)
 
 
 def test_noop_auth_backend_server():
-    from pybidirpc.auth import NoOpAuthenticationBackendForServer
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import NoOpAuthenticationBackendForServer
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend,
                        NoOpAuthenticationBackendForServer)
 
 
 def test_trusted_curve_client():
-    from pybidirpc.auth import CurveWithTrustedKeyForClient
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import CurveWithTrustedKeyForClient
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForClient)
 
 
 def test_trusted_curve_server():
-    from pybidirpc.auth import CurveWithTrustedKeyForServer
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import CurveWithTrustedKeyForServer
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForServer)
 
 
 def test_untrusted_curve_client():
-    from pybidirpc.auth import CurveWithUntrustedKeyForClient
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import CurveWithUntrustedKeyForClient
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForClient)
 
 
 def test_untrusted_curve_server():
-    from pybidirpc.auth import CurveWithUntrustedKeyForServer
-    from pybidirpc.interfaces import IAuthenticationBackend
+    from pseud.auth import CurveWithUntrustedKeyForServer
+    from pseud.interfaces import IAuthenticationBackend
 
     assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForServer)
 
@@ -55,9 +55,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_trusted_curve(self):
-        from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
-        from pybidirpc.utils import register_rpc
+        from pseud import Client, Server
+        from pseud import auth, heartbeat, predicate  # NOQA
+        from pseud.utils import register_rpc
 
         client_id = 'client'
         server_id = 'server'
@@ -98,9 +98,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_trusted_curve_with_wrong_peer_public_key(self):
-        from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
-        from pybidirpc.utils import register_rpc
+        from pseud import Client, Server
+        from pseud import auth, heartbeat, predicate  # NOQA
+        from pseud.utils import register_rpc
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://{}'.format(__name__)
@@ -141,9 +141,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_allowed_password(self):
-        from pybidirpc import Client, Server
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
-        from pybidirpc.utils import register_rpc
+        from pseud import Client, Server
+        from pseud import auth, heartbeat, predicate  # NOQA
+        from pseud.utils import register_rpc
 
         client_id = 'john'
         server_id = 'server'
@@ -193,10 +193,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_wrong_password(self):
-        from pybidirpc import Client, Server
-        from pybidirpc.interfaces import UnauthorizedError
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
-        from pybidirpc.utils import register_rpc
+        from pseud import Client, Server
+        from pseud.interfaces import UnauthorizedError
+        from pseud import auth, heartbeat, predicate  # NOQA
+        from pseud.utils import register_rpc
 
         client_id = 'john'
         server_id = 'server'

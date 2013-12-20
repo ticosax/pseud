@@ -8,8 +8,8 @@ import tornado.testing
 
 
 def test_server_creation():
-    from pybidirpc import Server
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud import Server
+    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     server = Server(identity)
     assert server.identity == identity
@@ -17,8 +17,8 @@ def test_server_creation():
 
 
 def test_server_can_bind():
-    from pybidirpc import Server
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud import Server
+    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = Server(identity,
@@ -27,8 +27,8 @@ def test_server_can_bind():
 
 
 def test_server_can_connect():
-    from pybidirpc import Server
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud import Server
+    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     endpoint = 'tcp://127.0.0.1:5000'
     server = Server(identity,
@@ -48,16 +48,16 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         return req_sock
 
     def make_one_server(self, identity, endpoint):
-        from pybidirpc import Server
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pseud import Server
+        from pseud import auth, heartbeat, predicate  # NOQA
         server = Server(identity, io_loop=self.io_loop)
         server.bind(endpoint)
         return server
 
     @tornado.testing.gen_test
     def test_job_running(self):
-        from pybidirpc.interfaces import OK, VERSION, WORK
-        from pybidirpc.utils import register_rpc
+        from pseud.interfaces import OK, VERSION, WORK
+        from pseud.utils import register_rpc
 
         identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -83,8 +83,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_not_found(self):
-        import pybidirpc
-        from pybidirpc.interfaces import ERROR, VERSION, WORK
+        import pseud
+        from pseud.interfaces import ERROR, VERSION, WORK
         identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
         server = self.make_one_server(identity, endpoint)
@@ -102,14 +102,14 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
         assert message == 'thisIsNotAFunction'
-        # pybidirpc.__file__ might ends with .pyc
-        assert os.path.dirname(pybidirpc.__file__) in traceback
+        # pseud.__file__ might ends with .pyc
+        assert os.path.dirname(pseud.__file__) in traceback
         server.stop()
 
     @tornado.testing.gen_test
     def test_job_raise(self):
-        from pybidirpc.interfaces import ERROR, VERSION, WORK
-        from pybidirpc.utils import register_rpc
+        from pseud.interfaces import ERROR, VERSION, WORK
+        from pseud.utils import register_rpc
 
         identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)

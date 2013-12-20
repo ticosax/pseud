@@ -2,7 +2,7 @@ import gevent
 import zmq.green as zmq
 import zope.interface.verify
 
-from pybidirpc import auth, heartbeat  # NOQA
+from pseud import auth, heartbeat  # NOQA
 
 
 def collector(sink, socket):
@@ -13,40 +13,40 @@ def collector(sink, socket):
 
 
 def test_noop_heartbeat_backend_client():
-    from pybidirpc.heartbeat import NoOpHeartbeatBackendForClient
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import NoOpHeartbeatBackendForClient
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForClient)
 
 
 def test_noop_heartbeat_backend_server():
-    from pybidirpc.heartbeat import NoOpHeartbeatBackendForServer
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import NoOpHeartbeatBackendForServer
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       NoOpHeartbeatBackendForServer)
 
 
 def test_testing_heartbeat_backend_client():
-    from pybidirpc.heartbeat import TestingHeartbeatBackendForClient
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import TestingHeartbeatBackendForClient
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForClient)
 
 
 def test_testing_heartbeat_backend_server():
-    from pybidirpc.heartbeat import TestingHeartbeatBackendForServer
-    from pybidirpc.interfaces import IHeartbeatBackend
+    from pseud.heartbeat import TestingHeartbeatBackendForServer
+    from pseud.interfaces import IHeartbeatBackend
 
     zope.interface.verify.verifyClass(IHeartbeatBackend,
                                       TestingHeartbeatBackendForServer)
 
 
 def make_one_server(identity, endpoint, heartbeat_plugin):
-    from pybidirpc._gevent import Server
-    from pybidirpc import predicate, auth , heartbeat  # NOQA
+    from pseud._gevent import Server
+    from pseud import predicate, auth , heartbeat  # NOQA
     server = Server(identity,
                     heartbeat_plugin=heartbeat_plugin)
     return server
@@ -54,8 +54,8 @@ def make_one_server(identity, endpoint, heartbeat_plugin):
 
 def make_one_client(identity, peer_identity,
                     heartbeat_plugin):
-    from pybidirpc._gevent import Client
-    from pybidirpc import predicate, auth , heartbeat  # NOQA
+    from pseud._gevent import Client
+    from pseud import predicate, auth , heartbeat  # NOQA
     client = Client(identity, peer_identity,
                     heartbeat_plugin=heartbeat_plugin)
     return client

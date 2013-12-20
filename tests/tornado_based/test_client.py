@@ -12,8 +12,8 @@ ioloop.install()
 
 
 def test_client_creation():
-    from pybidirpc import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud import Client
+    from pseud import auth, heartbeat  # NOQA
     identity = __name__
     peer_identity = 'echo'
     client = Client(identity, peer_identity)
@@ -24,8 +24,8 @@ def test_client_creation():
 
 
 def test_client_can_bind():
-    from pybidirpc import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud import Client
+    from pseud import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
@@ -35,8 +35,8 @@ def test_client_can_bind():
 
 
 def test_client_can_connect():
-    from pybidirpc import Client
-    from pybidirpc import auth, heartbeat  # NOQA
+    from pseud import Client
+    from pseud import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
@@ -57,8 +57,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     def make_one_client(self, identity, peer_identity, timeout=5,
                         io_loop=None, registry=None):
-        from pybidirpc import Client
-        from pybidirpc import auth, heartbeat, predicate  # NOQA
+        from pseud import Client
+        from pseud import auth, heartbeat, predicate  # NOQA
         client = Client(identity, peer_identity,
                         timeout=timeout,
                         io_loop=io_loop,
@@ -67,8 +67,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_client_method_wrapper(self):
-        from pybidirpc.common import AttributeWrapper
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud.common import AttributeWrapper
+        from pseud import auth, heartbeat  # NOQA
         endpoint = 'inproc://{}'.format(__name__)
         identity = __name__
         peer_identity = 'echo'
@@ -94,8 +94,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_executed(self):
-        from pybidirpc.interfaces import OK, VERSION, WORK
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud.interfaces import OK, VERSION, WORK
+        from pseud import auth, heartbeat  # NOQA
         identity = 'client0'
         peer_identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -130,8 +130,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_server_never_reply(self):
-        from pybidirpc.interfaces import VERSION, WORK
-        from pybidirpc import auth, heartbeat  # NOQA
+        from pseud.interfaces import VERSION, WORK
+        from pseud import auth, heartbeat  # NOQA
         identity = 'client0'
         peer_identity = 'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__)
@@ -165,7 +165,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.stop()
 
     def test_client_registry(self):
-        from pybidirpc.utils import create_local_registry, get_rpc_callable
+        from pseud.utils import create_local_registry, get_rpc_callable
         identity = 'client0'
         peer_identity = 'echo'
         registry = create_local_registry(identity)

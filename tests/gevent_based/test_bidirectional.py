@@ -3,21 +3,21 @@ import zmq.green as zmq  # NOQA
 
 
 def make_one_server(identity, proxy_to=None):
-    from pybidirpc._gevent import Server
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud._gevent import Server
+    from pseud import auth, heartbeat, predicate  # NOQA
     server = Server(identity, proxy_to=proxy_to)
     return server
 
 
 def make_one_client(identity, peer_identity):
-    from pybidirpc._gevent import Client
-    from pybidirpc import auth, heartbeat, predicate  # NOQA
+    from pseud._gevent import Client
+    from pseud import auth, heartbeat, predicate  # NOQA
     client = Client(identity, peer_identity)
     return client
 
 
 def test_client_can_send():
-    from pybidirpc.utils import register_rpc
+    from pseud.utils import register_rpc
     client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://here'
@@ -42,8 +42,8 @@ def test_client_can_send():
 
 
 def test_server_can_send():
-    from pybidirpc.utils import peer_identity_provider
-    from pybidirpc.utils import register_rpc
+    from pseud.utils import peer_identity_provider
+    from pseud.utils import register_rpc
 
     client_id = 'client'
     server_id = 'server'
@@ -71,8 +71,8 @@ def test_server_can_send():
 
 
 def test_server_can_send_to_several_client():
-    from pybidirpc.utils import peer_identity_provider
-    from pybidirpc.utils import register_rpc
+    from pseud.utils import peer_identity_provider
+    from pseud.utils import register_rpc
     server_id = 'server'
     endpoint = 'inproc://here'
 
@@ -105,8 +105,8 @@ def test_server_can_send_to_several_client():
 
 
 def test_raises_if_module_not_found():
-    from pybidirpc import auth, heartbeat  # NOQA
-    from pybidirpc.interfaces import ServiceNotFoundError
+    from pseud import auth, heartbeat  # NOQA
+    from pseud.interfaces import ServiceNotFoundError
     server_id = 'server'
     endpoint = 'inproc://here'
     server = make_one_server(server_id)
@@ -128,8 +128,8 @@ def test_server_can_proxy_another_server():
     Client1 --> Server1.string.lower()
     Client2 --> Server2(Server1.string.lower())
     """
-    from pybidirpc.interfaces import ServiceNotFoundError
-    from pybidirpc.utils import get_rpc_callable, register_rpc
+    from pseud.interfaces import ServiceNotFoundError
+    from pseud.utils import get_rpc_callable, register_rpc
 
     server1 = make_one_server('server1')
     server2 = make_one_server('server2',
