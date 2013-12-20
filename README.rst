@@ -57,6 +57,7 @@ Preview
 
 
     server = Server('service')
+    server.bind('tcp://127.0.0.1:5555')
 
     @server.register_rpc
     def hello(name):
@@ -71,6 +72,7 @@ Preview
 
 
     client = Client('me', 'service')
+    client.connect('tcp://127.0.0.1:5555')
 
     future = yield client.hello('Charly')
     future.result()  # 'Hello Charly'
@@ -82,5 +84,6 @@ Preview
 
 
     client = Client('me', 'service')
+    client.connect('tcp://127.0.0.1:5555')
 
     client.hello('Charly').get()  # 'Hello Charly'
