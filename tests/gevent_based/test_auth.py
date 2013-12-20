@@ -110,7 +110,6 @@ def test_trusted_curve_with_wrong_peer_public_key():
     assert client.socket.mechanism == zmq.CURVE
 
     server.start()
-    client.start()
     future = client.string.lower('BAR')
     with pytest.raises(Timeout):
         future.get(timeout=0.1)
@@ -152,7 +151,6 @@ def test_untrusted_curve_with_allowed_password():
     server.auth_backend.user_map[client_id] = password
 
     server.start()
-    client.start()
     import string
     register_rpc(name='string.lower')(string.lower)
     future = client.string.lower('FOO')
