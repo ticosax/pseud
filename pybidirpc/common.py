@@ -133,7 +133,7 @@ class BaseRPC(object):
     def _prepare_work(self, peer_identity, name, *args, **kw):
         work = msgpack.packb((name, args, kw))
         uid = uuid.uuid4().bytes
-        message = [peer_identity, VERSION, uid, WORK, work]
+        message = [peer_identity, '', VERSION, uid, WORK, work]
         return message, uid
 
     def create_timeout_detector(self, uuid):
@@ -202,7 +202,7 @@ class BaseRPC(object):
         else:
             status = OK
         response = msgpack.packb(result)
-        message = [peer_id, VERSION, message_uuid, status, response]
+        message = [peer_id, '', VERSION, message_uuid, status, response]
         logger.debug('Worker send reply {!r}'.format(message))
         self.send_message(message)
 

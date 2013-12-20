@@ -73,9 +73,10 @@ def test_job_running():
     server.start()
     socket = make_one_client_socket('client', endpoint)
     work = msgpack.packb((job_success.func_name, (1, 2, 3), {'d': False}))
-    gevent.spawn(socket.send_multipart, [identity, VERSION, '', WORK, work])
+    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+                                         '', WORK, work])
     response = gevent.spawn(read_once, socket).get()
-    assert response == [identity, VERSION, '', OK, msgpack.packb(True)]
+    assert response == [identity, '', VERSION, '', OK, msgpack.packb(True)]
     server.stop()
 
 
@@ -88,11 +89,12 @@ def test_job_not_found():
     socket = make_one_client_socket('client', endpoint)
     work = msgpack.packb(('thisIsNotAFunction', (), {}))
     server.start()
-    gevent.spawn(socket.send_multipart, [identity, VERSION, '', WORK, work])
+    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+                                         '', WORK, work])
     result = gevent.event.AsyncResult()
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
-    assert response[:-1] == [identity, VERSION, '', ERROR]
+    assert response[:-1] == [identity, '', VERSION, '', ERROR]
     klass, message, traceback = msgpack.unpackb(response[-1])
     assert klass == 'ServiceNotFoundError'
     assert message == 'thisIsNotAFunction'
@@ -115,11 +117,12 @@ def test_job_raise():
     socket = make_one_client_socket('client', endpoint)
     work = msgpack.packb((job_buggy.func_name, (), {}))
     server.start()
-    gevent.spawn(socket.send_multipart, [identity, VERSION, '', WORK, work])
+    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+                                         '', WORK, work])
     result = gevent.event.AsyncResult()
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
-    assert response[:-1] == [identity, VERSION, '', ERROR]
+    assert response[:-1] == [identity, '', VERSION, '', ERROR]
     klass, message, traceback = msgpack.unpackb(response[-1])
     assert klass == 'ValueError'
     assert message == 'too bad'

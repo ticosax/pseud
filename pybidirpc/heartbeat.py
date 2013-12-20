@@ -70,7 +70,7 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
         pass
 
     def handle_heartbeat(self, peer_id):
-        self.rpc.send_message([self.rpc.peer_identity, VERSION,
+        self.rpc.send_message([self.rpc.peer_identity, '', VERSION,
                                '', HEARTBEAT, ''])
 
     def configure(self):

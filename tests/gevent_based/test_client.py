@@ -92,7 +92,8 @@ def test_job_executed():
 
     future = client.please.do_that_job(1, 2, 3, b=4)
     request = gevent.spawn(socket.recv_multipart).get()
-    server_id, version, uid, message_type, message = request
+    server_id, delimiter, version, uid, message_type, message = request
+    assert delimiter == ''
     assert version == VERSION
     assert uid
     # check it is a real uuid
@@ -102,7 +103,7 @@ def test_job_executed():
     assert locator == 'please.do_that_job'
     assert args == [1, 2, 3]
     assert kw == {'b': 4}
-    reply = [identity, version, uid, OK, msgpack.packb(True)]
+    reply = [identity, '', version, uid, OK, msgpack.packb(True)]
     gevent.spawn(socket.send_multipart, reply)
     assert future.get() is True
     assert not client.future_pool
@@ -123,7 +124,8 @@ def test_job_server_never_reply():
 
     future = client.please.do_that_job(1, 2, 3, b=4)
     request = gevent.spawn(socket.recv_multipart).get()
-    server_id, version, uid, message_type, message = request
+    server_id, delimiter, version, uid, message_type, message = request
+    assert delimiter == ''
     assert version == VERSION
     assert uid
     # check it is a real uuid

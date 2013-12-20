@@ -181,7 +181,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
             future.set_exception(UnauthorizedError('Max authentication'
                                                    ' retries reached'))
         else:
-            self.rpc.send_message([peer_id, VERSION, message_uuid,
+            self.rpc.send_message([peer_id, '', VERSION, message_uuid,
                                    HELLO, self.rpc.password])
 
     def handle_hello(self, *args):
@@ -260,7 +260,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             reply = 'Authentication Error'
             status = UNAUTHORIZED
         logger.debug('Sending Hello reply: {!r}'.format(reply))
-        self.rpc.send_message([peer_id, VERSION, message_uuid,
+        self.rpc.send_message([peer_id, '', VERSION, message_uuid,
                                status, reply])
 
     def handle_authenticated(self, message):
@@ -272,7 +272,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             self.current_untrusted_key = None
         reply = 'Authentication Required'
         status = UNAUTHORIZED
-        self.rpc.send_message([peer_id, VERSION, message_uuid,
+        self.rpc.send_message([peer_id, '', VERSION, message_uuid,
                                status, reply])
 
     def is_authenticated(self, peer_id):

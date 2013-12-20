@@ -107,7 +107,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future = yield client.please.do_that_job(1, 2, 3, b=4)
         request = yield tornado.gen.Task(stream.on_recv)
         stream.stop_on_recv()
-        server_id, version, uid, message_type, message = request
+        server_id, delimiter, version, uid, message_type, message = request
+        assert delimiter == ''
         assert version == VERSION
         assert uid
         # check it is a real uuid
@@ -117,7 +118,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [identity, version, uid, OK, msgpack.packb(True)]
+        reply = [identity, '', version, uid, OK, msgpack.packb(True)]
         yield tornado.gen.Task(stream.send_multipart, reply)
         self.io_loop.add_timeout(self.io_loop.time() + .1,
                                  self.io_loop.stop)
@@ -143,7 +144,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future = yield client.please.do_that_job(1, 2, 3, b=4)
         request = yield tornado.gen.Task(stream.on_recv)
         stream.stop_on_recv()
-        server_id, version, uid, message_type, message = request
+        server_id, delimiter, version, uid, message_type, message = request
+        assert delimiter == ''
         assert version == VERSION
         assert uid
         # check it is a real uuid

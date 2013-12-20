@@ -72,13 +72,13 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack.packb((job_success.func_name, (1, 2, 3), {'d': False}))
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, VERSION, '', WORK, work])
+                               [identity, '', VERSION, '', WORK, work])
         yield server.start()
         response = yield tornado.gen.Task(stream.on_recv)
         self.io_loop.add_timeout(self.io_loop.time() + .1,
                                  self.io_loop.stop)
         self.io_loop.start()
-        assert response == [identity, VERSION, '', OK, msgpack.packb(True)]
+        assert response == [identity, '', VERSION, '', OK, msgpack.packb(True)]
         server.stop()
 
     @tornado.testing.gen_test
@@ -93,12 +93,12 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         work = msgpack.packb(('thisIsNotAFunction', (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, VERSION, '', WORK, work])
+                               [identity, '', VERSION, '', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
         self.io_loop.add_timeout(self.io_loop.time() + .1,
                                  self.io_loop.stop)
         self.io_loop.start()
-        assert response[:-1] == [identity, VERSION, '', ERROR]
+        assert response[:-1] == [identity, '', VERSION, '', ERROR]
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
         assert message == 'thisIsNotAFunction'
@@ -124,11 +124,11 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         work = msgpack.packb((job_buggy.func_name, (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, VERSION, '', WORK, work])
+                               [identity, '', VERSION, '', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
         self.io_loop.add_timeout(time.time() + .1, self.stop)
         self.wait()
-        assert response[:-1] == [identity, VERSION, '', ERROR]
+        assert response[:-1] == [identity, '', VERSION, '', ERROR]
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ValueError'
         assert message == 'too bad'
