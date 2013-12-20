@@ -1,6 +1,5 @@
 import functools
 import logging
-import uuid
 
 import zmq
 import zope.component
@@ -71,9 +70,8 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
         pass
 
     def handle_heartbeat(self, peer_id):
-        uid = uuid.uuid4().bytes
         self.rpc.send_message([self.rpc.peer_identity, VERSION,
-                               uid, HEARTBEAT, ''])
+                               '', HEARTBEAT, ''])
 
     def configure(self):
         self.periodic_callback = self.rpc.create_periodic_callback(
