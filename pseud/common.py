@@ -199,19 +199,16 @@ class BaseRPC(object):
     def _handle_work(self, message, peer_id, message_uuid):
         locator, args, kw = msgpack.unpackb(message)
         try:
-            if self.proxy_to is not None:
-                context = self.proxy_to
-            else:
-                context = self
             try:
-                result = context._handle_work_proxy(locator, args, kw, peer_id,
-                                                    message_uuid)
+                result = self._handle_work_proxy(locator, args, kw, peer_id,
+                                                 message_uuid)
             except ServiceNotFoundError:
-                if context is self:
+                if self.proxy_to is None:
                     raise
                 else:
-                    result = self._handle_work_proxy(locator, args, kw,
-                                                     peer_id, message_uuid)
+                    result = self.proxy_to._handle_work_proxy(locator, args,
+                                                              kw, peer_id,
+                                                              message_uuid)
 
         except Exception:
             exc_type, exc_value = sys.exc_info()[:2]
