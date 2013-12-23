@@ -11,20 +11,6 @@ from .interfaces import (IAuthenticationBackend,
                          )
 
 
-class peer_identity_provider(object):
-
-    def __init__(self, server, peer_identity):
-        self.server = server
-        self.peer_identity = peer_identity
-
-    def __enter__(self):
-        self.old_identity = self.server.peer_identity
-        self.server.peer_identity = self.peer_identity
-
-    def __exit__(self, *args):
-        self.server.peer_identity = self.old_identity
-
-
 registry = zope.component.getGlobalSiteManager()
 
 

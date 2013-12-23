@@ -52,7 +52,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_server_can_send(self):
-        from pseud.utils import peer_identity_provider
         from pseud.utils import register_rpc
 
         client_id = 'client'
@@ -80,20 +79,18 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        with peer_identity_provider(server, client_id):
-            future = yield server.string.lower('SCREAM')
+        future = yield server.send_to(client_id).string.lower('SCREAM')
 
         # server.peer_identity = client_id
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout) == 'scream'
+        assert future.result() == 'scream'
         client.stop()
         server.stop()
 
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
-        from pseud.utils import peer_identity_provider
         from pseud.utils import register_rpc
 
         server_id = 'server'
@@ -116,18 +113,16 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        with peer_identity_provider(server, 'client1'):
-            future1 = yield server.string.lower('SCREAM1')
+        future1 = yield server.send_to('client1').string.lower('SCREAM1')
 
-        with peer_identity_provider(server, 'client2'):
-            future2 = yield server.string.lower('SCREAM2')
+        future2 = yield server.send_to('client2').string.lower('SCREAM2')
 
         # server.peer_identity = client_id
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
-        assert future1.result(timeout=self.timeout) == 'scream1'
-        assert future2.result(timeout=self.timeout) == 'scream2'
+        assert future1.result() == 'scream1'
+        assert future2.result() == 'scream2'
         client1.stop()
         client2.stop()
         server.stop()

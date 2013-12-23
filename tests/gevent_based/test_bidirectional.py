@@ -42,7 +42,6 @@ def test_client_can_send():
 
 
 def test_server_can_send():
-    from pseud.utils import peer_identity_provider
     from pseud.utils import register_rpc
 
     client_id = 'client'
@@ -62,8 +61,7 @@ def test_server_can_send():
     import string
     register_rpc(name='string.lower')(string.lower)
 
-    with peer_identity_provider(server, client_id):
-        future = server.string.lower('SCREAM')
+    future = server.send_to(client_id).string.lower('SCREAM')
 
     assert future.get() == 'scream'
     client.stop()
@@ -71,7 +69,6 @@ def test_server_can_send():
 
 
 def test_server_can_send_to_several_client():
-    from pseud.utils import peer_identity_provider
     from pseud.utils import register_rpc
     server_id = 'server'
     endpoint = 'inproc://here'
@@ -91,11 +88,9 @@ def test_server_can_send_to_several_client():
     import string
     register_rpc(name='string.lower')(string.lower)
 
-    with peer_identity_provider(server, 'client1'):
-        future1 = server.string.lower('SCREAM1')
+    future1 = server.send_to('client1').string.lower('SCREAM1')
 
-    with peer_identity_provider(server, 'client2'):
-        future2 = server.string.lower('SCREAM2')
+    future2 = server.send_to('client2').string.lower('SCREAM2')
 
     assert future1.get() == 'scream1'
     assert future2.get() == 'scream2'

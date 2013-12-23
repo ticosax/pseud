@@ -45,9 +45,10 @@ def format_remote_traceback(traceback):
 
 
 class AttributeWrapper(object):
-    def __init__(self, rpc, name):
+    def __init__(self, rpc, name=None, peer_id=None):
         self.rpc = rpc
-        self._part_names = name.split('.')
+        self._part_names = name.split('.') if name is not None else []
+        self.peer_id = peer_id
 
     def __getattr__(self, name, default=_marker):
         try:
@@ -68,8 +69,9 @@ class AttributeWrapper(object):
     name = property(name_getter, name_setter)
 
     def __call__(self, *args, **kw):
-        return self.rpc.send_work(self.rpc.peer_identity, self.name,
-                                  *args, **kw)
+        destination = self.peer_id or self.rpc.peer_identity
+        return self.rpc.send_work(destination, self.name, *args, **kw)
+
 
 
 class BaseRPC(object):
@@ -118,7 +120,10 @@ class BaseRPC(object):
             if not self.initialized:
                 raise RuntimeError('You must connect or bind first'
                                    ' in order to call {!r}'.format(name))
-            return AttributeWrapper(self, name)
+            return AttributeWrapper(self, name=name)
+
+    def send_to(self, peer_id):
+        return AttributeWrapper(self, peer_id=peer_id)
 
     def connect_or_bind(self, name, endpoint):
         socket = self.context.socket(self.socket_type)
