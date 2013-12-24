@@ -64,7 +64,7 @@ class TornadoBaseRPC(BaseRPC):
         # Warmup delay !!
         yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
-            logger.debug('{} sent'.format(self.__class__.__name__))
+            logger.debug('{} started'.format(self.__class__.__name__))
             yield self.io_loop.start()
 
     def read_forever(self, socket, callback):
