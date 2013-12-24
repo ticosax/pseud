@@ -87,7 +87,10 @@ class TornadoBaseRPC(BaseRPC):
             callback)
 
     def timeout_task(self, uuid):
-        self.future_pool[uuid].set_exception(TimeoutError)
+        try:
+            self.future_pool[uuid].set_exception(TimeoutError)
+        except KeyError:
+            pass
 
     def stop(self):
         if self.reader is not None:
