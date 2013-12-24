@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 def periodic_loop(callback, timer):
     while True:
         gevent.sleep(timer)
-        callback()
+        gevent.spawn(callback)
 
 
 def forever_loop(socket, callback):
     while True:
         message = socket.recv_multipart()
-        callback(message)
+        gevent.spawn(callback, message)
 
 
 class GeventBaseRPC(BaseRPC):
