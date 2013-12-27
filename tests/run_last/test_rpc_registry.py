@@ -40,12 +40,12 @@ def test_rpc_restricted_registration():
         return 'small power'
 
     @register_rpc(name='try_to_call_me',
-                  env='restricted')
+                  domain='restricted')
     def callme_admin(*args, **kw):
         return 'great power'
 
     @register_rpc(name='on.admin.can.call.me',
-                  env='restricted')
+                  domain='restricted')
     def callme_admin2(*args, **kw):
         return 'great power'
 

@@ -41,10 +41,10 @@ def create_local_registry(name):
 
 @zope.interface.implementer(IRPCCallable)
 class RPCCallable(object):
-    def __init__(self, func, name, env='default'):
+    def __init__(self, func, name, domain='default'):
         self.func = func
         self.name = name
-        self.env = env
+        self.domain = domain
 
     def __call__(self, *args, **kw):
         return self.func(*args, **kw)
@@ -52,14 +52,15 @@ class RPCCallable(object):
     def test(self, *args, **kw):
         return zope.component.getAdapter(self,
                                          IPredicate,
-                                         name=self.env).test(*args, **kw)
+                                         name=self.domain).test(*args, **kw)
 
 
-def register_rpc(func=None, name=None, env='default', registry=registry):
+def register_rpc(func=None, name=None, domain='default', registry=registry):
     def wrapper(fn):
         endpoint_name = name or fn.func_name
-        registered_name = '{}:{}'.format(endpoint_name, env)
-        registry.registerUtility(RPCCallable(fn, name=endpoint_name, env=env),
+        registered_name = '{}:{}'.format(endpoint_name, domain)
+        registry.registerUtility(RPCCallable(fn, name=endpoint_name,
+                                             domain=domain),
                                  IRPCRoute,
                                  name=registered_name)
 
@@ -78,7 +79,7 @@ def get_rpc_callable(name, registry=registry, *args, **kw):
     TODO improve sorting
     """
     for rpc_call in sorted(registry.getAllUtilitiesRegisteredFor(
-            IRPCRoute), key=lambda c: c.env == 'default', reverse=False):
+            IRPCRoute), key=lambda c: c.domain == 'default', reverse=False):
         if rpc_call.name != name:
             continue
         if rpc_call.test(*args, **kw):

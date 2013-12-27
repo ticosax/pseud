@@ -175,7 +175,7 @@ class IBaseRPC(zope.interface.Interface):
         incomimg messages to the socket.
         """
 
-    def register_rpc(func=None, name=None, env='default',
+    def register_rpc(func=None, name=None, domain='default',
                      registry=None):
         """
         decorator to register rpc endpoint only for this RPC instance.
@@ -260,7 +260,7 @@ class IRPCCallable(zope.interface.Interface):
     """
     Wrapper around callable.
     Allow to specify a name for the rpc-callable
-    and an applicable environment to check perimissions.
+    and an applicable domain to check perimissions.
     """
     func = zope.interface.Attribute("""
         Real callable
@@ -268,8 +268,8 @@ class IRPCCallable(zope.interface.Interface):
     name = zope.interface.Attribute("""
         Name of rpc-callable
         """)
-    env = zope.interface.Attribute("""
-        Name of Predicate environment
+    domain = zope.interface.Attribute("""
+        Name of Predicate domain
         """)
 
     def __call__(*args, **kw):
@@ -279,8 +279,9 @@ class IRPCCallable(zope.interface.Interface):
 
     def test(*args, **kw):
         """
-        Find a predicate for environment, and call-it
+        Find a predicate for domain, and call-it
         to know if rpc-callable is allowed to be ran.
+        Must return a boolean
         """
 
 
