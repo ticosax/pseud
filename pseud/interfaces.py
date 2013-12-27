@@ -27,6 +27,10 @@ class UnauthorizedError(Exception):
 
 class IAuthenticationBackend(zope.interface.Interface):
 
+    rpc = zope.interface.Attribute("""
+        RPC instance
+        """)
+
     def configure():
         """
         Hook to adapt your RPC peer.
@@ -39,23 +43,38 @@ class IAuthenticationBackend(zope.interface.Interface):
         Can be either IOLoop, threading, or multiprocess.
         """
 
-    def handle_hello(message, peer_id, message_uuid):
+    def handle_hello(peer_id, message_uuid, message):
         """
+        This method is receiving information that has been asked
+        to authenticate the peer. It can be for instance login/password
+        in such case message is the password.
+        This method must reply to the peer
+        with a reply status of :term:`AUTHENTICATED` or
+        :term:`UNAUTHORIZED`.
+
+        .. code::
+
+            self.rpc.send_message([peer_id, '', VERSION, message_uuid,
+                                   AUTHENTICATED,
+                                   'Welcome {!r}'.format(peer_id)])
         """
 
     def handle_authenticated(message):
         """
+        Called when rpc received acknowledgement of successful authentication.
         """
 
     def save_last_work(message):
         """
+        Useful to resend the last work request, after sucessful
+        authenctication challenge.
         """
 
     def is_authenticated(peer_id):
         """
+        Must return True or False and tell if rpc must challenge
+        authentication for the current peer.
         """
-
-registry = None  # it assume it is the globalregistry
 
 
 class IBaseRPC(zope.interface.Interface):
@@ -75,16 +94,33 @@ class IBaseRPC(zope.interface.Interface):
     security_plugin = zope.interface.Attribute("""
         name of security backend to load
         """)
-    initialized = zope.interface.Attribute('')
-    public_key = zope.interface.Attribute('')
-    secret_key = zope.interface.Attribute('')
-    peer_public_key = zope.interface.Attribute('')
-    password = zope.interface.Attribute('')
-    heartbeat_plugin = zope.interface.Attribute('')
-    heartbeat_backend = zope.interface.Attribute('')
-    proxy_to = zope.interface.Attribute('')
-    registry = zope.interface.Attribute('')
-    io_loop = zope.interface.Attribute('')
+    public_key = zope.interface.Attribute("""
+        Z85 encoded public key of the zeromq curve keypair
+        """)
+    secret_key = zope.interface.Attribute("""
+        Z85 encoded private key of the zeromq curve keypair
+        """)
+    peer_public_key = zope.interface.Attribute("""
+        Z85 encoded public key of the zeromq curve
+        keypair from remote peer
+        """)
+    password = zope.interface.Attribute("""
+        If authentication is required by remote peer.
+        `identity` will be the login.
+        """)
+    heartbeat_plugin = zope.interface.Attribute("""
+        Name of the plugin used as heartbeat backend
+        """)
+    proxy_to = zope.interface.Attribute("""
+        Must be another instance of RPC
+        """)
+    registry = zope.interface.Attribute("""
+        Give your own registry or a new one will be built
+        """)
+    io_loop = zope.interface.Attribute("""
+        Only for Tornado based RPC implementation.
+        Use given io_loop instance or create a new one.
+        """)
     timeout = zope.interface.Attribute("""
         Max allowed time to send, recv or to wait for a task.
         """)
@@ -101,16 +137,14 @@ class IBaseRPC(zope.interface.Interface):
 
     def send_work(peer_identity, name, *args, **kw):
         """
-        Create the ØMQ message and send it.
+        Ask the peer to run specified task identified by name.
 
-        Parameters
-        ----------
         peer_identity:
-            Used to identify recipient of worker
+            Used to identify the worker
         name:
             Used to identify the rpc-callable
         args:
-            postions arguments of the rpc-callable
+            positions arguments of the rpc-callable
         kw:
             Keyword arguments of the rpc-callable
         """
@@ -133,7 +167,7 @@ class IBaseRPC(zope.interface.Interface):
         """
 
     def register_rpc(func=None, name=None, env='default',
-                     registry=registry):
+                     registry=None):
         """
         decorator to register rpc endpoint only for this RPC instance.
         """
@@ -186,6 +220,11 @@ class IHeartbeatBackend(zope.interface.Interface):
     """
     Interface for heartbeat backend
     """
+
+    rpc = zope.interface.Attribute("""
+        RPC instance
+        """)
+
     def handle_heartbeat(peer_id):
         """
         Called when an Hearbeat is received from given
@@ -194,15 +233,17 @@ class IHeartbeatBackend(zope.interface.Interface):
 
     def handle_timeout(peer_id):
         """
-        Called when a time is detected for given peer_id
+        Called when a timeout is detected for given peer_id
         """
 
     def configure():
         """
+        Prepare the plugin, called when rpc is starting
         """
 
     def stop():
         """
+        Stop every tasks the plugin created in background
         """
 
 
@@ -213,13 +254,13 @@ class IRPCCallable(zope.interface.Interface):
     and an applicable environment to check perimissions.
     """
     func = zope.interface.Attribute("""
-        real callable
+        Real callable
         """)
     name = zope.interface.Attribute("""
-        name of rpc-callable
+        Name of rpc-callable
         """)
     env = zope.interface.Attribute("""
-        name of Predicate environment
+        Name of Predicate environment
         """)
 
     def __call__(*args, **kw):
@@ -229,7 +270,7 @@ class IRPCCallable(zope.interface.Interface):
 
     def test(*args, **kw):
         """
-        find a predicate for environment, and call-it
+        Find a predicate for environment, and call-it
         to know if rpc-callable is allowed to be ran.
         """
 
@@ -243,7 +284,7 @@ class IRPCRoute(zope.interface.Interface):
 class IPredicate(zope.interface.Interface):
     """
     Responsible to allow or discard execution of
-    rcp-callable for given context
+    rpc-callable for given context
     """
     def test(*args, **kw):
         """

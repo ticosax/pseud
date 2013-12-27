@@ -2,8 +2,6 @@ import gevent
 import zmq.green as zmq
 import zope.interface.verify
 
-from pseud import auth, heartbeat  # NOQA
-
 
 def collector(sink, socket):
     gevent.sleep(.1)
@@ -46,7 +44,6 @@ def test_testing_heartbeat_backend_server():
 
 def make_one_server(identity, endpoint, heartbeat_plugin):
     from pseud._gevent import Server
-    from pseud import predicate, auth , heartbeat  # NOQA
     server = Server(identity,
                     heartbeat_plugin=heartbeat_plugin)
     return server
@@ -55,7 +52,6 @@ def make_one_server(identity, endpoint, heartbeat_plugin):
 def make_one_client(identity, peer_identity,
                     heartbeat_plugin):
     from pseud._gevent import Client
-    from pseud import predicate, auth , heartbeat  # NOQA
     client = Client(identity, peer_identity,
                     heartbeat_plugin=heartbeat_plugin)
     return client

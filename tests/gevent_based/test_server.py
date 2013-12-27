@@ -12,7 +12,6 @@ def read_once(socket):
 
 def test_server_creation():
     from pseud._gevent import Server
-    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     server = Server(identity)
     assert server.identity == identity
@@ -21,7 +20,6 @@ def test_server_creation():
 
 def test_server_can_bind():
     from pseud._gevent import Server
-    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = Server(identity,
@@ -32,7 +30,6 @@ def test_server_can_bind():
 
 def test_server_can_connect():
     from pseud._gevent import Server
-    import pseud.auth, pseud.heartbeat  # NOQA
     identity = 'echo'
     endpoint = 'tcp://127.0.0.1:5000'
     server = Server(identity,
@@ -51,8 +48,6 @@ def make_one_client_socket(identity, endpoint):
 
 def make_one_server(identity, endpoint):
     from pseud._gevent import Server
-    import pseud.auth, pseud.heartbeat  # NOQA
-    import pseud.predicate  # NOQA
     server = Server(identity)
     server.bind(endpoint)
     return server

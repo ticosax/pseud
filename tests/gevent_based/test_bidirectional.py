@@ -4,14 +4,12 @@ import zmq.green as zmq  # NOQA
 
 def make_one_server(identity, proxy_to=None):
     from pseud._gevent import Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     server = Server(identity, proxy_to=proxy_to)
     return server
 
 
 def make_one_client(identity, peer_identity):
     from pseud._gevent import Client
-    from pseud import auth, heartbeat, predicate  # NOQA
     client = Client(identity, peer_identity)
     return client
 
@@ -100,7 +98,6 @@ def test_server_can_send_to_several_client():
 
 
 def test_raises_if_module_not_found():
-    from pseud import auth, heartbeat  # NOQA
     from pseud.interfaces import ServiceNotFoundError
     server_id = 'server'
     endpoint = 'inproc://here'

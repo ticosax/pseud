@@ -10,13 +10,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     def make_one_server(self, identity, io_loop=None):
         from pseud import Server
-        from pseud import auth, heartbeat, predicate  # NOQA
         server = Server(identity, io_loop=io_loop)
         return server
 
     def make_one_client(self, identity, peer_identity, io_loop=None):
         from pseud import Client
-        from pseud import auth, heartbeat, predicate  # NOQA
         client = Client(identity, peer_identity,
                         io_loop=io_loop)
         return client

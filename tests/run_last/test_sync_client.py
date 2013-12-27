@@ -8,14 +8,12 @@ import zmq
 
 def test_client_creation():
     from pseud import SyncClient
-    from pseud import auth, heartbeat  # NOQA
     client = SyncClient()
     assert client.security_plugin == 'noop_auth_backend'
 
 
 def test_client_can_bind():
     from pseud import SyncClient
-    from pseud import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     client = SyncClient()
     client.bind(endpoint)
@@ -24,7 +22,6 @@ def test_client_can_bind():
 
 def test_client_can_connect():
     from pseud import SyncClient
-    from pseud import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     client = SyncClient()
     client.connect(endpoint)
@@ -41,14 +38,12 @@ def make_one_server_thread(context, identity, endpoint, callback):
 
 def make_one_client(timeout=5):
     from pseud import SyncClient
-    from pseud import auth, heartbeat  # NOQA
     client = SyncClient(timeout=timeout)
     return client
 
 
 def test_client_method_wrapper():
     from pseud.common import AttributeWrapper
-    from pseud import auth, heartbeat  # NOQA
     endpoint = 'inproc://{}'.format(__name__)
     client = make_one_client()
     method_name = 'a.b.c.d'
@@ -67,7 +62,6 @@ def test_client_method_wrapper():
 
 def test_job_executed():
     from pseud.interfaces import OK, VERSION, WORK
-    from pseud import auth, heartbeat  # NOQA
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = 'server'
@@ -102,7 +96,6 @@ def test_job_executed():
 
 def test_job_server_never_reply():
     from pseud.interfaces import TimeoutError, VERSION, WORK
-    from pseud import auth, heartbeat  # NOQA
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = 'server'

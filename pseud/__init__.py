@@ -7,6 +7,7 @@ import msgpack
 import zmq
 import zope.interface
 
+from . import auth, heartbeat, predicate #  NOQA
 from .common import BaseRPC, format_remote_traceback
 from .interfaces import (IClient,
                          ServiceNotFoundError,

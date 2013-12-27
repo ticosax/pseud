@@ -56,7 +56,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve(self):
         from pseud import Client, Server
-        from pseud import auth, heartbeat, predicate  # NOQA
         from pseud.utils import register_rpc
 
         client_id = 'client'
@@ -99,7 +98,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve_with_wrong_peer_public_key(self):
         from pseud import Client, Server
-        from pseud import auth, heartbeat, predicate  # NOQA
         from pseud.utils import register_rpc
         client_id = 'client'
         server_id = 'server'
@@ -142,7 +140,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test()
     def test_untrusted_curve_with_allowed_password(self):
         from pseud import Client, Server
-        from pseud import auth, heartbeat, predicate  # NOQA
         from pseud.utils import register_rpc
 
         client_id = 'john'
@@ -195,7 +192,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_untrusted_curve_with_wrong_password(self):
         from pseud import Client, Server
         from pseud.interfaces import UnauthorizedError
-        from pseud import auth, heartbeat, predicate  # NOQA
         from pseud.utils import register_rpc
 
         client_id = 'john'

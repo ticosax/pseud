@@ -5,10 +5,9 @@ from zope.interface.registry import Components
 def test_rpc_simple_registration():
     from pseud.interfaces import ServiceNotFoundError
     from pseud.utils import (get_rpc_callable,
-                                 register_rpc,
-                                 RPCCallable,
-                                 )
-    import pseud.predicate  # NOQA
+                             register_rpc,
+                             RPCCallable,
+                             )
 
     @register_rpc
     def callme(*args, **kw):
@@ -33,9 +32,8 @@ def test_rpc_simple_registration():
 def test_rpc_restricted_registration():
     from pseud.interfaces import ServiceNotFoundError
     from pseud.utils import (get_rpc_callable,
-                                 register_rpc,
-                                 )
-    import pseud.predicate  # NOQA
+                             register_rpc,
+                             )
 
     @register_rpc(name='try_to_call_me')
     def callme(*args, **kw):
@@ -76,9 +74,8 @@ def test_rpc_restricted_registration():
 
 def test_registration_with_custom_registry():
     from pseud.utils import (get_rpc_callable,
-                                 register_rpc,
-                                 )
-    import pseud.predicate  # NOQA
+                             register_rpc,
+                             )
 
     local_registry = Components(name='local')
 

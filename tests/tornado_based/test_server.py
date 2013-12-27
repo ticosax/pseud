@@ -9,7 +9,6 @@ import tornado.testing
 
 def test_server_creation():
     from pseud import Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     server = Server(identity)
     assert server.identity == identity
@@ -18,7 +17,6 @@ def test_server_creation():
 
 def test_server_can_bind():
     from pseud import Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = Server(identity,
@@ -28,7 +26,6 @@ def test_server_can_bind():
 
 def test_server_can_connect():
     from pseud import Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     identity = 'echo'
     endpoint = 'tcp://127.0.0.1:5000'
     server = Server(identity,
@@ -49,7 +46,6 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     def make_one_server(self, identity, endpoint):
         from pseud import Server
-        from pseud import auth, heartbeat, predicate  # NOQA
         server = Server(identity, io_loop=self.io_loop)
         server.bind(endpoint)
         return server

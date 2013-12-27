@@ -48,7 +48,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         heartbeat_plugin,
                         io_loop=None):
         from pseud import Server
-        from pseud import auth, heartbeat  # NOQA
         server = Server(identity, heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
         return server
@@ -57,7 +56,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         heartbeat_plugin,
                         io_loop=None):
         from pseud import Client
-        from pseud import auth, heartbeat  # NOQA
         client = Client(identity, peer_identity,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
@@ -65,7 +63,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating(self):
-        from pseud import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'
@@ -107,7 +104,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_basic_heartbeating_with_disconnection(self):
-        from pseud import auth, heartbeat  # NOQA
         client_id = 'client'
         server_id = 'server'
         endpoint = 'inproc://here'

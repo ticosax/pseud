@@ -51,7 +51,6 @@ def test_untrusted_curve_server():
 
 def test_trusted_curve():
     from pseud._gevent import Client, Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     from pseud.utils import register_rpc
 
     client_id = 'client'
@@ -87,7 +86,6 @@ def test_trusted_curve():
 
 def test_trusted_curve_with_wrong_peer_public_key():
     from pseud._gevent import Client, Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://{}'.format(__name__)
@@ -119,7 +117,6 @@ def test_trusted_curve_with_wrong_peer_public_key():
 
 def test_untrusted_curve_with_allowed_password():
     from pseud._gevent import Client, Server
-    from pseud import auth, heartbeat, predicate  # NOQA
     from pseud.utils import register_rpc
 
     client_id = 'john'
@@ -164,7 +161,6 @@ def test_untrusted_curve_with_allowed_password():
 def test_untrusted_curve_with_wrong_password():
     from pseud._gevent import Client, Server
     from pseud.interfaces import UnauthorizedError
-    from pseud import auth, heartbeat, predicate  # NOQA
     from pseud.utils import register_rpc
 
     client_id = 'john'
