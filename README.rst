@@ -7,16 +7,18 @@ encryption and authentication support.
 Features
 ~~~~~~~~
 #. ØMQ transport layer
-#. all native python types supported (msgpack)
+#. All native python types supported (msgpack)
 #. First citizen exceptions
 #. Bi-bidirectional (server can initiate calls to connected clients)
 #. Encryption based on CURVE
 #. Pluggable Authentication
 #. Pluggable Heartbeating
 #. Pluggable Job Routing
-#. Works with tornado ioloop or gevent 
+#. Works with tornado ioloop or gevent
 #. Built-in proxy support. A server can delegate the work to another one.
-#. AsyncClient (using zmq.REQ, with limited set of features) to use within non asynchronous process.
+#. SyncClient (using zmq.REQ) to use within non event based processes.
+   (Heartbeating, Authentication and job execution are not supported with
+   the SyncClient)
 
 Installation
 ~~~~~~~~~~~~
