@@ -53,6 +53,7 @@ Preview
 .. code-block:: python
 
     # The server
+    # Assume tornado IOLoop is running
     from pseud import Server
 
 
@@ -68,12 +69,14 @@ Preview
 .. code-block:: python
 
     # The tornado client
+    # Assume tornado IOLoop is running
     from pseud import Client
 
 
     client = Client('me', 'service')
     client.connect('tcp://127.0.0.1:5555')
 
+    # Assume we are inside a coroutine
     future = yield client.hello('Charly')
     future.result()  # 'Hello Charly'
 
