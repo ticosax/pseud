@@ -52,6 +52,9 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     def save_last_work(self, message):
         pass
 
+    def get_predicate_arguments(self, peer_id):
+        return {}
+
 
 @register_auth_backend
 @zope.interface.implementer(IAuthenticationBackend)
@@ -92,6 +95,9 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
 
     def is_authenticated(self, peer_id):
         return True
+
+    def get_predicate_arguments(self, peer_id):
+        return {}
 
 
 @register_auth_backend
@@ -140,6 +146,9 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
 
     def is_authenticated(self, peer_id):
         return True
+
+    def get_predicate_arguments(self, peer_id):
+        return {}
 
     def stop(self):
         try:
@@ -199,6 +208,9 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
 
     def stop(self):
         pass
+
+    def get_predicate_arguments(self, peer_id):
+        return {}
 
 
 @register_auth_backend
@@ -297,3 +309,6 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
 
     def save_last_work(self, message):
         pass
+
+    def get_predicate_arguments(self, peer_id):
+        return {}

@@ -76,6 +76,15 @@ class IAuthenticationBackend(zope.interface.Interface):
         authentication for the current peer.
         """
 
+    def get_predicate_arguments(peer_id):
+        """
+        If predicates needs to filter callables
+        based on identity of user.
+        this is where you should provide additional keyword arguments
+        that will be transmitted to :mod:`pseud.utils.get_rpc_callable`.
+        Must return a dict.
+        """
+
 
 class IBaseRPC(zope.interface.Interface):
     """

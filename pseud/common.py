@@ -197,8 +197,10 @@ class BaseRPC(object):
                 raise NotImplementedError
 
     def _handle_work_proxy(self, locator, args, kw, peer_id, message_uuid):
-        worker_callable = get_rpc_callable(locator,
-                                           registry=self.registry)
+        worker_callable = get_rpc_callable(
+            locator,
+            registry=self.registry,
+            **self.auth_backend.get_predicate_arguments(peer_id))
         return worker_callable(*args, **kw)
 
     def _handle_work(self, message, peer_id, message_uuid):
