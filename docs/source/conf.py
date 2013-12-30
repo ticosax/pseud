@@ -12,9 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -189,22 +186,22 @@ htmlhelp_basename = 'pseuddoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'pseud.tex', u'pseud Documentation',
-   u'nicolas.delaby@ezeep.com', 'manual'),
+    ('index', 'pseud.tex', u'pseud Documentation',
+     u'nicolas.delaby@ezeep.com', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -247,9 +244,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'pseud', u'pseud Documentation',
-   u'nicolas.delaby@ezeep.com', 'pseud', 'One line description of project.',
-   'Miscellaneous'),
+    ('index', 'pseud', u'pseud Documentation',
+     u'nicolas.delaby@ezeep.com', 'pseud', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -266,4 +263,9 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {'python': ('http://docs.python.org/', None),
+                       'zcomponent':
+                       ('http://docs.zope.org/zope.component', None),
+                       'zinterface':
+                       ('http://docs.zope.org/zope.interface', None),
+                       }

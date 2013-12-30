@@ -1,5 +1,7 @@
-Protocol
-========
+.. _protocol:
+
+Protocol v1
+===========
 
 pseud uses to transport its messages ØMQ with ROUTER sockets.
 the structure of every frames follow this specification.
@@ -15,6 +17,7 @@ Basically the envelope will be ::
 
     ['peer_identity', '']
 
+
 PSEUD MESSAGE
 +++++++++++++
 FRAME 0: :term:`VERSION` of current protocol ::
@@ -23,7 +26,7 @@ FRAME 0: :term:`VERSION` of current protocol ::
 
 FRAME 1: message uuid ::
 
-    bytes uuid4
+    bytes uuid4 or empty string for hearbeat messages
 
 FRAME 2: message type ::
 
@@ -33,6 +36,7 @@ FRAME 3: body ::
 
     WORK, OK and ERROR expect msgpack.
     All other types expect utf-8 strings.
+
 
 MESSAGE TYPES
 +++++++++++++

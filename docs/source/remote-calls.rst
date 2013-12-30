@@ -111,6 +111,21 @@ You can also decide to provide your own name (dotted name) to the callable
 
    client.this.is.a.name().get() == 'Done'
 
+Server wants to make client working
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to let the server jobs to its connected clients.
+The caller should know before the identity of the specified client.
+How to get list of currently connected client is described
+in :ref:`heartbeating` section.
+
+Assuming we know the client identity `'client'` and the client
+register a function named `addition`, then the server can send
+work to the client with the following statement ::
+
+   # gevent process
+   server.send_to('client').addition(2, 4).get() == 6
+
 
 Predicates
 ++++++++++

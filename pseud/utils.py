@@ -15,6 +15,9 @@ registry = zope.component.getGlobalSiteManager()
 
 
 def register_auth_backend(cls):
+    """
+    Decorator to register Authentication Backend plugins
+    """
     registry.registerAdapter(cls, zope.component.adaptedBy(cls),
                              IAuthenticationBackend,
                              cls.name)
@@ -22,6 +25,9 @@ def register_auth_backend(cls):
 
 
 def register_heartbeat_backend(cls):
+    """
+    Decorator to register Heartbeat Backend plugins
+    """
     registry.registerAdapter(cls, zope.component.adaptedBy(cls),
                              IHeartbeatBackend,
                              cls.name)
@@ -29,6 +35,9 @@ def register_heartbeat_backend(cls):
 
 
 def register_predicate(cls):
+    """
+    Decorator to register Predicate plugins
+    """
     registry.registerAdapter(cls, zope.component.adaptedBy(cls),
                              IPredicate,
                              cls.name)
@@ -36,6 +45,10 @@ def register_predicate(cls):
 
 
 def create_local_registry(name):
+    """
+    Helper function to create a custom
+    :py:class:`registry <zope.interface.registry.Components>`
+    """
     return zope.interface.registry.Components(name=name, bases=(registry,))
 
 

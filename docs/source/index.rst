@@ -20,6 +20,14 @@ Contents:
    protocol
    interfaces
 
+API Documentation
+=================
+
+.. toctree::
+   :maxdepth: 1
+   :glob:
+
+   api/*
 
 
 Indices and tables

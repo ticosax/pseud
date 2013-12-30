@@ -26,6 +26,9 @@ class _BaseHeartbeatBackend(object):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IClient)
 class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
+    """
+    No op Heartbeat
+    """
     name = 'noop_heartbeat_backend'
 
     def handle_heartbeat(self, peer_id):
@@ -45,6 +48,9 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IServer)
 class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
+    """
+    No op Heartbeat
+    """
     name = 'noop_heartbeat_backend'
 
     def handle_timeout(self, peer_id):

@@ -2,6 +2,8 @@
 
 :mod:`pseud.interfaces`
 -----------------------
+.. automodule:: pseud.interfaces
+
 
 RPC-Related Interfaces
 ++++++++++++++++++++++
@@ -22,3 +24,27 @@ Plugins-Related Interfaces
    :members:
 .. autointerface:: pseud.interfaces.IPredicate
    :members:
+
+Constants
++++++++++
+
+:py:const:`WORK`
+
+:py:const:`OK`
+
+:py:const:`ERROR`
+
+:py:const:`HELLO`
+
+:py:const:`UNAUTHORIZED`
+
+:py:const:`AUTHENTICATED`
+
+:py:const:`HEARTBEAT`
+
+Exceptions
+++++++++++
+
+.. autoexception:: pseud.interfaces.ServiceNotFoundError
+.. autoexception:: pseud.interfaces.TimeoutError
+.. autoexception:: pseud.interfaces.UnauthorizedError

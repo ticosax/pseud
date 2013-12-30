@@ -8,6 +8,11 @@ from pseud.utils import register_predicate
 @zope.interface.implementer(IPredicate)
 @zope.component.adapter(IRPCCallable)
 class PassThrough(object):
+    """
+    Default predicate associated with the `default` :term:`domain`.
+
+    Allows all job to be executed.
+    """
     name = 'default'
 
     def __init__(self, rpc_call):
