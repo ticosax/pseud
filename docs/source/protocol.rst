@@ -35,7 +35,7 @@ FRAME 2: message type ::
 FRAME 3: body ::
 
     WORK, OK, ERROR and HELLO expect msgpack.
-    UNAUTHORIZED and HEARTBEAT expect utf-8 strings.
+    AUTHENTICATED, UNAUTHORIZED and HEARTBEAT expect utf-8 strings.
 
 
 MESSAGE TYPES
@@ -107,7 +107,7 @@ HEARTBEAT
 COMMUNICATION
 +++++++++++++
 
-#. client sends work to server and receive succesfull answer.
+#. client sends work to server and receive successful answer.
 
     +--------+------+----+--------+
     | client |  ->  | <- | server |
