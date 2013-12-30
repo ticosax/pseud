@@ -186,9 +186,13 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
 
     def handle_authentication(self, peer_id, message_uuid):
         if next(self.counter) >= self.max_retries:
-            future = self.rpc.future_pool.pop(message_uuid)
-            future.set_exception(UnauthorizedError('Max authentication'
-                                                   ' retries reached'))
+            try:
+                future = self.rpc.future_pool.pop(message_uuid)
+            except KeyError:
+                pass
+            else:
+                future.set_exception(UnauthorizedError('Max authentication'
+                                                       ' retries reached'))
         else:
             self.rpc.send_message([peer_id, '', VERSION, message_uuid,
                                    HELLO, self.rpc.password])
@@ -197,7 +201,10 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         pass
 
     def handle_authenticated(self, message_uuid):
-        self.rpc.send_message(self.last_messages.pop(0))
+        try:
+            self.rpc.send_message(self.last_messages.pop(0))
+        except IndexError:
+            pass
         self.last_message = None
 
     def save_last_work(self, message):
