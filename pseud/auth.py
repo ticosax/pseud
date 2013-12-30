@@ -125,7 +125,7 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         self.rpc.socket.curve_server = True
         assert self.rpc.socket.mechanism == zmq.CURVE
         assert self.rpc.socket.get(zmq.CURVE_SERVER)
-        self.zap_socket = zap_socket = self.rpc.context.socket(zmq.REP)
+        self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
         self.reader = self.rpc.read_forever(zap_socket,
@@ -135,11 +135,11 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         """
         http://rfc.zeromq.org/spec:27
         """
-        version, sequence, domain, address, identity, mechanism, key =\
-            message
+        (zid, delimiter, version, sequence, domain, address, identity,
+         mechanism, key) = message
         assert version == '1.0'
         assert mechanism == 'CURVE'
-        reply = [version, sequence, '200', 'OK', self.name, '']
+        reply = [zid, delimiter, version, sequence, '200', 'OK', self.name, '']
         self.zap_socket.send_multipart(reply)
 
     def handle_hello(self, *args):
@@ -265,13 +265,15 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         """
         http://rfc.zeromq.org/spec:27
         """
-        version, sequence, domain, address, identity, mechanism, key =\
-            message
+        (zid, delimiter, version, sequence, domain, address, identity,
+         mechanism, key) = message
         assert version == '1.0'
         assert mechanism == 'CURVE'
         if key not in self.trusted_keys:
             self.current_untrusted_key = key
-        reply = [version, sequence, '200', 'OK', self.name, '']
+        else:
+            self.connection_renewed = key
+        reply = [zid, delimiter, version, sequence, '200', 'OK', self.name, '']
         self.zap_socket.send_multipart(reply)
 
     def configure(self):
@@ -280,7 +282,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.rpc.socket.curve_server = True
         assert self.rpc.socket.mechanism == zmq.CURVE
         assert self.rpc.socket.get(zmq.CURVE_SERVER)
-        self.zap_socket = zap_socket = self.rpc.context.socket(zmq.REP)
+        self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
         self.reader = self.rpc.read_forever(zap_socket,
