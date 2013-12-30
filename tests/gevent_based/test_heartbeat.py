@@ -52,7 +52,8 @@ def make_one_server(identity, endpoint, heartbeat_plugin):
 def make_one_client(identity, peer_identity,
                     heartbeat_plugin):
     from pseud._gevent import Client
-    client = Client(identity, peer_identity,
+    client = Client(peer_identity,
+                    identity=identity,
                     heartbeat_plugin=heartbeat_plugin)
     return client
 

@@ -34,8 +34,8 @@ FRAME 2: message type ::
 
 FRAME 3: body ::
 
-    WORK, OK and ERROR expect msgpack.
-    All other types expect utf-8 strings.
+    WORK, OK, ERROR and HELLO expect msgpack.
+    UNAUTHORIZED and HEARTBEAT expect utf-8 strings.
 
 
 MESSAGE TYPES
@@ -85,6 +85,10 @@ HELLO
 .. code::
 
     '\x02'
+
+the body content is a tuple of 3 items
+    #. login
+    #. password
 
 AUTHENTICATED
 ~~~~~~~~~~~~~

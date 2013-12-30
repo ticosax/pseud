@@ -15,7 +15,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     def make_one_client(self, identity, peer_identity, io_loop=None):
         from pseud import Client
-        client = Client(identity, peer_identity,
+        client = Client(peer_identity,
+                        identity=identity,
                         io_loop=io_loop)
         return client
 

@@ -75,7 +75,7 @@ Preview
     from pseud import Client
 
 
-    client = Client('me', 'service')
+    client = Client('service')
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
@@ -88,7 +88,7 @@ Preview
     from pseud import Client
 
 
-    client = Client('me', 'service')
+    client = Client('service')
     client.connect('tcp://127.0.0.1:5555')
 
     client.hello('Charly').get()  # 'Hello Charly'

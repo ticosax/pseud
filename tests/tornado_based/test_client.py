@@ -15,7 +15,8 @@ def test_client_creation():
     from pseud import Client
     identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity,
+                    identity=identity)
     assert client.peer_identity == peer_identity
     assert client.identity == identity
     assert client.security_plugin == 'noop_auth_backend'
@@ -25,9 +26,8 @@ def test_client_creation():
 def test_client_can_bind():
     from pseud import Client
     endpoint = 'inproc://{}'.format(__name__)
-    identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity)
     client.bind(endpoint)
     client.stop()
 
@@ -35,9 +35,8 @@ def test_client_can_bind():
 def test_client_can_connect():
     from pseud import Client
     endpoint = 'inproc://{}'.format(__name__)
-    identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity)
     client.connect(endpoint)
     client.stop()
 
@@ -55,7 +54,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def make_one_client(self, identity, peer_identity, timeout=5,
                         io_loop=None, registry=None):
         from pseud import Client
-        client = Client(identity, peer_identity,
+        client = Client(peer_identity,
+                        identity=identity,
                         timeout=timeout,
                         io_loop=io_loop,
                         registry=registry)

@@ -10,7 +10,8 @@ def make_one_server(identity, proxy_to=None):
 
 def make_one_client(identity, peer_identity):
     from pseud._gevent import Client
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity,
+                    identity=identity)
     return client
 
 

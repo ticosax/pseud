@@ -73,13 +73,13 @@ class AttributeWrapper(object):
         return self.rpc.send_work(destination, self.name, *args, **kw)
 
 
-
 class BaseRPC(object):
     def __init__(self, identity=None, peer_identity=None,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
+                 login=None,
                  password=None,
                  heartbeat_plugin='noop_heartbeat_backend',
                  proxy_to=None,
@@ -97,6 +97,7 @@ class BaseRPC(object):
         self.public_key = public_key
         self.secret_key = secret_key
         self.peer_public_key = peer_public_key
+        self.login = login
         self.password = password
         self.timeout = timeout
         self.heartbeat_backend = zope.component.getAdapter(
@@ -132,6 +133,7 @@ class BaseRPC(object):
             socket.identity = self.identity
         if self.socket_type == zmq.ROUTER:
             socket.ROUTER_MANDATORY = True
+            # socket.ROUTER_HANDOVER = True
         if self.socket_type == zmq.REQ:
             socket.RCVTIMEO = int(self.timeout * 1000)
         socket.SNDTIMEO = int(self.timeout * 1000)
@@ -142,9 +144,10 @@ class BaseRPC(object):
         self.initialized = True
 
     def _prepare_work(self, peer_identity, name, *args, **kw):
+        destination = self.auth_backend.get_destination_id(peer_identity)
         work = msgpack.packb((name, args, kw))
         uid = uuid.uuid4().bytes
-        message = [peer_identity, '', VERSION, uid, WORK, work]
+        message = [destination, '', VERSION, uid, WORK, work]
         return message, uid
 
     def create_timeout_detector(self, uuid):

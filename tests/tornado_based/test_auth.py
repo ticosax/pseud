@@ -64,7 +64,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'trusted_curve'
-        client = Client(client_id, server_id,
+        client = Client(server_id,
+                        identity=client_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
                         secret_key=client_secret,
@@ -105,7 +106,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         endpoint = 'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
-        client = Client(client_id, server_id,
+        client = Client(server_id,
+                        identity=client_id,
                         security_plugin='trusted_curve',
                         public_key=client_public,
                         secret_key=client_secret,
@@ -150,11 +152,12 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         security_plugin = 'untrusted_curve'
         password = 's3cret!'
 
-        client = Client(client_id, server_id,
+        client = Client(server_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
                         secret_key=client_secret,
                         peer_public_key=server_public,
+                        login=client_id,
                         password=password,
                         io_loop=self.io_loop)
 
@@ -180,11 +183,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         future = yield client.string.lower('FOO')
         future2 = yield client.string.lower('FOO_JJ')
+        future3 = yield server.send_to(client_id).string.lower('ABC')
         self.io_loop.add_timeout(self.io_loop.time() + 1,
                                  self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
         assert future2.result(timeout=self.timeout) == 'foo_jj'
+        assert future3.result(timeout=self.timeout) == 'abc'
         server.stop()
         client.stop()
 
@@ -202,11 +207,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         security_plugin = 'untrusted_curve'
         password = 's3cret!'
 
-        client = Client(client_id, server_id,
+        client = Client(server_id,
+                        identity=client_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
                         secret_key=client_secret,
                         peer_public_key=server_public,
+                        login=client_id,
                         password=password,
                         io_loop=self.io_loop)
 

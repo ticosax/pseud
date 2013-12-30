@@ -1,6 +1,7 @@
 import itertools
 import logging
 
+import msgpack
 import zope.component
 import zope.interface
 import zmq
@@ -55,6 +56,9 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
+    def get_destination_id(self, identity):
+        return identity
+
 
 @register_auth_backend
 @zope.interface.implementer(IAuthenticationBackend)
@@ -98,6 +102,9 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
 
     def get_predicate_arguments(self, peer_id):
         return {}
+
+    def get_destination_id(self, identity):
+        return identity
 
 
 @register_auth_backend
@@ -150,6 +157,9 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
+    def get_destination_id(self, identity):
+        return identity
+
     def stop(self):
         try:
             self.reader.kill()
@@ -158,6 +168,7 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
             self.reader.flush()
             self.reader.close()
         self.zap_socket.close()
+        self.zap_socket = None
 
 
 @register_auth_backend
@@ -195,7 +206,9 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
                                                        ' retries reached'))
         else:
             self.rpc.send_message([peer_id, '', VERSION, message_uuid,
-                                   HELLO, self.rpc.password])
+                                   HELLO,
+                                   msgpack.packb((self.rpc.login,
+                                                  self.rpc.password))])
 
     def handle_hello(self, *args):
         pass
@@ -218,6 +231,9 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
 
     def get_predicate_arguments(self, peer_id):
         return {}
+
+    def get_destination_id(self, identity):
+        return identity
 
 
 @register_auth_backend
@@ -242,6 +258,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.trusted_keys = {}
         self.pending_keys = {}
         self.user_map = {}
+        self.login2peer_id_mapping = {}
         self.current_untrusted_key = None
 
     def _zap_handler(self, message):
@@ -269,10 +286,15 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.reader = self.rpc.read_forever(zap_socket,
                                             self._zap_handler)
 
+    def get_destination_id(self, identity):
+        return self.login2peer_id_mapping[identity]
+
     def handle_hello(self, peer_id, message_uuid, message):
-        if peer_id in self.user_map and self.user_map[peer_id] == message:
+        login, password = msgpack.unpackb(message)
+        if login in self.user_map and self.user_map[login] == password:
             key = self.pending_keys[peer_id]
             self.trusted_keys[key] = peer_id
+            self.login2peer_id_mapping[login] = peer_id
             reply = 'Welcome {}'.format(peer_id)
             status = AUTHENTICATED
         else:

@@ -56,7 +56,8 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         heartbeat_plugin,
                         io_loop=None):
         from pseud import Client
-        client = Client(identity, peer_identity,
+        client = Client(peer_identity,
+                        identity=identity,
                         heartbeat_plugin=heartbeat_plugin,
                         io_loop=io_loop)
         return client

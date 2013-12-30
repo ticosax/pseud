@@ -32,7 +32,7 @@ You will then receive the return value of this function executed remotely.
    import pseud
 
 
-   client = pseud.Client('local', 'remote')
+   client = pseud.Client('remote')
    client.connect('tcp://127.0.0.1:5555')
 
    future1 = client.lower('ABC')

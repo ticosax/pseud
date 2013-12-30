@@ -11,7 +11,8 @@ def test_client_creation():
     from pseud._gevent import Client
     identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity,
+                    identity=identity)
     assert client.peer_identity == peer_identity
     assert client.identity == identity
     assert client.security_plugin == 'noop_auth_backend'
@@ -20,9 +21,8 @@ def test_client_creation():
 def test_client_can_bind():
     from pseud import Client
     endpoint = 'tcp://127.0.0.1:5000'
-    identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity)
     client.bind(endpoint)
     client.stop()
 
@@ -30,9 +30,8 @@ def test_client_can_bind():
 def test_client_can_connect():
     from pseud import Client
     endpoint = 'tcp://127.0.0.1:5000'
-    identity = __name__
     peer_identity = 'echo'
-    client = Client(identity, peer_identity)
+    client = Client(peer_identity)
     client.connect(endpoint)
     client.stop()
 
@@ -49,7 +48,8 @@ def make_one_server_socket(identity, endpoint):
 def make_one_client(identity, peer_identity, timeout=5,
                     registry=None):
     from pseud._gevent import Client
-    client = Client(identity, peer_identity,
+    client = Client(peer_identity,
+                    identity=identity,
                     timeout=timeout,
                     registry=registry)
     return client

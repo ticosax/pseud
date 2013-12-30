@@ -111,9 +111,8 @@ class TornadoBaseRPC(BaseRPC):
 class Client(TornadoBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, peer_identity, **kw):
-        super(Client, self).__init__(identity=identity,
-                                     peer_identity=peer_identity,
+    def __init__(self, peer_identity, **kw):
+        super(Client, self).__init__(peer_identity=peer_identity,
                                      **kw)
 
 

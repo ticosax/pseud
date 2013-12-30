@@ -59,7 +59,8 @@ def test_trusted_curve():
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
-    client = Client(client_id, server_id,
+    client = Client(server_id,
+                    identity=client_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
                     secret_key=client_secret,
@@ -92,7 +93,8 @@ def test_trusted_curve_with_wrong_peer_public_key():
     endpoint = 'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
-    client = Client(client_id, server_id,
+    client = Client(server_id,
+                    identity=client_id,
                     security_plugin='trusted_curve',
                     public_key=client_public,
                     secret_key=client_secret,
@@ -127,11 +129,12 @@ def test_untrusted_curve_with_allowed_password():
     security_plugin = 'untrusted_curve'
     password = 's3cret!'
 
-    client = Client(client_id, server_id,
+    client = Client(server_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
                     secret_key=client_secret,
                     peer_public_key=server_public,
+                    login=client_id,
                     password=password)
 
     server = Server(server_id,
@@ -154,6 +157,8 @@ def test_untrusted_curve_with_allowed_password():
     future2 = client.string.lower('FOO_JJ')
     assert future.get() == 'foo'
     assert future2.get() == 'foo_jj'
+    future3 = server.send_to(client_id).string.lower('ABC')
+    assert future3.get() == 'abc'
     server.stop()
     client.stop()
 
@@ -171,11 +176,13 @@ def test_untrusted_curve_with_wrong_password():
     security_plugin = 'untrusted_curve'
     password = 's3cret!'
 
-    client = Client(client_id, server_id,
+    client = Client(server_id,
+                    identity=client_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
                     secret_key=client_secret,
                     peer_public_key=server_public,
+                    login=client_id,
                     password=password)
 
     server = Server(server_id,

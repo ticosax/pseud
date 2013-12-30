@@ -85,6 +85,11 @@ class IAuthenticationBackend(zope.interface.Interface):
         Must return a dict.
         """
 
+    def get_destination_id(identity):
+        """
+        Must return the socket id associated with given identity
+        """
+
 
 class IBaseRPC(zope.interface.Interface):
     """
