@@ -236,6 +236,12 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         return identity
 
 
+def find_key_from_value(mapping, value):
+    for key, _value in mapping.iteritems():
+        if _value == value:
+            yield key
+
+
 @register_auth_backend
 @zope.interface.implementer(IAuthenticationBackend)
 @zope.component.adapter(IServer)
@@ -260,6 +266,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.user_map = {}
         self.login2peer_id_mapping = {}
         self.current_untrusted_key = None
+        self.connection_renewed = None
 
     def _zap_handler(self, message):
         """
@@ -326,6 +333,27 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
                 self.pending_keys[peer_id]
             except KeyError:
                 pass
+            if self.connection_renewed:
+                # We know that a trusted key just reconnect
+                # updates mappings where socket_id is used
+                previous_peer_id = self.trusted_keys[self.connection_renewed]
+                iterator = find_key_from_value(self.login2peer_id_mapping,
+                                               previous_peer_id)
+                login = next(iterator)
+                try:
+                    next(iterator)
+                except StopIteration:
+                    pass
+                else:
+                    del self.trusted_keys[self.connection_renewed]
+                    del self.login2peer_id_mapping[login]
+                    self.connection_renewed = None
+                    raise RuntimeError('Two peer with same identity has been'
+                                       ' detected')
+
+                self.login2peer_id_mapping[login] = peer_id
+                self.trusted_keys[self.connection_renewed] = peer_id
+                self.connection_renewed = None
             return True
         return False
 
