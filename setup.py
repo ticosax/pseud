@@ -45,6 +45,7 @@ setup(name='pseud',
                       'doc': ('sphinx', 'repoze.sphinx.autointerface')},
       tests_require=[
           'pytest',
+          'pytest-cov',
       ],
       cmdclass={'test': PyTest},
       )

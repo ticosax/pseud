@@ -94,6 +94,77 @@ def test_job_executed():
     thread.join()
 
 
+def test_job_failure():
+    from pseud.interfaces import ERROR, VERSION, WORK
+    context = zmq.Context.instance()
+    endpoint = 'ipc://{}'.format(__name__)
+    peer_identity = 'server'
+
+    def server_callback(socket, request):
+        peer_id, _, version, uid, message_type, message = request
+        assert _ == ''
+        assert version == VERSION
+        assert uid
+        # check it is a real uuid
+        uuid.UUID(bytes=uid)
+        assert message_type == WORK
+        locator, args, kw = msgpack.unpackb(message)
+        assert locator == 'please.do_that_job'
+        assert args == [1, 2, 3]
+        assert kw == {'b': 4}
+        reply = [peer_id, _, version, uid, ERROR, msgpack.packb(('ValueError',
+                                                                 'too bad',
+                                                                 'traceback'))]
+        socket.send_multipart(reply)
+
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(context, peer_identity, endpoint,
+                                    server_callback))
+    thread.start()
+    client = make_one_client()
+    client.connect(endpoint)
+
+    with pytest.raises(ValueError):
+        client.please.do_that_job(1, 2, 3, b=4)
+    client.stop()
+    thread.join()
+
+
+def test_job_failure_service_not_found():
+    from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
+    context = zmq.Context.instance()
+    endpoint = 'ipc://{}'.format(__name__)
+    peer_identity = 'server'
+
+    def server_callback(socket, request):
+        peer_id, _, version, uid, message_type, message = request
+        assert _ == ''
+        assert version == VERSION
+        assert uid
+        # check it is a real uuid
+        uuid.UUID(bytes=uid)
+        assert message_type == WORK
+        locator, args, kw = msgpack.unpackb(message)
+        assert locator == 'please.do_that_job'
+        assert args == [1, 2, 3]
+        assert kw == {'b': 4}
+        reply = [peer_id, _, version, uid, ERROR, msgpack.packb(
+            ('ServiceNotFoundError', 'too bad', 'traceback'))]
+        socket.send_multipart(reply)
+
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(context, peer_identity, endpoint,
+                                    server_callback))
+    thread.start()
+    client = make_one_client()
+    client.connect(endpoint)
+
+    with pytest.raises(ServiceNotFoundError):
+        client.please.do_that_job(1, 2, 3, b=4)
+    client.stop()
+    thread.join()
+
+
 def test_job_server_never_reply():
     from pseud.interfaces import TimeoutError, VERSION, WORK
     context = zmq.Context.instance()

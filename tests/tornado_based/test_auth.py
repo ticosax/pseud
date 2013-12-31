@@ -194,6 +194,64 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client.stop()
 
     @tornado.testing.gen_test()
+    def test_untrusted_curve_with_allowed_password_and_client_disconnect(self):
+        from pseud import Client, Server
+        from pseud.utils import register_rpc
+
+        client_id = 'john'
+        server_id = 'server'
+        endpoint = 'tcp://127.0.0.1:8998'
+        server_public, server_secret = zmq.curve_keypair()
+        client_public, client_secret = zmq.curve_keypair()
+        security_plugin = 'untrusted_curve'
+        password = 's3cret!'
+
+        client = Client(server_id,
+                        security_plugin=security_plugin,
+                        public_key=client_public,
+                        secret_key=client_secret,
+                        peer_public_key=server_public,
+                        login=client_id,
+                        password=password,
+                        io_loop=self.io_loop)
+
+        server = Server(server_id,
+                        security_plugin=security_plugin,
+                        public_key=server_public,
+                        secret_key=server_secret,
+                        io_loop=self.io_loop)
+
+        server.bind(endpoint)
+        client.connect(endpoint)
+        assert server.socket.mechanism == zmq.CURVE
+        assert client.socket.mechanism == zmq.CURVE
+
+        # configure manually authentication backend
+        server.auth_backend.user_map[client_id] = password
+
+        yield server.start()
+        yield client.start()
+
+        import string
+        register_rpc(name='string.lower')(string.lower)
+
+        future = yield client.string.lower('FOO')
+        self.io_loop.add_future(future, self.stop)
+        self.wait()
+        assert future.result(timeout=self.timeout) == 'foo'
+        # Simulate disconnection and reconnection with new identity
+        client.socket.disconnect(endpoint)
+        client.socket.identity = 'wow-doge'
+        client.socket.connect(endpoint)
+        future = client.string.lower('ABC')
+        self.io_loop.add_timeout(self.io_loop.time() + .5,
+                                 self.stop)
+        self.wait()
+        assert future.result().result() == 'abc'
+        server.stop()
+        client.stop()
+
+    @tornado.testing.gen_test()
     def test_untrusted_curve_with_wrong_password(self):
         from pseud import Client, Server
         from pseud.interfaces import UnauthorizedError
