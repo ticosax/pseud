@@ -8,9 +8,9 @@ import zmq
 import zope.interface
 
 from . import auth, heartbeat, predicate #  NOQA
-from .common import BaseRPC, format_remote_traceback
+from .common import BaseRPC, format_remote_traceback, internal_exceptions
+from . import interfaces
 from .interfaces import (IClient,
-                         ServiceNotFoundError,
                          TimeoutError,
                          VERSION,
                          WORK,
@@ -68,9 +68,8 @@ class SyncBaseRPC(BaseRPC):
         try:
             exception = getattr(__builtin__, klass)(full_message)
         except AttributeError:
-            if klass == 'ServiceNotFoundError':
-                # XXX Unhardcode me
-                raise ServiceNotFoundError(full_message)
+            if klass in internal_exceptions:
+                raise getattr(interfaces, klass)(full_message)
             else:
                 # Not stdlib Exception
                 # fallback on something that expose informations received

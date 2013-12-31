@@ -1,5 +1,6 @@
 import __builtin__
 import functools
+import inspect
 import logging
 import operator
 import sys
@@ -12,6 +13,7 @@ import zmq
 import zope.component
 import zope.interface
 
+from . import interfaces
 from .interfaces import (AUTHENTICATED,
                          ERROR,
                          HEARTBEAT,
@@ -33,6 +35,12 @@ from .utils import (get_rpc_callable,
 logger = logging.getLogger(__name__)
 
 _marker = object()
+
+
+internal_exceptions = tuple(name for name in dir(interfaces)
+                            if inspect.isclass(getattr(interfaces, name))
+                            and issubclass(getattr(interfaces, name),
+                                           Exception))
 
 
 def format_remote_traceback(traceback):
@@ -250,9 +258,8 @@ class BaseRPC(object):
         try:
             exception = getattr(__builtin__, klass)(full_message)
         except AttributeError:
-            if klass == 'ServiceNotFoundError':
-                # XXX Unhardcode me
-                exception = ServiceNotFoundError(full_message)
+            if klass in internal_exceptions:
+                exception = getattr(interfaces, klass)(full_message)
                 future.set_exception(exception)
             else:
                 # Not stdlib Exception
