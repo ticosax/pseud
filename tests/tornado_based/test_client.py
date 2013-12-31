@@ -79,12 +79,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert isinstance(wrapper, AttributeWrapper)
         assert wrapper._part_names == method_name.split('.')
         assert wrapper.name == method_name
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
+        self.io_loop.add_timeout(self.io_loop.time() + .5,
                                  self.io_loop.stop)
         with pytest.raises(TimeoutError):
             future = yield wrapper()
             self.io_loop.start()
-            future.exception(timeout=.2)
+            future.result(timeout=.2)
         client.stop()
 
     @tornado.testing.gen_test

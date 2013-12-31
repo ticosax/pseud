@@ -89,8 +89,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         register_rpc(name='string.lower')(string.lower)
 
         future = yield client.string.lower('FOO')
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
-                                 self.stop)
+        self.io_loop.add_future(future, self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
         server.stop()
@@ -131,7 +130,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         register_rpc(name='string.lower')(string.lower)
 
         future = yield client.string.lower('BAR')
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
+        self.io_loop.add_timeout(self.io_loop.time() + .5,
                                  self.stop)
         self.wait()
         with pytest.raises(TimeoutError):
@@ -184,8 +183,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         future = yield client.string.lower('FOO')
         future2 = yield client.string.lower('FOO_JJ')
         future3 = yield server.send_to(client_id).string.lower('ABC')
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
-                                 self.stop)
+        self.io_loop.add_future(future3, self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
         assert future2.result(timeout=self.timeout) == 'foo_jj'
@@ -296,8 +294,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         register_rpc(name='string.lower')(string.lower)
 
         future = yield client.string.lower('IMSCREAMING')
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
-                                 self.stop)
+        self.io_loop.add_future(future, self.stop)
         self.wait()
         with pytest.raises(UnauthorizedError):
             future.result(timeout=self.timeout)

@@ -71,9 +71,6 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
                                [identity, '', VERSION, '', WORK, work])
         yield server.start()
         response = yield tornado.gen.Task(stream.on_recv)
-        self.io_loop.add_timeout(self.io_loop.time() + .1,
-                                 self.io_loop.stop)
-        self.io_loop.start()
         assert response == [identity, '', VERSION, '', OK, msgpack.packb(True)]
         server.stop()
 
@@ -91,9 +88,6 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         yield tornado.gen.Task(stream.send_multipart,
                                [identity, '', VERSION, '', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
-        self.io_loop.add_timeout(self.io_loop.time() + .1,
-                                 self.io_loop.stop)
-        self.io_loop.start()
         assert response[:-1] == [identity, '', VERSION, '', ERROR]
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
@@ -122,8 +116,6 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         yield tornado.gen.Task(stream.send_multipart,
                                [identity, '', VERSION, '', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
-        self.io_loop.add_timeout(time.time() + .1, self.stop)
-        self.wait()
         assert response[:-1] == [identity, '', VERSION, '', ERROR]
         klass, message, traceback = msgpack.unpackb(response[-1])
         assert klass == 'ValueError'
