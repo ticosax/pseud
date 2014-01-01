@@ -76,11 +76,8 @@ def register_rpc(func=None, name=None, domain='default', registry=registry):
                                              domain=domain),
                                  IRPCRoute,
                                  name=registered_name)
+        return fn
 
-        @functools.wraps(fn)
-        def inner(*args, **kw):
-            return fn(*args, **kw)
-        return inner
     if callable(func):
         return wrapper(func)
     return wrapper
