@@ -3,11 +3,61 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pseud's documentation!
-=================================
+pseud a bidirectionnal RPC library ready for the hostile web
+############################################################
 
-Contents:
+Initialize an RPC peer playing as server
 
+.. code-block:: python
+
+   # The server
+   from pseud import Server
+
+
+   server = Server('service')
+   server.bind('tcp://127.0.0.1:5555')
+
+   @server.register_rpc
+   def hello(name):
+       return 'Hello {0}'.format(name)
+
+   server.start() # this would block within its own io_loop
+
+Prepare one client
+
+.. code-block:: python
+
+   # The tornado client
+   # Assume tornado IOLoop is running
+   from pseud import Client
+
+
+   client = Client('service')
+   client.connect('tcp://127.0.0.1:5555')
+
+then invoke a rpc call
+
+.. code-block:: python
+
+   # Assume we are inside a coroutine
+   future = yield client.hello('Charly')
+   future.result()  # 'Hello Charly'
+
+Also gevent api for client
+
+.. code-block:: python
+
+   # The gevent client
+   from pseud import Client
+
+
+   client = Client('service')
+   client.connect('tcp://127.0.0.1:5555')
+
+   client.hello('Charly').get()  # 'Hello Charly'
+
+Narrative Documentation
+=======================
 
 .. toctree::
    :maxdepth: 2
@@ -19,6 +69,7 @@ Contents:
    job-routing
    protocol
    interfaces
+   changelog
 
 API Documentation
 =================

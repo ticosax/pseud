@@ -133,7 +133,7 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
 
     def _zap_handler(self, message):
         """
-        http://rfc.zeromq.org/spec:27
+        `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
         (zid, delimiter, version, sequence, domain, address, identity,
          mechanism, key) = message
@@ -178,8 +178,9 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     """
     Server doesn't trust peer certificate.
     Requires to do 2 step authentication.
-    1. CURVE + PLAIN, then approve key if authenticated.
-    2. CURVE (trusted version)
+
+    #. CURVE + PLAIN, then approve key if authenticated.
+    #. CURVE (trusted version)
     """
     name = 'untrusted_curve'
     max_retries = 2
@@ -249,10 +250,11 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
     """
     Server doesn't trust peer certificate.
     Requires to do 2 step authentication.
-    1. CURVE + PLAIN
-    2. CURVE (trusted version)
 
-    note..
+    #. CURVE + PLAIN
+    #. CURVE (trusted version)
+
+    .. note::
 
         This implementation should not be used on production.
         It is just for the tests.
