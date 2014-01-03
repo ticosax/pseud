@@ -87,22 +87,22 @@ class SyncBaseRPC(BaseRPC):
         return self.on_socket_ready(response)
 
     def _store_result_in_future(self, future, result):
-        raise TypeError('SyncClient can not do that')
+        raise NotImplementedError('SyncClient can not do that')
 
     def start(self):
         pass
 
     def read_forever(self, socket, callback):
-        raise TypeError('SyncClient can not do that')
+        raise NotImplementedError('SyncClient can not do that')
 
     def create_periodic_callback(self, callback, timer):
-        raise TypeError('SyncClient can not do that')
+        raise NotImplementedError('SyncClient can not do that')
 
     def create_later_callback(self, callback, timer):
-        raise TypeError('SyncClient can not do that')
+        raise NotImplementedError('SyncClient can not do that')
 
     def timeout_task(self, uuid):
-        raise TypeError('SyncClient can not do that')
+        raise NotImplementedError('SyncClient can not do that')
 
     def stop(self):
         if not self.socket.closed:
