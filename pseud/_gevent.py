@@ -58,11 +58,11 @@ class GeventBaseRPC(BaseRPC):
             gevent.sleep(.1)
 
     def stop(self):
+        if self.reader is not None:
+            self.reader.kill()
         if not self.socket.closed:
             self.socket.linger = 0
             self.socket.close()
-        if self.reader is not None:
-            self.reader.kill()
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
 
