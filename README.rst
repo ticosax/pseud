@@ -13,7 +13,7 @@ Features
 #. Encryption based on CURVE
 #. Pluggable Authentication
 #. Pluggable Heartbeating
-#. Pluggable Job Routing
+#. Pluggable Remote Call Routing
 #. Works with tornado ioloop or gevent
 #. Built-in proxy support. A server can delegate the work to another one.
 #. SyncClient (using zmq.REQ) to use within non event based processes.
