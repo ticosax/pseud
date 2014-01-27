@@ -21,7 +21,8 @@ def read_that_file(path):
     with open(path) as open_file:
         return open_file.read()
 
-long_description = '\n'.join((read_that_file('README.rst'),))
+long_description = '\n'.join((read_that_file('README.rst'),
+                              read_that_file('LICENSE.txt')))
 
 version = '0.0.1dev'
 
@@ -31,7 +32,8 @@ setup(name='pseud',
       description='Bidirectionnal RPC Api on top of pzmq',
       author='Nicolas Delaby',
       author_email='nicolas.delaby@ezeep.com',
-      url='',
+      url='https://github.com/ezeep/pseud',
+      license='Apache Software License',
       packages=['pseud'],
       include_package_data=True,
       zip_safe=True,
@@ -48,4 +50,12 @@ setup(name='pseud',
           'pytest-cov',
       ],
       cmdclass={'test': PyTest},
+      classifiers=[
+          'Development Status :: 4 - Beta',
+          'Intended Audience :: Developers',
+          'Intended Audience :: System Administrators',
+          'License :: OSI Approved :: Apache Software License',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python :: 2.7',
+      ]
       )
