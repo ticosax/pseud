@@ -1,4 +1,5 @@
 *egg-info/
 dist/
+build/
 docs/build/
 .coverage
