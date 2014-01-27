@@ -9,7 +9,7 @@ before_install:
     - sudo apt-get install -qq libsodium-dev
 
 install:
-    - "python setup.py install"
+    - "pip install -e .[Tornado,Gevent]"
     - "pip install coverage coveralls pytest"
 
 script: "coverage run --source=pseud setup.py test"
