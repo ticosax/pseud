@@ -1,5 +1,11 @@
 pseud
 =====
+.. image:: https://travis-ci.org/ezeep/pseud.png?branch=master
+   :target: https://travis-ci.org/ezeep/pseud
+
+.. image:: https://coveralls.io/repos/ezeep/pseud/badge.png
+   :target: https://coveralls.io/r/ezeep/pseud
+
 
 Pythonic bidirectional-rpc API build on top of ØMQ with pluggable
 encryption and authentication support.
