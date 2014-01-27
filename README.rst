@@ -8,7 +8,7 @@ pseud
 
 
 Pythonic bidirectional-rpc API build on top of ØMQ with pluggable
-encryption and authentication support.
+encryption, authentication and heartbeating support.
 
 Features
 ~~~~~~~~
