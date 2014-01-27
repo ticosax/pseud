@@ -98,3 +98,8 @@ Preview
     client.connect('tcp://127.0.0.1:5555')
 
     client.hello('Charly').get()  # 'Hello Charly'
+
+
+Documentation
+~~~~~~~~~~~~~
+`Pseud on Readthedocs <http://pseud.readthedocs.org/en/latest/index.html>`_
