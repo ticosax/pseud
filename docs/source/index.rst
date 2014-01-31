@@ -6,7 +6,7 @@
 pseud a bidirectionnal RPC library ready for the hostile web
 ############################################################
 
-Initialize an RPC peer playing as server
+Initialize an RPC peer playing as a server
 
 .. code-block:: python
 
@@ -23,7 +23,7 @@ Initialize an RPC peer playing as server
 
    server.start() # this would block within its own io_loop
 
-Prepare one client
+Prepare a tornado-based client
 
 .. code-block:: python
 
@@ -35,7 +35,7 @@ Prepare one client
    client = Client('service')
    client.connect('tcp://127.0.0.1:5555')
 
-then invoke a rpc call
+then make a remote procedure call (rpc)
 
 .. code-block:: python
 
@@ -43,7 +43,7 @@ then invoke a rpc call
    future = yield client.hello('Charly')
    future.result()  # 'Hello Charly'
 
-Also gevent api for client
+A gevent api is also available for clients
 
 .. code-block:: python
 
