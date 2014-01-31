@@ -7,24 +7,24 @@ pseud
    :target: https://coveralls.io/r/ezeep/pseud
 
 
-Pythonic bidirectional-rpc API build on top of ØMQ with pluggable
+Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
 
 Features
 ~~~~~~~~
-#. ØMQ transport layer
-#. All native python types supported (msgpack)
-#. First citizen exceptions
-#. Bi-bidirectional (server can initiate calls to connected clients)
-#. Encryption based on CURVE
-#. Pluggable Authentication
-#. Pluggable Heartbeating
-#. Pluggable Remote Call Routing
-#. Works with tornado ioloop or gevent
+#. ØMQ transport layer.
+#. All native python types supported (msgpack).
+#. First citizen exceptions.
+#. Bi-bidirectional (server can initiate calls to connected clients).
+#. Encryption based on CURVE.
+#. Pluggable Authentication.
+#. Pluggable Heartbeating.
+#. Pluggable Remote Call Routing.
+#. Works with tornado ioloop or gevent.
 #. Built-in proxy support. A server can delegate the work to another one.
 #. SyncClient (using zmq.REQ) to use within non event based processes.
    (Heartbeating, Authentication and job execution are not supported with
-   the SyncClient)
+   the SyncClient.)
 
 Installation
 ~~~~~~~~~~~~
