@@ -86,7 +86,7 @@ HELLO
 
     '\x02'
 
-the body content is a tuple of 3 items
+the body content is a tuple of 2 items
     #. login
     #. password
 
