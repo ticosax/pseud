@@ -196,3 +196,21 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client2.stop()
         server1.stop()
         server2.stop()
+
+    def test_server_run_async_rpc(self):
+        from pseud._tornado import async_sleep
+        server = self.make_one_server('server')
+        server.bind('inproc://server')
+        server.start()
+
+        client = self.make_one_client('client', 'server')
+        client.connect('inproc://server')
+
+        @server.register_rpc
+        @tornado.gen.coroutine
+        def aysnc_task():
+            yield async_sleep(.1)
+            raise tornado.gen.Return(True)
+
+        future = yield client.aysnc_task()
+        assert future.result() is True
