@@ -6,6 +6,9 @@ pseud
 .. image:: https://coveralls.io/repos/ezeep/pseud/badge.png
    :target: https://coveralls.io/r/ezeep/pseud
 
+.. image:: https://pypip.in/v/pseud/badge.png
+   :target: https://crate.io/packages/pseud/
+   :alt: Latest PyPI version
 
 Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
