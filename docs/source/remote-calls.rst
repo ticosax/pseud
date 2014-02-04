@@ -1,9 +1,10 @@
 Remote Calls
 ============
 
-To perform remote procedure calls you just need to connect two peers, and then
-call on your local peer instance a registered function with right parameters.
-You will then receive the return value of this function executed remotely.
+To perform remote procedure calls you just need to connect two peers, and
+then, on your local peer instance, call a registered function with the right
+parameters. You will then receive the return value of the remotely executed
+function.
 
 .. code:: python
 
@@ -44,14 +45,14 @@ You will then receive the return value of this function executed remotely.
 Registration
 ++++++++++++
 
-It is a procedure that is necessary to control what callable you want to expose
+Registration is a necessary step to control what callable you want to expose
 for remote peers.
 
 Global
 ~~~~~~
 
 The `register_rpc` decorator from :mod:`pseud.utils` module must be used to
-register callable for all workers of current process.
+register a callable for all workers of the current process.
 
 .. code:: python
 
@@ -65,8 +66,8 @@ register callable for all workers of current process.
 Local
 ~~~~~
 
-Each RPC instance expose its own `register_rpc` function that is used to
-register a callable for this RPC instance only.
+An RPC instance exposes its own `register_rpc` function, which is used to 
+register a callable only for that same RPC instance.
 
 .. code:: python
 
@@ -75,9 +76,9 @@ register a callable for this RPC instance only.
 
    server.register_rpc(call_me)
 
-Also as a more advance usage, you can instantiate a registry and give it to
-:mod:`pseud.utils.register_rpc` and as init parameter of the RPC.
-It is more convenient to use register_rpc as decorator
+You can also instantiate a registry and give it to
+:mod:`pseud.utils.register_rpc`, and pass it as an init parameter in the RPC.
+It is more convenient to use register_rpc as a decorator
 
 .. code:: python
 
@@ -111,17 +112,17 @@ You can also decide to provide your own name (dotted name) to the callable
 
    client.this.is.a.name().get() == 'Done'
 
-Server wants to make client working
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Server wants to make the client working
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to let the server jobs to its connected clients.
-The caller should know before the identity of the specified client.
-How to get list of currently connected client is described
-in :ref:`heartbeating` section.
+In order to let the server send jobs to its connected clients, the caller
+should know the identity of the specified client beforehand. How to get a list
+of currently connected clients is described in the :ref:`heartbeating`
+section.
 
-Assuming we know the client identity `'client'` and the client
-register a function named `addition`, then the server can send
-work to the client with the following statement ::
+Given a client whose identity is ``'client'``, with a registered function named
+``addition``, the following statement may be used to send work from the server
+to the client ::
 
    # gevent process
    server.send_to('client').addition(2, 4).get() == 6
