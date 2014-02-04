@@ -1,3 +1,4 @@
+import gevent
 import pytest
 import zmq.green as zmq  # NOQA
 
@@ -173,3 +174,20 @@ def test_server_can_proxy_another_server():
     client2.stop()
     server1.stop()
     server2.stop()
+
+
+def test_server_run_async_rpc():
+    server = make_one_server('server')
+    server.bind('inproc://server')
+    server.start()
+
+    client = make_one_client('client', 'server')
+    client.connect('inproc://server')
+
+    @server.register_rpc
+    def aysnc_task():
+        gevent.sleep(.1)
+        return True
+
+    future = client.aysnc_task()
+    assert future.get() is True
