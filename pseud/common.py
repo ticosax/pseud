@@ -43,6 +43,15 @@ internal_exceptions = tuple(name for name in dir(interfaces)
                                            Exception))
 
 
+class DummyFuture(object):
+    """
+    When future is gone replace it with this one to display
+    incoming messages associating to ghost future.
+    """
+    def set_exception(self, exception):
+        raise exception
+
+
 def format_remote_traceback(traceback):
     pivot = '\n{}'.format(3 * 4 * ' ')  # like three tabs
     return textwrap.dedent("""
@@ -251,7 +260,7 @@ class BaseRPC(object):
 
     def _handle_error(self, message, message_uuid):
         value = msgpack.unpackb(message)
-        future = self.future_pool.pop(message_uuid)
+        future = self.future_pool.pop(message_uuid, DummyFuture())
         klass, message, trace_back = value
         full_message = '\n'.join((format_remote_traceback(trace_back),
                                   message))

@@ -1,3 +1,4 @@
+from concurrent.futures import TimeoutError
 import pytest
 import tornado.testing
 from zmq.eventloop import ioloop
@@ -209,8 +210,34 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         @server.register_rpc
         @tornado.gen.coroutine
         def aysnc_task():
-            yield async_sleep(.1)
+            yield async_sleep(self.io_loop, .1)
             raise tornado.gen.Return(True)
 
         future = yield client.aysnc_task()
         assert future.result() is True
+
+    @tornado.testing.gen_test
+    def test_timeout_and_error_received_later(self):
+        from pseud._tornado import async_sleep
+        from pseud.interfaces import ServiceNotFoundError
+
+        server_id = 'server'
+        endpoint = 'inproc://here'
+        server = self.make_one_server(server_id, io_loop=self.io_loop)
+
+        client = self.make_one_client('client', server_id,
+                                      io_loop=self.io_loop)
+        server.bind(endpoint)
+        client.connect(endpoint)
+
+        future = yield client.string.doesnotexists('QWERTY')
+        future.set_exception(TimeoutError)
+        yield async_sleep(self.io_loop, .01)
+        # at this point the future is not in the pool of futures,
+        # thought we will still received the answer from the server
+        assert not client.future_pool
+
+        with pytest.raises(ServiceNotFoundError):
+            yield server.start()
+        server.close()
+        client.close()
