@@ -1,4 +1,5 @@
 import gevent
+from gevent.timeout import Timeout
 import pytest
 import zmq.green as zmq  # NOQA
 
@@ -191,3 +192,32 @@ def test_server_run_async_rpc():
 
     future = client.aysnc_task()
     assert future.get() is True
+
+
+def test_timeout_and_error_received_later(capsys):
+    """
+    capsys is comming from pytest magic
+    http://pytest.org/latest/capture.html
+    """
+    server_id = 'server'
+    endpoint = 'inproc://here'
+    server = make_one_server(server_id)
+
+    client = make_one_client('client', server_id)
+    server.bind(endpoint)
+    client.connect(endpoint)
+    future = client.string.doesnotexists('QWERTY')
+    future.set_exception(Timeout)
+    gevent.sleep(.01)
+    # at this point the future is not in the pool of futures,
+    # thought we will still received the answer from the server
+    assert not client.future_pool
+    # gevent print exceptions that are not raised within its own green thread
+    # so we capture stderr and check the exceptions is trigerred and not silent
+    server.start()
+    out, err = capsys.readouterr()
+    assert 'ServiceNotFoundError' in err
+    with pytest.raises(Timeout):
+        future.get()
+    server.stop()
+    client.close()
