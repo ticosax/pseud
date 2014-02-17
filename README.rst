@@ -10,6 +10,10 @@ pseud
    :target: https://crate.io/packages/pseud/
    :alt: Latest PyPI version
 
+.. image:: https://gemnasium.com/ezeep/pseud.png
+   :target: https://gemnasium.com/ezeep/pseud
+   :alt: Dependency Status
+
 Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
 
