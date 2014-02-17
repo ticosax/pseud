@@ -29,7 +29,7 @@ version = '0.0.3dev'
 
 setup(name='pseud',
       version=version,
-      description='Bidirectionnal RPC Api on top of pzmq',
+      description='Bidirectionnal RPC Api on top of pyzmq',
       author='Nicolas Delaby',
       author_email='nicolas.delaby@ezeep.com',
       url='https://github.com/ezeep/pseud',
