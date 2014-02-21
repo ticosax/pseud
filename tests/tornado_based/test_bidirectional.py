@@ -9,16 +9,17 @@ ioloop.install()
 class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
-    def make_one_server(self, identity, io_loop=None):
+    def make_one_server(self, identity, proxy_to=None):
         from pseud import Server
-        server = Server(identity, io_loop=io_loop)
+        server = Server(identity, proxy_to=proxy_to,
+                        io_loop=self.io_loop)
         return server
 
-    def make_one_client(self, identity, peer_identity, io_loop=None):
+    def make_one_client(self, identity, peer_identity):
         from pseud import Client
         client = Client(peer_identity,
                         identity=identity,
-                        io_loop=io_loop)
+                        io_loop=self.io_loop)
         return client
 
     @tornado.testing.gen_test
@@ -29,10 +30,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client(client_id, server_id)
 
         server.bind(endpoint)
         yield server.start()
@@ -57,10 +57,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client(client_id, server_id)
 
         server.bind(endpoint)
         client.connect(endpoint)
@@ -84,19 +83,17 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client1 = self.make_one_client('client1', server_id,
-                                       io_loop=self.io_loop)
-        client2 = self.make_one_client('client2', server_id,
-                                       io_loop=self.io_loop)
+        client1 = self.make_one_client('client1', server_id)
+        client2 = self.make_one_client('client2', server_id)
 
         server.bind(endpoint)
         client1.connect(endpoint)
         client2.connect(endpoint)
-        yield server.start()
-        yield client1.start()
-        yield client2.start()
+        client1.start()
+        client2.start()
+        server.start()
 
         import string
         register_rpc(name='string.lower')(string.lower)
@@ -119,10 +116,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server_id = 'server'
         endpoint = 'inproc://here'
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client('client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
         yield server.start()
@@ -223,10 +219,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server_id = 'server'
         endpoint = 'inproc://here'
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client('client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
 
