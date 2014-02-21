@@ -44,7 +44,6 @@ class SyncBaseRPC(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(name, *args, **kw)
         logger.debug('Sending work: {!r}'.format(message))
-        self.auth_backend.save_last_work(message)
         response = self.send_message(message)
         return response
 
