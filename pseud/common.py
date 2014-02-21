@@ -49,7 +49,11 @@ class DummyFuture(object):
     incoming messages associating to ghost future.
     """
     def set_exception(self, exception):
-        raise exception
+        try:
+            raise exception
+        except:
+            logger.exception('Captured exception from main loop')
+            raise
 
 
 def format_remote_traceback(traceback):
