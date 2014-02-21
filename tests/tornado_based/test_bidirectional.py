@@ -132,6 +132,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server.close()
         client.close()
 
+    @tornado.testing.gen_test
     def test_server_can_proxy_another_server(self):
         """
         Client1 --> Server1.string.lower()
@@ -183,6 +184,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future3 = yield client1.str.upper('whisper')
         future4 = yield client2.str.upper('whisper')
         future5 = yield client2.bla.lower('SCREAM')
+        self.io_loop.add_future(future5, self.stop)
+        self.wait()
         assert future1.result() == 'scream'
         assert future2.result() == 'scream'
         assert future3.result() == 'WHISPER'
