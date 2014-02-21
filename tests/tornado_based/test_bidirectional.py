@@ -121,8 +121,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client = self.make_one_client('client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
-        yield server.start()
-        yield client.start()
+        server.start()
 
         future = yield client.string.doesnotexists('QWERTY')
         self.io_loop.add_future(future, self.stop)
