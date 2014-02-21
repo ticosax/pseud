@@ -1,7 +1,10 @@
 import functools
 import logging
+import sys
+import traceback
 
 from concurrent.futures import TimeoutError
+import msgpack
 import tornado.concurrent
 import tornado.gen
 import zmq
@@ -9,7 +12,15 @@ from zmq.eventloop import ioloop, zmqstream
 import zope.interface
 
 from .common import BaseRPC
-from .interfaces import IClient, IServer
+from .interfaces import (
+    IClient,
+    IServer,
+    ERROR,
+    OK,
+    ServiceNotFoundError,
+    VERSION,
+)
+from .utils import get_rpc_callable
 
 ioloop.install()
 
@@ -36,18 +47,59 @@ class TornadoBaseRPC(BaseRPC):
             self.io_loop = io_loop
 
     @tornado.gen.coroutine
+    def _handle_work_proxy(self, locator, args, kw, peer_id, message_uuid):
+        worker_callable = get_rpc_callable(
+            locator,
+            registry=self.registry,
+            **self.auth_backend.get_predicate_arguments(peer_id))
+        result = worker_callable(*args, **kw)
+        while True:
+            if isinstance(result, tornado.concurrent.Future):
+                result = yield result
+            else:
+                raise tornado.gen.Return(result)
+
+    @tornado.gen.coroutine
+    def _handle_work(self, message, peer_id, message_uuid):
+        locator, args, kw = msgpack.unpackb(message)
+        try:
+            try:
+                result = yield self._handle_work_proxy(
+                    locator, args, kw, peer_id, message_uuid)
+            except ServiceNotFoundError:
+                if self.proxy_to is None:
+                    raise
+                else:
+                    result = yield self.proxy_to._handle_work_proxy(
+                        locator, args, kw, peer_id, message_uuid)
+
+        except Exception:
+            logger.exception('Pseud job failed')
+            exc_type, exc_value = sys.exc_info()[:2]
+            traceback_ = traceback.format_exc()
+            name = exc_type.__name__
+            message = str(exc_value)
+            result = (name, message, traceback_)
+            status = ERROR
+        else:
+            status = OK
+        response = msgpack.packb(result)
+        message = [peer_id, '', VERSION, message_uuid, status, response]
+        logger.debug('Worker send reply {!r}'.format(message))
+        yield self.send_message(message)
+
     def send_work(self, peer_identity, name, *args, **kw):
-        yield self.start()
+        self.start()
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         self.future_pool[uid] = future = tornado.concurrent.Future()
         self.create_timeout_detector(uid)
         logger.debug('Sending work: {!r}'.format(message))
         self.auth_backend.save_last_work(message)
-        yield self.send_message(message)
+        self.send_message(message)
         logger.debug('Work sent')
         self.io_loop.add_future(future,
                                 functools.partial(self.cleanup_future, uid))
-        raise tornado.gen.Return(future)
+        return future
 
     @tornado.gen.coroutine
     def send_message(self, message):

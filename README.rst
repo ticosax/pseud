@@ -89,8 +89,8 @@ Preview
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
-    future = yield client.hello('Charly')
-    future.result()  # 'Hello Charly'
+    response = yield client.hello('Charly')
+    assert response == 'Hello Charly'
 
 .. code-block:: python
 
@@ -101,7 +101,7 @@ Preview
     client = Client('service')
     client.connect('tcp://127.0.0.1:5555')
 
-    client.hello('Charly').get()  # 'Hello Charly'
+    assert client.hello('Charly').get() == 'Hello Charly'
 
 
 Documentation

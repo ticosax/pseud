@@ -49,7 +49,11 @@ class DummyFuture(object):
     incoming messages associating to ghost future.
     """
     def set_exception(self, exception):
-        raise exception
+        try:
+            raise exception
+        except:
+            logger.exception('Captured exception from main loop')
+            raise
 
 
 def format_remote_traceback(traceback):
@@ -126,6 +130,7 @@ class BaseRPC(object):
         self.reader = None
         self.registry = (registry if registry is not None
                          else create_local_registry(identity or ''))
+        self.socket = None
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):
@@ -144,20 +149,20 @@ class BaseRPC(object):
         return AttributeWrapper(self, peer_id=peer_id)
 
     def connect_or_bind(self, name, endpoint):
-        socket = self.context.socket(self.socket_type)
-        self.socket = socket
+        if self.socket is None:
+            self.socket = self.context.socket(self.socket_type)
         if self.identity:
-            socket.identity = self.identity
+            self.socket.identity = self.identity
         if self.socket_type == zmq.ROUTER:
-            socket.ROUTER_MANDATORY = True
+            self.socket.ROUTER_MANDATORY = True
             # socket.ROUTER_HANDOVER = True
         if self.socket_type == zmq.REQ:
-            socket.RCVTIMEO = int(self.timeout * 1000)
-        socket.SNDTIMEO = int(self.timeout * 1000)
+            self.socket.RCVTIMEO = int(self.timeout * 1000)
+        self.socket.SNDTIMEO = int(self.timeout * 1000)
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
         caller = operator.methodcaller(name, endpoint)
-        caller(socket)
+        caller(self.socket)
         self.initialized = True
 
     def _prepare_work(self, peer_identity, name, *args, **kw):
@@ -238,6 +243,7 @@ class BaseRPC(object):
                                                               message_uuid)
 
         except Exception:
+            logger.exception('Pseud job failed')
             exc_type, exc_value = sys.exc_info()[:2]
             traceback_ = traceback.format_exc()
             name = exc_type.__name__

@@ -82,7 +82,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         self.io_loop.add_timeout(self.io_loop.time() + .5,
                                  self.io_loop.stop)
         with pytest.raises(TimeoutError):
-            future = yield wrapper()
+            future = wrapper()
             self.io_loop.start()
             future.result(timeout=.2)
         client.stop()
@@ -99,7 +99,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
-        future = yield client.please.do_that_job(1, 2, 3, b=4)
+        future = client.please.do_that_job(1, 2, 3, b=4)
         request = yield tornado.gen.Task(stream.on_recv)
         stream.stop_on_recv()
         server_id, delimiter, version, uid, message_type, message = request
@@ -135,7 +135,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
-        future = yield client.please.do_that_job(1, 2, 3, b=4)
+        future = client.please.do_that_job(1, 2, 3, b=4)
         request = yield tornado.gen.Task(stream.on_recv)
         stream.stop_on_recv()
         server_id, delimiter, version, uid, message_type, message = request

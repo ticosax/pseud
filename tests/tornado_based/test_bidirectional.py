@@ -9,16 +9,17 @@ ioloop.install()
 class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
-    def make_one_server(self, identity, io_loop=None):
+    def make_one_server(self, identity, proxy_to=None):
         from pseud import Server
-        server = Server(identity, io_loop=io_loop)
+        server = Server(identity, proxy_to=proxy_to,
+                        io_loop=self.io_loop)
         return server
 
-    def make_one_client(self, identity, peer_identity, io_loop=None):
+    def make_one_client(self, identity, peer_identity):
         from pseud import Client
         client = Client(peer_identity,
                         identity=identity,
-                        io_loop=io_loop)
+                        io_loop=self.io_loop)
         return client
 
     @tornado.testing.gen_test
@@ -29,10 +30,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client(client_id, server_id)
 
         server.bind(endpoint)
         yield server.start()
@@ -42,10 +42,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.upper')(string.upper)
 
-        future = yield client.string.upper('hello')
+        future = client.string.upper('hello')
         self.io_loop.add_future(future, self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout) == 'HELLO'
+        assert future.result() == 'HELLO'
         client.stop()
         server.stop()
 
@@ -57,10 +57,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client(client_id, server_id)
 
         server.bind(endpoint)
         client.connect(endpoint)
@@ -70,7 +69,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield server.send_to(client_id).string.lower('SCREAM')
+        future = server.send_to(client_id).string.lower('SCREAM')
         self.io_loop.add_future(future, self.stop)
         self.wait()
         assert future.result() == 'scream'
@@ -84,26 +83,24 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server_id = 'server'
         endpoint = 'inproc://here'
 
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client1 = self.make_one_client('client1', server_id,
-                                       io_loop=self.io_loop)
-        client2 = self.make_one_client('client2', server_id,
-                                       io_loop=self.io_loop)
+        client1 = self.make_one_client('client1', server_id)
+        client2 = self.make_one_client('client2', server_id)
 
         server.bind(endpoint)
         client1.connect(endpoint)
         client2.connect(endpoint)
-        yield server.start()
-        yield client1.start()
-        yield client2.start()
+        client1.start()
+        client2.start()
+        server.start()
 
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future1 = yield server.send_to('client1').string.lower('SCREAM1')
+        future1 = server.send_to('client1').string.lower('SCREAM1')
 
-        future2 = yield server.send_to('client2').string.lower('SCREAM2')
+        future2 = server.send_to('client2').string.lower('SCREAM2')
 
         self.io_loop.add_future(future2, self.stop)
         self.wait()
@@ -119,16 +116,14 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server_id = 'server'
         endpoint = 'inproc://here'
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client('client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
-        yield server.start()
-        yield client.start()
+        server.start()
 
-        future = yield client.string.doesnotexists('QWERTY')
+        future = client.string.doesnotexists('QWERTY')
         self.io_loop.add_future(future, self.stop)
         self.wait()
         with pytest.raises(ServiceNotFoundError):
@@ -136,6 +131,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server.close()
         client.close()
 
+    @tornado.testing.gen_test
     def test_server_can_proxy_another_server(self):
         """
         Client1 --> Server1.string.lower()
@@ -182,11 +178,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert get_rpc_callable('str.lower',
                                 registry=server1.registry)('L') == 'l'
 
-        future1 = yield client1.str.lower('SCREAM')
-        future2 = yield client2.str.lower('SCREAM')
-        future3 = yield client1.str.upper('whisper')
-        future4 = yield client2.str.upper('whisper')
-        future5 = yield client2.bla.lower('SCREAM')
+        future1 = client1.str.lower('SCREAM')
+        future2 = client2.str.lower('SCREAM')
+        future3 = client1.str.upper('whisper')
+        future4 = client2.str.upper('whisper')
+        future5 = client2.bla.lower('SCREAM')
+        self.io_loop.add_future(future5, self.stop)
+        self.wait()
         assert future1.result() == 'scream'
         assert future2.result() == 'scream'
         assert future3.result() == 'WHISPER'
@@ -198,6 +196,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server1.stop()
         server2.stop()
 
+    @tornado.testing.gen_test
     def test_server_run_async_rpc(self):
         from pseud._tornado import async_sleep
         server = self.make_one_server('server')
@@ -210,34 +209,33 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         @server.register_rpc
         @tornado.gen.coroutine
         def aysnc_task():
-            yield async_sleep(self.io_loop, .1)
+            yield async_sleep(self.io_loop, .01)
             raise tornado.gen.Return(True)
 
-        future = yield client.aysnc_task()
+        future = client.aysnc_task()
+
+        self.io_loop.add_future(future, self.stop)
+        self.wait()
         assert future.result() is True
 
     @tornado.testing.gen_test
     def test_timeout_and_error_received_later(self):
         from pseud._tornado import async_sleep
-        from pseud.interfaces import ServiceNotFoundError
 
         server_id = 'server'
         endpoint = 'inproc://here'
-        server = self.make_one_server(server_id, io_loop=self.io_loop)
+        server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id,
-                                      io_loop=self.io_loop)
+        client = self.make_one_client('client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
 
-        future = yield client.string.doesnotexists('QWERTY')
+        future = client.string.doesnotexists('QWERTY')
         future.set_exception(TimeoutError)
         yield async_sleep(self.io_loop, .01)
         # at this point the future is not in the pool of futures,
         # thought we will still received the answer from the server
         assert not client.future_pool
 
-        with pytest.raises(ServiceNotFoundError):
-            yield server.start()
         server.close()
         client.close()
