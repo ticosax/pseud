@@ -40,8 +40,8 @@ then make a remote procedure call (rpc)
 .. code-block:: python
 
    # Assume we are inside a coroutine
-   future = yield client.hello('Charly')
-   future.result()  # 'Hello Charly'
+   response = yield client.hello('Charly')
+   assert response == 'Hello Charly'
 
 A gevent api is also available for clients
 
@@ -54,7 +54,8 @@ A gevent api is also available for clients
    client = Client('service')
    client.connect('tcp://127.0.0.1:5555')
 
-   client.hello('Charly').get()  # 'Hello Charly'
+   assert client.hello('Charly').get() == 'Hello Charly'
+
 
 Narrative Documentation
 =======================

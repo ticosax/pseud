@@ -1,3 +1,5 @@
+import time
+
 from concurrent.futures import TimeoutError
 import pytest
 import tornado.testing
@@ -88,7 +90,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield client.string.lower('FOO')
+        future = client.string.lower('FOO')
         self.io_loop.add_future(future, self.stop)
         self.wait()
         assert future.result(timeout=self.timeout) == 'foo'
@@ -129,7 +131,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield client.string.lower('BAR')
+        future = client.string.lower('BAR')
         self.io_loop.add_timeout(self.io_loop.time() + .5,
                                  self.stop)
         self.wait()
@@ -142,6 +144,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_untrusted_curve_with_allowed_password(self):
         from pseud import Client, Server
         from pseud.utils import register_rpc
+        from pseud._tornado import async_sleep
 
         client_id = 'john'
         server_id = 'server'
@@ -180,14 +183,15 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield client.string.lower('FOO')
-        future2 = yield client.string.lower('FOO_JJ')
-        future3 = yield server.send_to(client_id).string.lower('ABC')
+        future = client.string.lower('FOO')
+        future2 = client.string.lower('FOO_JJ')
+        yield async_sleep(self.io_loop, .01)
+        future3 = server.send_to(client_id).string.lower('ABC')
         self.io_loop.add_future(future3, self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout) == 'foo'
-        assert future2.result(timeout=self.timeout) == 'foo_jj'
-        assert future3.result(timeout=self.timeout) == 'abc'
+        assert future.result() == 'foo'
+        assert future2.result() == 'foo_jj'
+        assert future3.result() == 'abc'
         server.stop()
         client.stop()
 
@@ -198,7 +202,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         client_id = 'john'
         server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8998'
+        endpoint = 'tcp://127.0.0.1:8999'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'untrusted_curve'
@@ -211,6 +215,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
                         peer_public_key=server_public,
                         login=client_id,
                         password=password,
+                        timeout=1,
                         io_loop=self.io_loop)
 
         server = Server(server_id,
@@ -233,19 +238,19 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield client.string.lower('FOO')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result(timeout=self.timeout) == 'foo'
+        future = client.string.lower('FOO')
+        self.io_loop.add_timeout(self.io_loop.time() + .2, self.io_loop.stop)
+        self.io_loop.start()
+        assert future.result() == 'foo'
         # Simulate disconnection and reconnection with new identity
         client.socket.disconnect(endpoint)
-        client.socket.identity = 'wow-doge'
-        client.socket.connect(endpoint)
+        client.identity = 'wow-doge'
+        client.connect(endpoint)
+        self.io_loop.run_sync(lambda *args, **kw: time.sleep(.1))
         future = client.string.lower('ABC')
-        self.io_loop.add_timeout(self.io_loop.time() + .5,
-                                 self.stop)
+        self.io_loop.add_future(future, self.stop)
         self.wait()
-        assert future.result().result() == 'abc'
+        assert future.result() == 'abc'
         server.stop()
         client.stop()
 
@@ -293,7 +298,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         import string
         register_rpc(name='string.lower')(string.lower)
 
-        future = yield client.string.lower('IMSCREAMING')
+        future = client.string.lower('IMSCREAMING')
         self.io_loop.add_future(future, self.stop)
         self.wait()
         with pytest.raises(UnauthorizedError):
