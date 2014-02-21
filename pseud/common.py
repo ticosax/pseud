@@ -243,6 +243,7 @@ class BaseRPC(object):
                                                               message_uuid)
 
         except Exception:
+            logger.exception('Pseud job failed')
             exc_type, exc_value = sys.exc_info()[:2]
             traceback_ = traceback.format_exc()
             name = exc_type.__name__
