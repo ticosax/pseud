@@ -1,8 +1,11 @@
 Changelog history
 =================
 
-0.0.3 - Not yet released
+0.0.4 - Not yet released
 ------------------------
+
+0.0.3 - 2014/02/24
+------------------
 
   - Add support of Aysnc RPC callables for Tornado
   - Add support of datetime (tz aware) serializations by msgpack
