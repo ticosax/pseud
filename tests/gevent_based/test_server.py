@@ -2,7 +2,6 @@ import os.path
 import time
 
 import gevent
-import msgpack
 import zmq.green as zmq
 
 
@@ -54,6 +53,7 @@ def make_one_server(identity, endpoint):
 
 
 def test_job_running():
+    from pseud.common import msgpack_packb
     from pseud.interfaces import OK, VERSION, WORK
     from pseud.utils import register_rpc
 
@@ -67,22 +67,23 @@ def test_job_running():
     server = make_one_server(identity, endpoint)
     server.start()
     socket = make_one_client_socket('client', endpoint)
-    work = msgpack.packb((job_success.func_name, (1, 2, 3), {'d': False}))
+    work = msgpack_packb((job_success.func_name, (1, 2, 3), {'d': False}))
     gevent.spawn(socket.send_multipart, [identity, '', VERSION,
                                          '', WORK, work])
     response = gevent.spawn(read_once, socket).get()
-    assert response == [identity, '', VERSION, '', OK, msgpack.packb(True)]
+    assert response == [identity, '', VERSION, '', OK, msgpack_packb(True)]
     server.stop()
 
 
 def test_job_not_found():
+    from pseud.common import msgpack_packb, msgpack_unpackb
     import pseud
     from pseud.interfaces import ERROR, VERSION, WORK
     identity = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
     server = make_one_server(identity, endpoint)
     socket = make_one_client_socket('client', endpoint)
-    work = msgpack.packb(('thisIsNotAFunction', (), {}))
+    work = msgpack_packb(('thisIsNotAFunction', (), {}))
     server.start()
     gevent.spawn(socket.send_multipart, [identity, '', VERSION,
                                          '', WORK, work])
@@ -90,7 +91,7 @@ def test_job_not_found():
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
     assert response[:-1] == [identity, '', VERSION, '', ERROR]
-    klass, message, traceback = msgpack.unpackb(response[-1])
+    klass, message, traceback = msgpack_unpackb(response[-1])
     assert klass == 'ServiceNotFoundError'
     assert message == 'thisIsNotAFunction'
     # pseud.__file__ might ends with .pyc
@@ -99,6 +100,7 @@ def test_job_not_found():
 
 
 def test_job_raise():
+    from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import ERROR, VERSION, WORK
     from pseud.utils import register_rpc
 
@@ -110,7 +112,7 @@ def test_job_raise():
     endpoint = 'inproc://{}'.format(__name__)
     server = make_one_server(identity, endpoint)
     socket = make_one_client_socket('client', endpoint)
-    work = msgpack.packb((job_buggy.func_name, (), {}))
+    work = msgpack_packb((job_buggy.func_name, (), {}))
     server.start()
     gevent.spawn(socket.send_multipart, [identity, '', VERSION,
                                          '', WORK, work])
@@ -118,7 +120,7 @@ def test_job_raise():
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
     assert response[:-1] == [identity, '', VERSION, '', ERROR]
-    klass, message, traceback = msgpack.unpackb(response[-1])
+    klass, message, traceback = msgpack_unpackb(response[-1])
     assert klass == 'ValueError'
     assert message == 'too bad'
     assert __file__ in traceback

@@ -40,7 +40,8 @@ setup(name='pseud',
       install_requires=[
           'pyzmq',
           'msgpack-python',
-          'zope.component'
+          'zope.component',
+          'python-dateutil',
       ],
       extras_require={'Tornado': ('tornado', 'futures'),
                       'Gevent': ('gevent',),

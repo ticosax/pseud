@@ -1,7 +1,6 @@
 import uuid
 
 from concurrent.futures import TimeoutError
-import msgpack
 import pytest
 import tornado.testing
 import zmq
@@ -89,6 +88,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_executed(self):
+        from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import OK, VERSION, WORK
         identity = 'client0'
         peer_identity = 'echo'
@@ -109,11 +109,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack.unpackb(message)
+        locator, args, kw = msgpack_unpackb(message)
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [identity, '', version, uid, OK, msgpack.packb(True)]
+        reply = [identity, '', version, uid, OK, msgpack_packb(True)]
         yield tornado.gen.Task(stream.send_multipart, reply)
         self.io_loop.add_timeout(self.io_loop.time() + .1,
                                  self.io_loop.stop)
@@ -124,6 +124,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_server_never_reply(self):
+        from pseud.common import msgpack_unpackb
         from pseud.interfaces import VERSION, WORK
         identity = 'client0'
         peer_identity = 'echo'
@@ -145,7 +146,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack.unpackb(message)
+        locator, args, kw = msgpack_unpackb(message)
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}

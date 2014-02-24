@@ -1,4 +1,5 @@
 import __builtin__
+import datetime
 import functools
 import inspect
 import logging
@@ -8,6 +9,8 @@ import textwrap
 import traceback
 import uuid
 
+import dateutil.parser
+import dateutil.tz
 import msgpack
 import zmq
 import zope.component
@@ -63,6 +66,48 @@ def format_remote_traceback(traceback):
             {}
         -- End of remote traceback --
         """.format(pivot.join(traceback.splitlines())))
+
+
+UTC = dateutil.tz.tzutc()
+
+
+def pseud_decode(obj):
+    if '__datetime__' in obj:
+        if obj['tz'] is not None:
+            dt = dateutil.parser.parse(obj['as_str'])
+            dt = dt.astimezone(dateutil.tz.gettz(obj['tz']))
+        else:
+            dt = dateutil.parser.parse(obj['as_str'], ignoretz=True)
+        return dt
+    return obj
+
+
+def pseud_encode(obj):
+    if isinstance(obj, datetime.datetime):
+        serialized = {}
+        if obj.tzinfo:
+            serialized['tz'] = obj.tzinfo.tzname(obj)
+            obj = obj.astimezone(UTC).replace(tzinfo=None)
+        else:
+            serialized['tz'] = None
+        serialized['__datetime__'] = True
+        serialized['as_str'] = obj.isoformat() + 'Z'
+        return serialized
+    return obj
+
+
+def msgpack_packb(value):
+    """
+    Add support for custom object type like datetime
+    """
+    return msgpack.packb(value, default=pseud_encode)
+
+
+def msgpack_unpackb(value):
+    """
+    USe custome deserializer to handle objects such as datetime
+    """
+    return msgpack.unpackb(value, object_hook=pseud_decode)
 
 
 class AttributeWrapper(object):
@@ -167,7 +212,7 @@ class BaseRPC(object):
 
     def _prepare_work(self, peer_identity, name, *args, **kw):
         destination = self.auth_backend.get_destination_id(peer_identity)
-        work = msgpack.packb((name, args, kw))
+        work = msgpack_packb((name, args, kw))
         uid = uuid.uuid4().bytes
         message = [destination, '', VERSION, uid, WORK, work]
         return message, uid
@@ -229,7 +274,7 @@ class BaseRPC(object):
         return worker_callable(*args, **kw)
 
     def _handle_work(self, message, peer_id, message_uuid):
-        locator, args, kw = msgpack.unpackb(message)
+        locator, args, kw = msgpack_unpackb(message)
         try:
             try:
                 result = self._handle_work_proxy(locator, args, kw, peer_id,
@@ -252,20 +297,20 @@ class BaseRPC(object):
             status = ERROR
         else:
             status = OK
-        response = msgpack.packb(result)
+        response = msgpack_packb(result)
         message = [peer_id, '', VERSION, message_uuid, status, response]
         logger.debug('Worker send reply {!r}'.format(message))
         self.send_message(message)
 
     def _handle_ok(self, message, message_uuid):
-        value = msgpack.unpackb(message)
+        value = msgpack_unpackb(message)
         logger.debug('Client result {!r} from {!r}'.format(value,
                                                            message_uuid))
         future = self.future_pool.pop(message_uuid)
         self._store_result_in_future(future, value)
 
     def _handle_error(self, message, message_uuid):
-        value = msgpack.unpackb(message)
+        value = msgpack_unpackb(message)
         future = self.future_pool.pop(message_uuid, DummyFuture())
         klass, message, trace_back = value
         full_message = '\n'.join((format_remote_traceback(trace_back),
