@@ -4,14 +4,13 @@ import sys
 import traceback
 
 from concurrent.futures import TimeoutError
-import msgpack
 import tornado.concurrent
 import tornado.gen
 import zmq
 from zmq.eventloop import ioloop, zmqstream
 import zope.interface
 
-from .common import BaseRPC
+from .common import BaseRPC, msgpack_packb, msgpack_unpackb
 from .interfaces import (
     IClient,
     IServer,
@@ -61,7 +60,7 @@ class TornadoBaseRPC(BaseRPC):
 
     @tornado.gen.coroutine
     def _handle_work(self, message, peer_id, message_uuid):
-        locator, args, kw = msgpack.unpackb(message)
+        locator, args, kw = msgpack_unpackb(message)
         try:
             try:
                 result = yield self._handle_work_proxy(
@@ -83,7 +82,7 @@ class TornadoBaseRPC(BaseRPC):
             status = ERROR
         else:
             status = OK
-        response = msgpack.packb(result)
+        response = msgpack_packb(result)
         message = [peer_id, '', VERSION, message_uuid, status, response]
         logger.debug('Worker send reply {!r}'.format(message))
         yield self.send_message(message)

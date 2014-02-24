@@ -1,11 +1,11 @@
 import itertools
 import logging
 
-import msgpack
 import zope.component
 import zope.interface
 import zmq
 
+from .common import msgpack_packb, msgpack_unpackb
 from .interfaces import (AUTHENTICATED,
                          IAuthenticationBackend,
                          IClient,
@@ -208,7 +208,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         else:
             self.rpc.send_message([peer_id, '', VERSION, message_uuid,
                                    HELLO,
-                                   msgpack.packb((self.rpc.login,
+                                   msgpack_packb((self.rpc.login,
                                                   self.rpc.password))])
 
     def handle_hello(self, *args):
@@ -301,7 +301,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         return self.login2peer_id_mapping[identity]
 
     def handle_hello(self, peer_id, message_uuid, message):
-        login, password = msgpack.unpackb(message)
+        login, password = msgpack_unpackb(message)
         if login in self.user_map and self.user_map[login] == password:
             key = self.pending_keys[peer_id]
             self.trusted_keys[key] = peer_id

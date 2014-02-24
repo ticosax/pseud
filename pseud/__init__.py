@@ -3,12 +3,16 @@ import logging
 import os
 import uuid
 
-import msgpack
 import zmq
 import zope.interface
 
 from . import auth, heartbeat, predicate #  NOQA
-from .common import BaseRPC, format_remote_traceback, internal_exceptions
+from .common import (BaseRPC,
+                     format_remote_traceback,
+                     internal_exceptions,
+                     msgpack_packb,
+                     msgpack_unpackb,
+                     )
 from . import interfaces
 from .interfaces import (IClient,
                          TimeoutError,
@@ -48,19 +52,19 @@ class SyncBaseRPC(BaseRPC):
         return response
 
     def _prepare_work(self, name, *args, **kw):
-        work = msgpack.packb((name, args, kw))
+        work = msgpack_packb((name, args, kw))
         uid = uuid.uuid4().bytes
         message = [VERSION, uid, WORK, work]
         return message, uid
 
     def _handle_ok(self, message, message_uuid):
-        value = msgpack.unpackb(message)
+        value = msgpack_unpackb(message)
         logger.debug('SyncClient result {!r} from {!r}'.format(value,
                                                                message_uuid))
         return value
 
     def _handle_error(self, message, message_uuid):
-        value = msgpack.unpackb(message)
+        value = msgpack_unpackb(message)
         klass, message, trace_back = value
         full_message = '\n'.join((format_remote_traceback(trace_back),
                                   message))

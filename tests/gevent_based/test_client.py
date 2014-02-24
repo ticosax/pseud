@@ -2,7 +2,6 @@ import uuid
 
 import gevent
 from gevent.timeout import Timeout
-import msgpack
 import pytest
 import zmq.green as zmq
 
@@ -78,6 +77,7 @@ def test_client_method_wrapper():
 
 
 def test_job_executed():
+    from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import OK, VERSION, WORK
     identity = 'client0'
     peer_identity = 'echo'
@@ -96,11 +96,11 @@ def test_job_executed():
     # check it is a real uuid
     uuid.UUID(bytes=uid)
     assert message_type == WORK
-    locator, args, kw = msgpack.unpackb(message)
+    locator, args, kw = msgpack_unpackb(message)
     assert locator == 'please.do_that_job'
     assert args == [1, 2, 3]
     assert kw == {'b': 4}
-    reply = [identity, '', version, uid, OK, msgpack.packb(True)]
+    reply = [identity, '', version, uid, OK, msgpack_packb(True)]
     gevent.spawn(socket.send_multipart, reply)
     assert future.get() is True
     assert not client.future_pool
@@ -109,6 +109,7 @@ def test_job_executed():
 
 
 def test_job_server_never_reply():
+    from pseud.common import msgpack_unpackb
     from pseud.interfaces import VERSION, WORK
     identity = 'client0'
     peer_identity = 'echo'
@@ -127,7 +128,7 @@ def test_job_server_never_reply():
     # check it is a real uuid
     uuid.UUID(bytes=uid)
     assert message_type == WORK
-    locator, args, kw = msgpack.unpackb(message)
+    locator, args, kw = msgpack_unpackb(message)
     assert locator == 'please.do_that_job'
     assert args == [1, 2, 3]
     assert kw == {'b': 4}
