@@ -10,6 +10,9 @@ pseud
    :target: https://crate.io/packages/pseud/
    :alt: Latest PyPI version
 
+.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.png
+   :target: https://landscape.io/github/ezeep/pseud/master
+   :alt: Code Health
 
 Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
