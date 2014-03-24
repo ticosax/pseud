@@ -120,10 +120,10 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
         self.monitoring_socket.bind('ipc://testing_heartbeating_backend')
 
     def stop(self):
+        self.monitoring_socket.close(linger=0)
         for callback in self.callback_pool.itervalues():
             try:
                 self.rpc.io_loop.remove_timeout(callback)
             except AttributeError:
                 callback.kill()
         self.callback_pool.clear()
-        self.monitoring_socket.close(linger=0)

@@ -157,8 +157,7 @@ class TornadoBaseRPC(BaseRPC):
             self.reader.close()
             self.reader = None
         if not self.socket.closed:
-            self.socket.linger = 0
-            self.socket.close()
+            self.socket.close(linger=0)
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
         if self.internal_loop:
