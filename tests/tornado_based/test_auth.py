@@ -93,7 +93,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         future = client.string.lower('FOO')
         self.io_loop.add_future(future, self.stop)
         self.wait()
-        assert future.result(timeout=self.timeout) == 'foo'
+        assert future.result() == 'foo'
         server.stop()
         client.stop()
 

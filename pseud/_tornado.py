@@ -53,11 +53,11 @@ class TornadoBaseRPC(BaseRPC):
             registry=self.registry,
             **self.auth_backend.get_predicate_arguments(peer_id))
         result = worker_callable(*args, **kw)
-        while True:
-            if isinstance(result, tornado.concurrent.Future):
-                result = yield result
-            else:
-                raise tornado.gen.Return(result)
+        if isinstance(result, tornado.concurrent.Future):
+            result = yield result
+            raise tornado.gen.Return(result)
+        else:
+            raise tornado.gen.Return(result)
 
     @tornado.gen.coroutine
     def _handle_work(self, message, peer_id, message_uuid):
