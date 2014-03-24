@@ -4,6 +4,7 @@ import functools
 import inspect
 import logging
 import operator
+import pprint
 import sys
 import textwrap
 import traceback
@@ -228,8 +229,6 @@ class BaseRPC(object):
             pass
 
     def on_socket_ready(self, response):
-        logger.debug('Message received for {!r}: {!r}'.format(self.identity,
-                                                              response))
         if len(response) == 4:
             # From REQ socket
             version, message_uuid, message_type, message = response
@@ -238,6 +237,13 @@ class BaseRPC(object):
             # from ROUTER socket
             peer_id, delimiter, version, message_uuid, message_type, message =\
                 response
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Message received for {!r}: {!r} {!r}'.format(
+                self.identity,
+                response[:-1],
+                pprint.pformat(
+                    msgpack_unpackb(response[-1])
+                    if message_type in (WORK, OK, HELLO) else response[-1])))
         assert version == VERSION
         if not self.auth_backend.is_authenticated(peer_id):
             if message_type != HELLO:
@@ -300,7 +306,11 @@ class BaseRPC(object):
             status = OK
         response = msgpack_packb(result)
         message = [peer_id, '', VERSION, message_uuid, status, response]
-        logger.debug('Worker send reply {!r}'.format(message))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Worker send reply {!r} {!r}'.format(
+                message[:-1],
+                pprint.pformat(result))
+            )
         self.send_message(message)
 
     def _handle_ok(self, message, message_uuid):
