@@ -228,7 +228,8 @@ class BaseRPC(object):
             pass
 
     def on_socket_ready(self, response):
-        logger.debug('Message received for {!r}: {!r}'.format(self, response))
+        logger.debug('Message received for {!r}: {!r}'.format(self.identity,
+                                                              response))
         if len(response) == 4:
             # From REQ socket
             version, message_uuid, message_type, message = response
