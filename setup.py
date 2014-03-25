@@ -24,7 +24,7 @@ def read_that_file(path):
 long_description = '\n'.join((read_that_file('README.rst'),
                               read_that_file('LICENSE.txt')))
 
-version = '0.0.4dev'
+version = '0.0.4'
 
 
 setup(name='pseud',
