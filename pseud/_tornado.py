@@ -1,5 +1,6 @@
 import functools
 import logging
+import pprint
 import sys
 import traceback
 
@@ -52,11 +53,11 @@ class TornadoBaseRPC(BaseRPC):
             registry=self.registry,
             **self.auth_backend.get_predicate_arguments(peer_id))
         result = worker_callable(*args, **kw)
-        while True:
-            if isinstance(result, tornado.concurrent.Future):
-                result = yield result
-            else:
-                raise tornado.gen.Return(result)
+        if isinstance(result, tornado.concurrent.Future):
+            result = yield result
+            raise tornado.gen.Return(result)
+        else:
+            raise tornado.gen.Return(result)
 
     @tornado.gen.coroutine
     def _handle_work(self, message, peer_id, message_uuid):
@@ -84,7 +85,11 @@ class TornadoBaseRPC(BaseRPC):
             status = OK
         response = msgpack_packb(result)
         message = [peer_id, '', VERSION, message_uuid, status, response]
-        logger.debug('Worker send reply {!r}'.format(message))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Worker send reply {!r} {!r}'.format(
+                message[:-1],
+                pprint.pformat(result))
+            )
         yield self.send_message(message)
 
     def send_work(self, peer_identity, name, *args, **kw):
@@ -92,10 +97,12 @@ class TornadoBaseRPC(BaseRPC):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         self.future_pool[uid] = future = tornado.concurrent.Future()
         self.create_timeout_detector(uid)
-        logger.debug('Sending work: {!r}'.format(message))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Sending work: {!r} {!r}'.format(
+                message[:-1],
+                pprint.pformat(msgpack_unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)
         self.send_message(message)
-        logger.debug('Work sent')
         self.io_loop.add_future(future,
                                 functools.partial(self.cleanup_future, uid))
         return future
@@ -150,8 +157,7 @@ class TornadoBaseRPC(BaseRPC):
             self.reader.close()
             self.reader = None
         if not self.socket.closed:
-            self.socket.linger = 0
-            self.socket.close()
+            self.socket.close(linger=0)
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
         if self.internal_loop:

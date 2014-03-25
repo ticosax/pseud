@@ -1,12 +1,13 @@
 import functools
 import logging
+import pprint
 
 import gevent
 from gevent.timeout import Timeout
 import zmq.green as zmq
 import zope.interface
 
-from .common import BaseRPC
+from .common import BaseRPC, msgpack_unpackb
 from .interfaces import IClient, IServer
 
 
@@ -36,11 +37,13 @@ class GeventBaseRPC(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         self.create_timeout_detector(uid)
-        logger.debug('Sending work: {!r}'.format(message))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Sending work: {!r} {!r}'.format(
+                message[:-1],
+                pprint.pformat(msgpack_unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)
         self.start()
         self.send_message(message)
-        logger.debug('Work sent')
         self.future_pool[uid] = future = gevent.event.AsyncResult()
         future.rawlink(functools.partial(self.cleanup_future, uid))
         return future
