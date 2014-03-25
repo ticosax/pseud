@@ -61,7 +61,7 @@ def make_one_client(identity, peer_identity,
 def test_basic_heartbeating():
     client_id = 'client'
     server_id = 'server'
-    endpoint = 'inproc://here'
+    endpoint = 'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
@@ -75,7 +75,7 @@ def test_basic_heartbeating():
     context = zmq.Context.instance()
     monitoring_socket = context.socket(zmq.SUB)
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-    monitoring_socket.connect('inproc://testing_heartbeating_backend')
+    monitoring_socket.connect('ipc://testing_heartbeating_backend')
     server.start()
     client.start()
 
@@ -97,7 +97,7 @@ def test_basic_heartbeating():
 def test_basic_heartbeating_with_disconnection():
     client_id = 'client'
     server_id = 'server'
-    endpoint = 'inproc://here'
+    endpoint = 'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
@@ -111,7 +111,7 @@ def test_basic_heartbeating_with_disconnection():
     context = zmq.Context.instance()
     monitoring_socket = context.socket(zmq.SUB)
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-    monitoring_socket.connect('inproc://testing_heartbeating_backend')
+    monitoring_socket.connect('ipc://testing_heartbeating_backend')
     sink = []
 
     spawning = gevent.spawn(collector, sink, monitoring_socket)
@@ -119,7 +119,7 @@ def test_basic_heartbeating_with_disconnection():
     client.start()
 
     gevent.spawn_later(.5, client.stop)
-    gevent.sleep(1)
+    gevent.sleep(.7)
     try:
         assert len(sink) < 10
         assert "Gone 'client'" in sink
