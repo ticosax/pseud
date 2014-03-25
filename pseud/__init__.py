@@ -49,7 +49,7 @@ class SyncBaseRPC(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(name, *args, **kw)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Sending work: {!r} {!r}'.format(
+            logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
                 pprint.pformat(msgpack_unpackb(message[-1]))))
         response = self.send_message(message)

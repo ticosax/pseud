@@ -38,7 +38,7 @@ class GeventBaseRPC(BaseRPC):
         message, uid = self._prepare_work(peer_identity, name, *args, **kw)
         self.create_timeout_detector(uid)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Sending work: {!r} {!r}'.format(
+            logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
                 pprint.pformat(msgpack_unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)

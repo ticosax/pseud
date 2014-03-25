@@ -242,7 +242,7 @@ class BaseRPC(object):
             peer_id, delimiter, version, message_uuid, message_type, message =\
                 response
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Message received for {!r}: {!r} {!r}'.format(
+            logger.debug('Message received for {!r}: {!r} {}'.format(
                 self.identity,
                 response[:-1],
                 pprint.pformat(

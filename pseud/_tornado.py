@@ -86,7 +86,7 @@ class TornadoBaseRPC(BaseRPC):
         response = msgpack_packb(result)
         message = [peer_id, '', VERSION, message_uuid, status, response]
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Worker send reply {!r} {!r}'.format(
+            logger.debug('Worker send reply {!r} {}'.format(
                 message[:-1],
                 pprint.pformat(result))
             )
@@ -98,7 +98,7 @@ class TornadoBaseRPC(BaseRPC):
         self.future_pool[uid] = future = tornado.concurrent.Future()
         self.create_timeout_detector(uid)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Sending work: {!r} {!r}'.format(
+            logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
                 pprint.pformat(msgpack_unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)
