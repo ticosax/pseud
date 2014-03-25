@@ -221,3 +221,36 @@ def test_timeout_and_error_received_later(capsys):
         future.get()
     server.stop()
     client.close()
+
+
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs zeromq build with libzmq >= 4.1.0')
+def test_client_can_reconnect():
+    from pseud.utils import register_rpc
+
+    client_id = 'client'
+    server_id = 'server'
+    endpoint = 'tcp://127.0.0.1:8989'
+
+    server = make_one_server(server_id)
+
+    client = make_one_client(client_id, server_id)
+
+    server.bind(endpoint)
+    server.start()
+
+    client.connect(endpoint)
+
+    import string
+    register_rpc(name='string.upper')(string.upper)
+
+    future = client.string.upper('hello')
+    assert future.get() == 'HELLO'
+
+    client.disconnect(endpoint)
+    client.connect(endpoint)
+    future = client.string.upper('hello')
+    assert future.get() == 'HELLO'
+
+    client.stop()
+    server2.stop()

@@ -1,6 +1,7 @@
 from concurrent.futures import TimeoutError
 import pytest
 import tornado.testing
+import zmq
 from zmq.eventloop import ioloop
 
 ioloop.install()
@@ -239,3 +240,39 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server.close()
         client.close()
+
+    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                        reason='Needs zeromq build with libzmq >= 4.1.0')
+    def test_client_can_reconnect(self):
+        from pseud.utils import register_rpc
+
+        client_id = 'client'
+        server_id = 'server'
+        endpoint = 'tcp://127.0.0.1:8989'
+
+        server = self.make_one_server(server_id)
+
+        client = self.make_one_client(client_id, server_id)
+
+        server.bind(endpoint)
+        server.start()
+
+        client.connect(endpoint)
+
+        import string
+        register_rpc(name='string.upper')(string.upper)
+
+        future = client.string.upper('hello')
+        self.io_loop.add_future(future, self.stop)
+        self.wait()
+        assert future.result() == 'HELLO'
+
+        client.disconnect(endpoint)
+        client.connect(endpoint)
+        future = client.string.upper('hello')
+        self.io_loop.add_future(future, self.stop)
+        self.wait()
+        assert future.result() == 'HELLO'
+
+        client.stop()
+        server2.stop()

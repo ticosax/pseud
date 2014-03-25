@@ -256,3 +256,47 @@ def test_untrusted_curve_with_wrong_password():
         future.get()
     server.stop()
     client.stop()
+
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs zeromq build with libzmq >= 4.1.0')
+def test_client_can_reconnect():
+    from pseud._gevent import Client, Server
+
+    client_id = 'client'
+    server_id = 'server'
+    endpoint = 'tcp://127.0.0.1:8989'
+    server_public, server_secret = zmq.curve_keypair()
+    client_public, client_secret = zmq.curve_keypair()
+    security_plugin = 'trusted_curve'
+
+    client = Client(server_id,
+                    identity=client_id,
+                    security_plugin=security_plugin,
+                    public_key=client_public,
+                    secret_key=client_secret,
+                    peer_public_key=server_public)
+
+    server = Server(server_id, security_plugin=security_plugin,
+                    public_key=server_public,
+                    secret_key=server_secret)
+
+    server.bind(endpoint)
+    client.connect(endpoint)
+    assert server.socket.mechanism == zmq.CURVE
+    assert client.socket.mechanism == zmq.CURVE
+
+    server.start()
+
+    import string
+    server.register_rpc(name='string.upper')(string.upper)
+
+    future = client.string.upper('hello')
+    assert future.get() == 'HELLO'
+
+    client.disconnect(endpoint)
+    client.connect(endpoint)
+    future = client.string.upper('hello')
+    assert future.get() == 'HELLO'
+
+    client.stop()
+    server2.stop()
