@@ -117,12 +117,13 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
-        self.monitoring_socket.bind('inproc://testing_heartbeating_backend')
+        self.monitoring_socket.bind('ipc://testing_heartbeating_backend')
 
     def stop(self):
-        self.monitoring_socket.close()
         for callback in self.callback_pool.itervalues():
             try:
                 self.rpc.io_loop.remove_timeout(callback)
             except AttributeError:
                 callback.kill()
+        self.callback_pool.clear()
+        self.monitoring_socket.close(linger=0)

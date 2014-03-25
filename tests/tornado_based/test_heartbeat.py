@@ -42,7 +42,6 @@ def test_testing_heartbeat_backend_server():
 
 
 class HeartbeatTestCase(tornado.testing.AsyncTestCase):
-    timeout = 2
 
     def make_one_server(self, identity, endpoint,
                         heartbeat_plugin,
@@ -62,11 +61,10 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         io_loop=io_loop)
         return client
 
-    @tornado.testing.gen_test
     def test_basic_heartbeating(self):
         client_id = 'client'
         server_id = 'server'
-        endpoint = 'inproc://here'
+        endpoint = 'ipc://here'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
@@ -82,10 +80,12 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         context = zmq.Context.instance()
         monitoring_socket = context.socket(zmq.SUB)
         monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-        monitoring_socket.connect('inproc://testing_heartbeating_backend')
+        monitoring_socket.connect('ipc://testing_heartbeating_backend')
         stream = zmqstream.ZMQStream(monitoring_socket, io_loop=self.io_loop)
-        yield server.start()
-        yield client.start()
+        started = server.start()
+        client.start()
+        self.io_loop.add_future(started, self.stop)
+        self.wait()
 
         sink = []
 
@@ -103,11 +103,10 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
-    @tornado.testing.gen_test
     def test_basic_heartbeating_with_disconnection(self):
         client_id = 'client'
         server_id = 'server'
-        endpoint = 'inproc://here'
+        endpoint = 'ipc://here'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
@@ -123,10 +122,12 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         context = zmq.Context.instance()
         monitoring_socket = context.socket(zmq.SUB)
         monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-        monitoring_socket.connect('inproc://testing_heartbeating_backend')
+        monitoring_socket.connect('ipc://testing_heartbeating_backend')
         stream = zmqstream.ZMQStream(monitoring_socket, io_loop=self.io_loop)
-        yield server.start()
-        yield client.start()
+        started = server.start()
+        client.start()
+        self.io_loop.add_future(started, self.stop)
+        self.wait()
 
         sink = []
 
