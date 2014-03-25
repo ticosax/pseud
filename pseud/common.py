@@ -201,8 +201,9 @@ class BaseRPC(object):
             self.socket.identity = self.identity
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
-            # socket.ROUTER_HANDOVER = True
-        if self.socket_type == zmq.REQ:
+            if zmq.zmq_version_info() >= (4, 1, 0):
+               self.socket.ROUTER_HANDOVER = True
+        elif self.socket_type == zmq.REQ:
             self.socket.RCVTIMEO = int(self.timeout * 1000)
         self.socket.SNDTIMEO = int(self.timeout * 1000)
         self.auth_backend.configure()
@@ -210,6 +211,9 @@ class BaseRPC(object):
         caller = operator.methodcaller(name, endpoint)
         caller(self.socket)
         self.initialized = True
+
+    def disconnect(self, endpoint):
+        self.socket.disconnect(endpoint)
 
     def _prepare_work(self, peer_identity, name, *args, **kw):
         destination = self.auth_backend.get_destination_id(peer_identity)
