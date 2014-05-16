@@ -65,9 +65,11 @@ something.
 Preview
 ~~~~~~~
 
+The tornado Server
+------------------
+
 .. code-block:: python
 
-    # The server
     # Assume tornado IOLoop is running
     from pseud import Server
 
@@ -81,9 +83,12 @@ Preview
 
     server.start()
 
+
+The tornado Client
+------------------
+
 .. code-block:: python
 
-    # The tornado client
     # Assume the tornado IOLoop is running
     from pseud import Client
 
@@ -95,9 +100,11 @@ Preview
     response = yield client.hello('Charly')
     assert response == 'Hello Charly'
 
+The gevent Client
+-----------------
+
 .. code-block:: python
 
-    # The gevent client
     from pseud import Client
 
 
@@ -106,9 +113,11 @@ Preview
 
     assert client.hello('Charly').get() == 'Hello Charly'
 
+The SyncClient
+--------------
+
 .. code-block:: python
 
-   # the SyncClient
    # to use within a non-asynchronous process or in a command interpreter
    from pseud import SyncClient
 
