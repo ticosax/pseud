@@ -42,7 +42,7 @@ class TornadoBaseRPC(BaseRPC):
         self.internal_loop = False
         if io_loop is None:
             self.internal_loop = True
-            self.io_loop = ioloop.IOLoop.instance()
+            self.io_loop = ioloop.IOLoop()
         else:
             self.io_loop = io_loop
 
@@ -119,11 +119,12 @@ class TornadoBaseRPC(BaseRPC):
         if self.reader is None:
             self.reader = self.read_forever(self.socket,
                                             self.on_socket_ready)
-        # Warmup delay !!
-        yield async_sleep(self.io_loop, .1)
         if self.internal_loop:
             logger.debug('{} started'.format(self.__class__.__name__))
-            yield self.io_loop.start()
+            self.io_loop.start()
+        else:
+            # Warmup delay !!
+            yield async_sleep(self.io_loop, .1)
 
     def read_forever(self, socket, callback):
         stream = zmqstream.ZMQStream(socket,

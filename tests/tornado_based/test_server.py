@@ -1,4 +1,6 @@
 import os.path
+import string
+import threading
 import time
 
 import zmq
@@ -30,6 +32,27 @@ def test_server_can_connect():
     server = Server(identity,
                     security_plugin='noop_auth_backend')
     server.connect(endpoint)
+
+
+def test_server_with_its_loop_instance():
+    from pseud import SyncClient, Server
+    endpoint = 'ipc:///tmp/test_socket'
+
+    def start_server():
+        server = Server('a')
+        server.bind(endpoint)
+        server.register_rpc(string.lower)
+        server.io_loop.add_timeout(server.io_loop.time() + .2,
+                                   server.stop)
+        server.start()
+
+    server_thread = threading.Thread(target=start_server)
+    server_thread.start()
+
+    client = SyncClient()
+    client.connect(endpoint)
+    result = client.lower('TOTO')
+    assert result == 'toto'
 
 
 class ServerTestCase(tornado.testing.AsyncTestCase):

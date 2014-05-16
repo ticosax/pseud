@@ -84,11 +84,11 @@ Preview
 .. code-block:: python
 
     # The tornado client
-    # Assume tornado IOLoop is running
+    # Assume the tornado IOLoop is running
     from pseud import Client
 
 
-    client = Client('service')
+    client = Client('service', io_loop=loop)
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
@@ -105,6 +105,18 @@ Preview
     client.connect('tcp://127.0.0.1:5555')
 
     assert client.hello('Charly').get() == 'Hello Charly'
+
+.. code-block:: python
+
+   # the SyncClient
+   # to use within a non-asynchronous process or in a command interpreter
+   from pseud import SyncClient
+
+
+   client = SyncClient()
+   client.connect('tcp://127.0.0.1:5555')
+
+   assert client.hello('Charly') == 'Hello Charly'
 
 
 Documentation
