@@ -4,8 +4,12 @@ from concurrent.futures import TimeoutError
 import pytest
 import tornado.testing
 import zmq
+from zmq.eventloop import ioloop
 from zmq.utils import z85
 from zope.interface.verify import verifyClass
+
+
+ioloop.install()
 
 
 def test_noop_auth_backend_client():
@@ -308,8 +312,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
     @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
                         reason='Needs zeromq build with libzmq >= 4.1.0')
+    @tornado.testing.gen_test()
     def test_client_can_reconnect(self):
         from pseud import Client, Server
+        from pseud._tornado import async_sleep
 
         client_id = 'client'
         server_id = 'server'
@@ -336,25 +342,21 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
 
-        started = server.start()
-
-        self.io_loop.add_future(started, self.stop)
-        self.wait()
+        yield server.start()
+        yield client.start()
 
         import string
         server.register_rpc(name='string.upper')(string.upper)
 
-        future = client.string.upper('hello')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'HELLO'
+        result = yield client.string.upper('hello')
+        assert result == 'HELLO'
 
         client.disconnect(endpoint)
         client.connect(endpoint)
-        future = client.string.upper('hello')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'HELLO'
+        yield async_sleep(self.io_loop, .1)
+
+        result = yield client.string.upper('hello2')
+        assert result == 'HELLO2'
 
         client.stop()
-        server2.stop()
+        server.stop()

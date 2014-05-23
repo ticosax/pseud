@@ -257,6 +257,7 @@ def test_untrusted_curve_with_wrong_password():
     server.stop()
     client.stop()
 
+
 @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
                     reason='Needs zeromq build with libzmq >= 4.1.0')
 def test_client_can_reconnect():
@@ -295,8 +296,9 @@ def test_client_can_reconnect():
 
     client.disconnect(endpoint)
     client.connect(endpoint)
+    gevent.sleep(.1)
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
 
     client.stop()
-    server2.stop()
+    server.stop()
