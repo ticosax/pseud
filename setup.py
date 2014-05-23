@@ -49,7 +49,9 @@ setup(name='pseud',
       tests_require=[
           'pytest',
           'pytest-cov',
+          'pytest-pep8',
           'coveralls',
+          'tox',
       ],
       cmdclass={'test': PyTest},
       classifiers=[

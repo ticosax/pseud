@@ -202,7 +202,7 @@ class BaseRPC(object):
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
             if zmq.zmq_version_info() >= (4, 1, 0):
-               self.socket.ROUTER_HANDOVER = True
+                self.socket.ROUTER_HANDOVER = True
         elif self.socket_type == zmq.REQ:
             self.socket.RCVTIMEO = int(self.timeout * 1000)
         self.socket.SNDTIMEO = int(self.timeout * 1000)

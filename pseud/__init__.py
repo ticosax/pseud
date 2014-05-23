@@ -7,7 +7,7 @@ import uuid
 import zmq
 import zope.interface
 
-from . import auth, heartbeat, predicate #  NOQA
+from . import auth, heartbeat, predicate  # NOQA
 from .common import (BaseRPC,
                      format_remote_traceback,
                      internal_exceptions,

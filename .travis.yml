@@ -2,15 +2,22 @@ language: python
 
 python:
     - "2.7"
+    - "3.4"
 
 install:
-    - "pip install -e .[Tornado,Gevent]"
-    - "pip install coverage coveralls pytest"
+    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] pytest-pep8 pytest-cov; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -e .[Tornado] pytest-pep8 pytest-cov; fi
 
-script: "coverage run --source=pseud setup.py test"
+script:
+    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then py.test --pep8 --cov pseud; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then py.test --pep8 --cov pseud tests/tornado_based tests/run_last; fi
 
-after_success:
-    coveralls
+# after_success:
+#     coveralls
+
+matrix:
+    allow_failures:
+        - python: "3.4"
 
 notifications:
     email: false
