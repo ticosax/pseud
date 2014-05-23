@@ -249,8 +249,9 @@ def test_client_can_reconnect():
 
     client.disconnect(endpoint)
     client.connect(endpoint)
+    gevent.sleep(.1)
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
 
     client.stop()
-    server2.stop()
+    server.stop()

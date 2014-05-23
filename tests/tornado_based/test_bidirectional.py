@@ -275,4 +275,4 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert future.result() == 'HELLO'
 
         client.stop()
-        server2.stop()
+        server.stop()
