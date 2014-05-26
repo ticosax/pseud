@@ -1,4 +1,3 @@
-import __builtin__
 import datetime
 import functools
 import inspect
@@ -12,10 +11,14 @@ import uuid
 
 import dateutil.parser
 import dateutil.tz
+from future import standard_library
 import msgpack
 import zmq
 import zope.component
 import zope.interface
+
+with standard_library.hooks():
+    import builtins
 
 from . import interfaces
 from .interfaces import (AUTHENTICATED,
@@ -202,7 +205,7 @@ class BaseRPC(object):
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
             if zmq.zmq_version_info() >= (4, 1, 0):
-               self.socket.ROUTER_HANDOVER = True
+                self.socket.ROUTER_HANDOVER = True
         elif self.socket_type == zmq.REQ:
             self.socket.RCVTIMEO = int(self.timeout * 1000)
         self.socket.SNDTIMEO = int(self.timeout * 1000)
@@ -331,7 +334,7 @@ class BaseRPC(object):
         full_message = '\n'.join((format_remote_traceback(trace_back),
                                   message))
         try:
-            exception = getattr(__builtin__, klass)(full_message)
+            exception = getattr(builtins, klass)(full_message)
         except AttributeError:
             if klass in internal_exceptions:
                 exception = getattr(interfaces, klass)(full_message)

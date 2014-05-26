@@ -1,13 +1,16 @@
-import __builtin__
 import logging
 import os
 import pprint
 import uuid
 
+from future import standard_library
 import zmq
 import zope.interface
 
-from . import auth, heartbeat, predicate #  NOQA
+with standard_library.hooks():
+    import builtins
+
+from . import auth, heartbeat, predicate  # NOQA
 from .common import (BaseRPC,
                      format_remote_traceback,
                      internal_exceptions,
@@ -73,7 +76,7 @@ class SyncBaseRPC(BaseRPC):
         full_message = '\n'.join((format_remote_traceback(trace_back),
                                   message))
         try:
-            exception = getattr(__builtin__, klass)(full_message)
+            exception = getattr(builtins, klass)(full_message)
         except AttributeError:
             if klass in internal_exceptions:
                 raise getattr(interfaces, klass)(full_message)

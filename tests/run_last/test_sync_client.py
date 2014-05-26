@@ -8,12 +8,12 @@ import zmq
 def test_client_creation():
     from pseud import SyncClient
     client = SyncClient()
-    assert client.security_plugin == 'noop_auth_backend'
+    assert client.security_plugin == b'noop_auth_backend'
 
 
 def test_client_can_bind():
     from pseud import SyncClient
-    endpoint = 'inproc://{}'.format(__name__)
+    endpoint = b'inproc://{}'.format(__name__)
     client = SyncClient()
     client.bind(endpoint)
     client.stop()
@@ -64,7 +64,7 @@ def test_job_executed():
     from pseud.interfaces import OK, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
@@ -99,7 +99,7 @@ def test_job_failure():
     from pseud.interfaces import ERROR, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
@@ -136,20 +136,20 @@ def test_job_failure_service_not_found():
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == ''
+        assert _ == b''
         assert version == VERSION
         assert uid
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
         locator, args, kw = msgpack_unpackb(message)
-        assert locator == 'please.do_that_job'
+        assert locator == b'please.do_that_job'
         assert args == [1, 2, 3]
-        assert kw == {'b': 4}
+        assert kw == {b'b': 4}
         reply = [peer_id, _, version, uid, ERROR, msgpack_packb(
             ('ServiceNotFoundError', 'too bad', 'traceback'))]
         socket.send_multipart(reply)
@@ -172,7 +172,7 @@ def test_job_server_never_reply():
     from pseud.interfaces import TimeoutError, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
@@ -183,7 +183,7 @@ def test_job_server_never_reply():
         uuid.UUID(bytes=uid)
         assert message_type == WORK
         locator, args, kw = msgpack_unpackb(message)
-        assert locator == 'please.do_that_job'
+        assert locator == b'please.do_that_job'
         assert args == [1, 2]
         assert kw == {'b': 5}
 
