@@ -6,9 +6,9 @@ pseud
 .. image:: https://coveralls.io/repos/ezeep/pseud/badge.png
    :target: https://coveralls.io/r/ezeep/pseud
 
-.. image:: https://pypip.in/v/pseud/badge.png
-   :target: https://crate.io/packages/pseud/
-   :alt: Latest PyPI version
+.. image:: https://pypip.in/version/pseud/badge.png
+   :target: https://pypi.python.org/pypi/pseud/
+   :alt: Latest Version
 
 .. image:: https://landscape.io/github/ezeep/pseud/master/landscape.png
    :target: https://landscape.io/github/ezeep/pseud/master
