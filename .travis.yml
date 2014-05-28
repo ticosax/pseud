@@ -4,7 +4,7 @@ python:
     - "2.7"
 
 install:
-    - "pip install -e .[Tornado,Gevent]"
+    - "pip install -e .[Tornado,Gevent] . --install-option=\"--zmq=bundled\""
     - "pip install coverage coveralls pytest"
 
 script: "coverage run --source=pseud setup.py test"
