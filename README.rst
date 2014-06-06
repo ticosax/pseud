@@ -70,7 +70,6 @@ The tornado Server
 
 .. code-block:: python
 
-    # Assume tornado IOLoop is running
     from pseud import Server
 
 
@@ -81,7 +80,7 @@ The tornado Server
     def hello(name):
         return 'Hello {0}'.format(name)
 
-    server.start()
+    server.start()  # this will block forever
 
 
 The tornado Client
@@ -93,12 +92,17 @@ The tornado Client
     from pseud import Client
 
 
-    client = Client('service', io_loop=loop)
+    client = Client('service', identity='client1', io_loop=loop)
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
     response = yield client.hello('Charly')
     assert response == 'Hello Charly'
+
+    @client.register_rpc(name='draw.me.a.sheep')
+    def sheep():
+        return 'beeeh'
+
 
 The gevent Client
 -----------------
@@ -126,6 +130,17 @@ The SyncClient
    client.connect('tcp://127.0.0.1:5555')
 
    assert client.hello('Charly') == 'Hello Charly'
+
+
+
+The Server send a command to the client
+---------------------------------------
+
+.. code-block:: python
+
+   sheep = server.send_to('client1').draw.me.a.sheep()
+   assert sheep == 'beeeh'
+
 
 
 Documentation
