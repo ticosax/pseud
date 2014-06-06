@@ -1,4 +1,5 @@
-import gevent
+import pytest
+gevent = pytest.importorskip('gevent')
 import zmq.green as zmq
 import zope.interface.verify
 
@@ -122,7 +123,7 @@ def test_basic_heartbeating_with_disconnection():
     gevent.sleep(.7)
     try:
         assert len(sink) < 10
-        assert "Gone 'client'" in sink
+        assert "Gone b'client'" in sink
     finally:
         monitoring_socket.close()
         client.stop()

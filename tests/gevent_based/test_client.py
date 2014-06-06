@@ -1,8 +1,8 @@
 import uuid
 
-import gevent
-from gevent.timeout import Timeout
 import pytest
+gevent = pytest.importorskip('gevent')
+from gevent.timeout import Timeout
 import zmq.green as zmq
 
 

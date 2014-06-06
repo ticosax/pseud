@@ -1,5 +1,6 @@
-import time
+from __future__ import unicode_literals
 
+from future.builtins import str
 from concurrent.futures import TimeoutError
 import pytest
 import tornado.testing
@@ -64,9 +65,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud import Client, Server
         from pseud.utils import register_rpc
 
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8998'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'trusted_curve'
@@ -91,13 +92,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
-        future = client.string.lower('FOO')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'foo'
+        result = yield client.string.lower('FOO')
+        assert result == 'foo'
         server.stop()
         client.stop()
 
@@ -105,10 +103,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_trusted_curve_with_wrong_peer_public_key(self):
         from pseud import Client, Server
         from pseud.utils import register_rpc
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'inproc://{}'.format(__name__)
-        endpoint = 'tcp://127.0.0.1:8998'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = 'inproc://{}'.format(__name__).encode()
+        endpoint = b'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         client = Client(server_id,
@@ -116,7 +114,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
                         security_plugin='trusted_curve',
                         public_key=client_public,
                         secret_key=client_secret,
-                        peer_public_key=z85.encode('R' * 32),
+                        peer_public_key=z85.encode(b'R' * 32),
+                        timeout=.5,
                         io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin='trusted_curve',
@@ -132,15 +131,11 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         server.start()
         client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
         future = client.string.lower('BAR')
-        self.io_loop.add_timeout(self.io_loop.time() + .5,
-                                 self.stop)
-        self.wait()
         with pytest.raises(TimeoutError):
-            future.result(timeout=self.timeout)
+            yield future
         server.stop()
         client.stop()
 
@@ -150,13 +145,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud.utils import register_rpc
         from pseud._tornado import async_sleep
 
-        client_id = 'john'
-        server_id = 'server'
+        client_id = b'john'
+        server_id = b'server'
         endpoint = 'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'untrusted_curve'
-        password = 's3cret!'
+        password = b's3cret!'
 
         client = Client(server_id,
                         security_plugin=security_plugin,
@@ -184,33 +179,33 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
         future = client.string.lower('FOO')
         future2 = client.string.lower('FOO_JJ')
         yield async_sleep(self.io_loop, .01)
         future3 = server.send_to(client_id).string.lower('ABC')
-        self.io_loop.add_future(future3, self.stop)
-        self.wait()
-        assert future.result() == 'foo'
-        assert future2.result() == 'foo_jj'
-        assert future3.result() == 'abc'
+        result = yield future
+        result2 = yield future2
+        result3 = yield future3
+        assert result == 'foo'
+        assert result2 == 'foo_jj'
+        assert result3 == 'abc'
         server.stop()
         client.stop()
 
     @tornado.testing.gen_test
     def test_untrusted_curve_with_allowed_password_and_client_disconnect(self):
         from pseud import Client, Server
-        from pseud.utils import register_rpc
+        from pseud._tornado import async_sleep
 
-        client_id = 'john'
-        server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8999'
+        client_id = b'john'
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8999'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'untrusted_curve'
-        password = 's3cret!'
+        password = b's3cret!'
 
         client = Client(server_id,
                         security_plugin=security_plugin,
@@ -239,22 +234,17 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        server.register_rpc(name='string.lower')(str.lower)
 
-        future = client.string.lower('FOO')
-        self.io_loop.add_timeout(self.io_loop.time() + .2, self.io_loop.stop)
-        self.io_loop.start()
-        assert future.result() == 'foo'
+        result = yield client.string.lower('FOO')
+        assert result == 'foo'
         # Simulate disconnection and reconnection with new identity
         client.disconnect(endpoint)
-        client.identity = 'wow-doge'
+        client.identity = b'wow-doge'
         client.connect(endpoint)
-        self.io_loop.run_sync(lambda *args, **kw: time.sleep(.1))
-        future = client.string.lower('ABC')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'abc'
+        yield async_sleep(self.io_loop, .1)
+        result = yield client.string.lower('ABC')
+        assert result == 'abc'
         server.stop()
         client.stop()
 
@@ -264,13 +254,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud.interfaces import UnauthorizedError
         from pseud.utils import register_rpc
 
-        client_id = 'john'
-        server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8998'
+        client_id = b'john'
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'untrusted_curve'
-        password = 's3cret!'
+        password = b's3cret!'
 
         client = Client(server_id,
                         identity=client_id,
@@ -294,19 +284,16 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         assert client.socket.mechanism == zmq.CURVE
 
         # configure manually authentication backend
-        server.auth_backend.user_map[client_id] = password + 'Looser'
+        server.auth_backend.user_map[client_id] = password + b'Looser'
 
         yield server.start()
         yield client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
         future = client.string.lower('IMSCREAMING')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
         with pytest.raises(UnauthorizedError):
-            future.result(timeout=self.timeout)
+            yield future
         server.stop()
         client.stop()
 
@@ -317,9 +304,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud import Client, Server
         from pseud._tornado import async_sleep
 
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8989'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8989'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'trusted_curve'
@@ -345,8 +332,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        import string
-        server.register_rpc(name='string.upper')(string.upper)
+        server.register_rpc(name='string.upper')(str.upper)
 
         result = yield client.string.upper('hello')
         assert result == 'HELLO'

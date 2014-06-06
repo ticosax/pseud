@@ -1,7 +1,8 @@
 import os.path
 import time
 
-import gevent
+import pytest
+gevent = pytest.importorskip('gevent')
 import zmq.green as zmq
 
 

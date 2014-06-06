@@ -2,15 +2,17 @@
 import zope.interface
 
 
-AUTHENTICATED = '\x04'
-ERROR = '\x10'
-HEARTBEAT = '\x06'
-HELLO = '\x02'
-OK = '\x01'
-UNAUTHORIZED = '\x11'
-WORK = '\x03'
+AUTHENTICATED = b'\x04'
+ERROR = b'\x10'
+HEARTBEAT = b'\x06'
+HELLO = b'\x02'
+OK = b'\x01'
+UNAUTHORIZED = b'\x11'
+WORK = b'\x03'
 
-VERSION = 'v1'
+VERSION = b'v1'
+
+EMPTY_DELIMITER = b''
 
 
 class TimeoutError(Exception):

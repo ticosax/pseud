@@ -15,6 +15,7 @@ from .common import BaseRPC, msgpack_packb, msgpack_unpackb
 from .interfaces import (
     IClient,
     IServer,
+    EMPTY_DELIMITER,
     ERROR,
     OK,
     ServiceNotFoundError,
@@ -84,7 +85,8 @@ class TornadoBaseRPC(BaseRPC):
         else:
             status = OK
         response = msgpack_packb(result)
-        message = [peer_id, '', VERSION, message_uuid, status, response]
+        message = [peer_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
+                   response]
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Worker send reply {!r} {}'.format(
                 message[:-1],

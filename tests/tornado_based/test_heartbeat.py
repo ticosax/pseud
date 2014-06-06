@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import functools
 
 import tornado.testing
@@ -62,9 +63,9 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         return client
 
     def test_basic_heartbeating(self):
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'ipc://here'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'ipc://here'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
@@ -79,7 +80,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
         context = zmq.Context.instance()
         monitoring_socket = context.socket(zmq.SUB)
-        monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
+        monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
         monitoring_socket.connect('ipc://testing_heartbeating_backend')
         stream = zmqstream.ZMQStream(monitoring_socket, io_loop=self.io_loop)
         started = server.start()
@@ -104,9 +105,9 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         server.stop()
 
     def test_basic_heartbeating_with_disconnection(self):
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'ipc://here'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'ipc://here'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
@@ -121,7 +122,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
         context = zmq.Context.instance()
         monitoring_socket = context.socket(zmq.SUB)
-        monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
+        monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
         monitoring_socket.connect('ipc://testing_heartbeating_backend')
         stream = zmqstream.ZMQStream(monitoring_socket, io_loop=self.io_loop)
         started = server.start()
@@ -142,7 +143,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                                  client.stop)
         self.wait()
         assert len(sink) < 10
-        assert "Gone 'client'" in sink
+        assert b"Gone b'client'" in sink
         monitoring_socket.close()
         server.stop()
         client.stop()

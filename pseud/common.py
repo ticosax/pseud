@@ -1,4 +1,3 @@
-import __builtin__
 import datetime
 import functools
 import inspect
@@ -12,13 +11,19 @@ import uuid
 
 import dateutil.parser
 import dateutil.tz
+from future import standard_library
+from future.builtins import str
 import msgpack
 import zmq
 import zope.component
 import zope.interface
 
+with standard_library.hooks():
+    import builtins
+
 from . import interfaces
 from .interfaces import (AUTHENTICATED,
+                         EMPTY_DELIMITER,
                          ERROR,
                          HEARTBEAT,
                          HELLO,
@@ -66,7 +71,7 @@ def format_remote_traceback(traceback):
         -- Beginning of remote traceback --
             {}
         -- End of remote traceback --
-        """.format(pivot.join(traceback.splitlines())))
+        """.format(pivot.join(str(traceback).splitlines())))
 
 
 UTC = dateutil.tz.tzutc()
@@ -101,14 +106,14 @@ def msgpack_packb(value):
     """
     Add support for custom object type like datetime
     """
-    return msgpack.packb(value, default=pseud_encode)
+    return msgpack.packb(value, default=pseud_encode, use_bin_type=True)
 
 
 def msgpack_unpackb(value):
     """
     USe custome deserializer to handle objects such as datetime
     """
-    return msgpack.unpackb(value, object_hook=pseud_decode)
+    return msgpack.unpackb(value, object_hook=pseud_decode, encoding='utf-8')
 
 
 class AttributeWrapper(object):
@@ -202,7 +207,7 @@ class BaseRPC(object):
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
             if zmq.zmq_version_info() >= (4, 1, 0):
-               self.socket.ROUTER_HANDOVER = True
+                self.socket.ROUTER_HANDOVER = True
         elif self.socket_type == zmq.REQ:
             self.socket.RCVTIMEO = int(self.timeout * 1000)
         self.socket.SNDTIMEO = int(self.timeout * 1000)
@@ -219,7 +224,7 @@ class BaseRPC(object):
         destination = self.auth_backend.get_destination_id(peer_identity)
         work = msgpack_packb((name, args, kw))
         uid = uuid.uuid4().bytes
-        message = [destination, '', VERSION, uid, WORK, work]
+        message = [destination, EMPTY_DELIMITER, VERSION, uid, WORK, work]
         return message, uid
 
     def create_timeout_detector(self, uuid):
@@ -309,7 +314,8 @@ class BaseRPC(object):
         else:
             status = OK
         response = msgpack_packb(result)
-        message = [peer_id, '', VERSION, message_uuid, status, response]
+        message = [peer_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
+                   response]
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Worker send reply {!r} {!r}'.format(
                 message[:-1],
@@ -327,11 +333,11 @@ class BaseRPC(object):
     def _handle_error(self, message, message_uuid):
         value = msgpack_unpackb(message)
         future = self.future_pool.pop(message_uuid, DummyFuture())
-        klass, message, trace_back = value
-        full_message = '\n'.join((format_remote_traceback(trace_back),
+        klass, message, traceback = value
+        full_message = '\n'.join((format_remote_traceback(traceback),
                                   message))
         try:
-            exception = getattr(__builtin__, klass)(full_message)
+            exception = getattr(builtins, klass)(full_message)
         except AttributeError:
             if klass in internal_exceptions:
                 exception = getattr(interfaces, klass)(full_message)

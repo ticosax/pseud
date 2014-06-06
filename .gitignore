@@ -3,3 +3,5 @@ dist/
 build/
 docs/build/
 .coverage
+.tox/
+.cache/
