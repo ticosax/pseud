@@ -5,8 +5,8 @@ python:
     - "3.4"
 
 install:
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] pytest-pep8 pytest-cov; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -e .[Tornado] pytest-pep8 pytest-cov; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] pytest-pep8 pytest-cov coveralls; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
 
 script:
     - py.test --pep8 --cov pseud
