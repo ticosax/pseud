@@ -215,6 +215,7 @@ def test_timeout_and_error_received_later(capsys):
     # gevent print exceptions that are not raised within its own green thread
     # so we capture stderr and check the exceptions is trigerred and not silent
     server.start()
+    gevent.sleep(.01)
     out, err = capsys.readouterr()
     assert 'ServiceNotFoundError' in err
     with pytest.raises(Timeout):
