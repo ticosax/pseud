@@ -138,7 +138,8 @@ The Server send a command to the client
 
 .. code-block:: python
 
-   sheep = server.send_to('client1').draw.me.a.sheep()
+   # assume we are inside a coroutine
+   sheep = yield server.send_to('client1').draw.me.a.sheep()
    assert sheep == 'beeeh'
 
 
