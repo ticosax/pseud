@@ -242,7 +242,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         client.disconnect(endpoint)
         client.identity = b'wow-doge'
         client.connect(endpoint)
-        yield async_sleep(self.io_loop, .1)
+        yield async_sleep(self.io_loop, .15)
         result = yield client.string.lower('ABC')
         assert result == 'abc'
         server.stop()
