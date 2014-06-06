@@ -1,11 +1,14 @@
-import __builtin__
 import logging
 import os
 import pprint
 import uuid
 
+from future import standard_library
 import zmq
 import zope.interface
+
+with standard_library.hooks():
+    import builtins
 
 from . import auth, heartbeat, predicate  # NOQA
 from .common import (BaseRPC,
@@ -69,11 +72,11 @@ class SyncBaseRPC(BaseRPC):
 
     def _handle_error(self, message, message_uuid):
         value = msgpack_unpackb(message)
-        klass, message, trace_back = value
-        full_message = '\n'.join((format_remote_traceback(trace_back),
+        klass, message, traceback = value
+        full_message = '\n'.join((format_remote_traceback(traceback),
                                   message))
         try:
-            exception = getattr(__builtin__, klass)(full_message)
+            exception = getattr(builtins, klass)(full_message)
         except AttributeError:
             if klass in internal_exceptions:
                 raise getattr(interfaces, klass)(full_message)
@@ -122,25 +125,3 @@ class SyncBaseRPC(BaseRPC):
 @zope.interface.implementer(IClient)
 class SyncClient(SyncBaseRPC):
     socket_type = zmq.REQ
-
-    def __init__(self, identity=None,
-                 context=None, io_loop=None,
-                 security_plugin='noop_auth_backend', timeout=5,
-                 public_key=None, secret_key=None, peer_public_key=None,
-                 password=None,
-                 heartbeat_plugin='noop_heartbeat_backend',
-                 proxy_to=None,
-                 registry=None,
-                 ):
-        super(SyncClient, self).__init__(identity=identity,
-                                         context=context, io_loop=io_loop,
-                                         security_plugin=security_plugin,
-                                         timeout=timeout,
-                                         public_key=public_key,
-                                         secret_key=secret_key,
-                                         peer_public_key=peer_public_key,
-                                         password=password,
-                                         heartbeat_plugin=heartbeat_plugin,
-                                         proxy_to=proxy_to,
-                                         registry=registry,
-                                         )

@@ -1,7 +1,7 @@
-import gevent
-from gevent.timeout import Timeout
 import pytest
-import zmq.green as zmq  # NOQA
+gevent = pytest.importorskip('gevent')
+from gevent.timeout import Timeout
+import zmq.green as zmq
 
 
 def make_one_server(identity, proxy_to=None):

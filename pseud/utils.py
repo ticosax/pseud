@@ -1,6 +1,7 @@
-import functools
 import zope.component
 import zope.interface
+
+from future.builtins import str
 
 from .interfaces import (IAuthenticationBackend,
                          IHeartbeatBackend,
@@ -49,7 +50,8 @@ def create_local_registry(name):
     Helper function to create a custom
     :py:class:`registry <zope.interface.registry.Components>`
     """
-    return zope.interface.registry.Components(name=name, bases=(registry,))
+    return zope.interface.registry.Components(name=str(name),
+                                              bases=(registry,))
 
 
 @zope.interface.implementer(IRPCCallable)
@@ -70,7 +72,13 @@ class RPCCallable(object):
 
 def register_rpc(func=None, name=None, domain='default', registry=registry):
     def wrapper(fn):
-        endpoint_name = name or fn.func_name
+        try:
+            # PY3 or PY2+future
+            fn_name = fn.__name__
+        except AttributeError:
+            # PY2
+            fn_name = fn.func_name
+        endpoint_name = name or fn_name
         registered_name = '{}:{}'.format(endpoint_name, domain)
         registry.registerUtility(RPCCallable(fn, name=endpoint_name,
                                              domain=domain),

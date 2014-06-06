@@ -1,6 +1,8 @@
+from __future__ import unicode_literals
 import functools
 import logging
 
+from future.builtins import bytes
 import zmq
 import zope.component
 import zope.interface
@@ -29,7 +31,7 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = 'noop_heartbeat_backend'
+    name = b'noop_heartbeat_backend'
 
     def handle_heartbeat(self, peer_id):
         pass
@@ -51,7 +53,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = 'noop_heartbeat_backend'
+    name = b'noop_heartbeat_backend'
 
     def handle_timeout(self, peer_id):
         pass
@@ -70,14 +72,14 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IClient)
 class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
-    name = 'testing_heartbeat_backend'
+    name = b'testing_heartbeat_backend'
 
     def handle_timeout(self, peer_id):
         pass
 
     def handle_heartbeat(self, peer_id):
-        self.rpc.send_message([self.rpc.peer_identity, '', VERSION,
-                               '', HEARTBEAT, ''])
+        self.rpc.send_message([self.rpc.peer_identity, b'', VERSION,
+                               b'', HEARTBEAT, b''])
 
     def configure(self):
         self.periodic_callback = self.rpc.create_periodic_callback(
@@ -95,13 +97,14 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
-    name = 'testing_heartbeat_backend'
+    name = b'testing_heartbeat_backend'
     max_time_before_dead = .2
     callback_pool = {}
 
     def handle_timeout(self, peer_id):
         logger.debug('Timeout detected for {!r}'.format(peer_id))
-        self.monitoring_socket.send('Gone {!r}'.format(peer_id))
+        self.monitoring_socket.send(
+            'Gone {!r}'.format(bytes(peer_id)).encode())
 
     def handle_heartbeat(self, peer_id):
         self.monitoring_socket.send(peer_id)
@@ -117,11 +120,11 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
-        self.monitoring_socket.bind('ipc://testing_heartbeating_backend')
+        self.monitoring_socket.bind(b'ipc://testing_heartbeating_backend')
 
     def stop(self):
         self.monitoring_socket.close(linger=0)
-        for callback in self.callback_pool.itervalues():
+        for callback in self.callback_pool.values():
             try:
                 self.rpc.io_loop.remove_timeout(callback)
             except AttributeError:

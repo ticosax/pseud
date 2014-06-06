@@ -1,4 +1,7 @@
+from __future__ import unicode_literals
+
 from concurrent.futures import TimeoutError
+from future.builtins import str
 import pytest
 import tornado.testing
 import zmq
@@ -27,9 +30,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_client_can_send(self):
         from pseud.utils import register_rpc
 
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'inproc://here'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'inproc://here'
 
         server = self.make_one_server(server_id)
 
@@ -40,8 +43,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         client.connect(endpoint)
 
-        import string
-        register_rpc(name='string.upper')(string.upper)
+        register_rpc(name='string.upper')(str.upper)
 
         future = client.string.upper('hello')
         self.io_loop.add_future(future, self.stop)
@@ -54,9 +56,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_server_can_send(self):
         from pseud.utils import register_rpc
 
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'inproc://here'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'inproc://here'
 
         server = self.make_one_server(server_id)
 
@@ -67,8 +69,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
         future = server.send_to(client_id).string.lower('SCREAM')
         self.io_loop.add_future(future, self.stop)
@@ -81,13 +82,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_server_can_send_to_several_client(self):
         from pseud.utils import register_rpc
 
-        server_id = 'server'
-        endpoint = 'inproc://here'
+        server_id = b'server'
+        endpoint = b'inproc://here'
 
         server = self.make_one_server(server_id)
 
-        client1 = self.make_one_client('client1', server_id)
-        client2 = self.make_one_client('client2', server_id)
+        client1 = self.make_one_client(b'client1', server_id)
+        client2 = self.make_one_client(b'client2', server_id)
 
         server.bind(endpoint)
         client1.connect(endpoint)
@@ -96,12 +97,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client2.start()
         server.start()
 
-        import string
-        register_rpc(name='string.lower')(string.lower)
+        register_rpc(name='string.lower')(str.lower)
 
-        future1 = server.send_to('client1').string.lower('SCREAM1')
+        future1 = server.send_to(b'client1').string.lower('SCREAM1')
 
-        future2 = server.send_to('client2').string.lower('SCREAM2')
+        future2 = server.send_to(b'client2').string.lower('SCREAM2')
 
         self.io_loop.add_future(future2, self.stop)
         self.wait()
@@ -115,20 +115,18 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_raises_if_module_not_found(self):
         from pseud.interfaces import ServiceNotFoundError
 
-        server_id = 'server'
-        endpoint = 'inproc://here'
+        server_id = b'server'
+        endpoint = b'inproc://here'
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id)
+        client = self.make_one_client(b'client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
-        server.start()
+        yield server.start()
+        yield client.start()
 
-        future = client.string.doesnotexists('QWERTY')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
         with pytest.raises(ServiceNotFoundError):
-            future.result()
+            yield client.string.doesnotexists('QWERTY')
         server.close()
         client.close()
 
@@ -141,28 +139,27 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pseud.interfaces import ServiceNotFoundError
         from pseud.utils import get_rpc_callable, register_rpc
 
-        server1 = self.make_one_server('server1')
-        server2 = self.make_one_server('server2', proxy_to=server1)
+        server1 = self.make_one_server(b'server1')
+        server2 = self.make_one_server(b'server2', proxy_to=server1)
 
-        client1 = self.make_one_client('client1', 'server1')
-        client2 = self.make_one_client('client2', 'server2')
+        client1 = self.make_one_client(b'client1', b'server1')
+        client2 = self.make_one_client(b'client2', b'server2')
 
-        server1.bind('inproc://server1')
-        server2.bind('inproc://server2')
-        client1.connect('inproc://server1')
-        client2.connect('inproc://server2')
+        server1.bind(b'inproc://server1')
+        server2.bind(b'inproc://server2')
+        client1.connect(b'inproc://server1')
+        client2.connect(b'inproc://server2')
         server1.start()
         server2.start()
 
-        import string
         # Local registration
-        server1.register_rpc(name='str.lower')(string.lower)
+        server1.register_rpc(name='str.lower')(str.lower)
 
         # Global registration
-        register_rpc(name='str.upper')(string.upper)
+        register_rpc(name='str.upper')(str.upper)
 
         # local registration only to proxy
-        server2.register_rpc(name='bla.lower')(string.lower)
+        server2.register_rpc(name='bla.lower')(str.lower)
 
         with pytest.raises(ServiceNotFoundError):
             get_rpc_callable('str.lower', registry=server2.registry)
@@ -200,12 +197,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_server_run_async_rpc(self):
         from pseud._tornado import async_sleep
-        server = self.make_one_server('server')
-        server.bind('inproc://server')
+        server = self.make_one_server(b'server')
+        server.bind(b'inproc://server')
         server.start()
 
-        client = self.make_one_client('client', 'server')
-        client.connect('inproc://server')
+        client = self.make_one_client(b'client', b'server')
+        client.connect(b'inproc://server')
 
         @server.register_rpc
         @tornado.gen.coroutine
@@ -223,11 +220,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_timeout_and_error_received_later(self):
         from pseud._tornado import async_sleep
 
-        server_id = 'server'
-        endpoint = 'inproc://here'
+        server_id = b'server'
+        endpoint = b'inproc://here'
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client('client', server_id)
+        client = self.make_one_client(b'client', server_id)
         server.bind(endpoint)
         client.connect(endpoint)
 
@@ -246,9 +243,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_client_can_reconnect(self):
         from pseud.utils import register_rpc
 
-        client_id = 'client'
-        server_id = 'server'
-        endpoint = 'tcp://127.0.0.1:8989'
+        client_id = b'client'
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8989'
 
         server = self.make_one_server(server_id)
 
@@ -259,8 +256,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         client.connect(endpoint)
 
-        import string
-        register_rpc(name='string.upper')(string.upper)
+        register_rpc(name='string.upper')(str.upper)
 
         future = client.string.upper('hello')
         self.io_loop.add_future(future, self.stop)

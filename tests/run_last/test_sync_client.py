@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import threading
 import uuid
 
@@ -13,7 +14,7 @@ def test_client_creation():
 
 def test_client_can_bind():
     from pseud import SyncClient
-    endpoint = 'inproc://{}'.format(__name__)
+    endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
     client.bind(endpoint)
     client.stop()
@@ -21,7 +22,7 @@ def test_client_can_bind():
 
 def test_client_can_connect():
     from pseud import SyncClient
-    endpoint = 'inproc://{}'.format(__name__)
+    endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
     client.connect(endpoint)
     client.stop()
@@ -64,11 +65,11 @@ def test_job_executed():
     from pseud.interfaces import OK, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == ''
+        assert _ == b''
         assert version == VERSION
         assert uid
         # check it is a real uuid
@@ -99,11 +100,11 @@ def test_job_failure():
     from pseud.interfaces import ERROR, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == ''
+        assert _ == b''
         assert version == VERSION
         assert uid
         # check it is a real uuid
@@ -136,11 +137,11 @@ def test_job_failure_service_not_found():
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == ''
+        assert _ == b''
         assert version == VERSION
         assert uid
         # check it is a real uuid
@@ -172,7 +173,7 @@ def test_job_server_never_reply():
     from pseud.interfaces import TimeoutError, VERSION, WORK
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
-    peer_identity = 'server'
+    peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
@@ -183,7 +184,7 @@ def test_job_server_never_reply():
         uuid.UUID(bytes=uid)
         assert message_type == WORK
         locator, args, kw = msgpack_unpackb(message)
-        assert locator == 'please.do_that_job'
+        assert locator == b'please.do_that_job'
         assert args == [1, 2]
         assert kw == {'b': 5}
 

@@ -1,12 +1,15 @@
 import itertools
 import logging
 
+from future.builtins import bytes
+from future.utils import viewitems
 import zope.component
 import zope.interface
 import zmq
 
 from .common import msgpack_packb, msgpack_unpackb
 from .interfaces import (AUTHENTICATED,
+                         EMPTY_DELIMITER,
                          IAuthenticationBackend,
                          IClient,
                          IServer,
@@ -137,9 +140,10 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         """
         (zid, delimiter, version, sequence, domain, address, identity,
          mechanism, key) = message
-        assert version == '1.0'
-        assert mechanism == 'CURVE'
-        reply = [zid, delimiter, version, sequence, '200', 'OK', self.name, '']
+        assert version == b'1.0'
+        assert mechanism == b'CURVE'
+        reply = [zid, delimiter, version, sequence, b'200', b'OK',
+                 bytes(self.name, 'utf-8'), b'']
         self.zap_socket.send_multipart(reply)
 
     def handle_hello(self, *args):
@@ -206,8 +210,8 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
                 future.set_exception(UnauthorizedError('Max authentication'
                                                        ' retries reached'))
         else:
-            self.rpc.send_message([peer_id, '', VERSION, message_uuid,
-                                   HELLO,
+            self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION,
+                                   message_uuid, HELLO,
                                    msgpack_packb((self.rpc.login,
                                                   self.rpc.password))])
 
@@ -238,7 +242,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
 
 
 def find_key_from_value(mapping, value):
-    for key, _value in mapping.iteritems():
+    for key, _value in viewitems(mapping):
         if _value == value:
             yield key
 
@@ -276,13 +280,14 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         """
         (zid, delimiter, version, sequence, domain, address, identity,
          mechanism, key) = message
-        assert version == '1.0'
-        assert mechanism == 'CURVE'
+        assert version == b'1.0'
+        assert mechanism == b'CURVE'
         if key not in self.trusted_keys:
             self.current_untrusted_key = key
         else:
             self.connection_renewed = key
-        reply = [zid, delimiter, version, sequence, '200', 'OK', self.name, '']
+        reply = [zid, delimiter, version, sequence, b'200', b'OK',
+                 bytes(self.name, 'utf-8'), b'']
         self.zap_socket.send_multipart(reply)
 
     def configure(self):
@@ -293,7 +298,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         assert self.rpc.socket.get(zmq.CURVE_SERVER)
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
-        zap_socket.bind('inproc://zeromq.zap.01')
+        zap_socket.bind(b'inproc://zeromq.zap.01')
         self.reader = self.rpc.read_forever(zap_socket,
                                             self._zap_handler)
 
@@ -306,13 +311,13 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             key = self.pending_keys[peer_id]
             self.trusted_keys[key] = peer_id
             self.login2peer_id_mapping[login] = peer_id
-            reply = 'Welcome {}'.format(peer_id)
+            reply = 'Welcome {!r}'.format(peer_id).encode()
             status = AUTHENTICATED
         else:
-            reply = 'Authentication Error'
+            reply = b'Authentication Error'
             status = UNAUTHORIZED
         logger.debug('Sending Hello reply: {!r}'.format(reply))
-        self.rpc.send_message([peer_id, '', VERSION, message_uuid,
+        self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION, message_uuid,
                                status, reply])
 
     def handle_authenticated(self, message):
@@ -322,9 +327,9 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         if self.current_untrusted_key is not None:
             self.pending_keys[peer_id] = self.current_untrusted_key
             self.current_untrusted_key = None
-        reply = 'Authentication Required'
+        reply = b'Authentication Required'
         status = UNAUTHORIZED
-        self.rpc.send_message([peer_id, '', VERSION, message_uuid,
+        self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION, message_uuid,
                                status, reply])
 
     def is_authenticated(self, peer_id):
