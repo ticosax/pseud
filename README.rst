@@ -1,16 +1,16 @@
 pseud
 =====
-.. image:: https://travis-ci.org/ezeep/pseud.png?branch=master
+.. image:: https://travis-ci.org/ezeep/pseud.svg?branch=master
    :target: https://travis-ci.org/ezeep/pseud
 
 .. image:: https://coveralls.io/repos/ezeep/pseud/badge.png
    :target: https://coveralls.io/r/ezeep/pseud
 
-.. image:: https://pypip.in/version/pseud/badge.png
+.. image:: https://pypip.in/version/pseud/badge.svg
    :target: https://pypi.python.org/pypi/pseud/
    :alt: Latest Version
 
-.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.png
+.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.svg
    :target: https://landscape.io/github/ezeep/pseud/master
    :alt: Code Health
 
