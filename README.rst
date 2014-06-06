@@ -36,19 +36,31 @@ Features
 Installation
 ~~~~~~~~~~~~
 
+Dependencies are declared in setup.py and all automatically installed, but,
+pyzmq might build libzmq from bundled folder `OR` from your system wide libzmq.
+In later case you should make sure libzmq has been compiled with libsodium
+to take advantage of curve security features.
+
+We recommend to install pyzmq with bundled libzmq explicitely if libzmq is
+already installed on your system.
+
+.. code-block:: console
+
+   $ pip install pyzmq --install-option='--zmq=bundled'
+
 Tornado
 -------
 
 .. code-block:: console
 
-   pip install -e .[Tornado]
+   $ pip install -e .[Tornado]
 
 Gevent
 ------
 
 .. code-block:: console
 
-   pip install -e .[Gevent]
+   $ pip install -e .[Gevent]
 
 
 Execution
@@ -60,7 +72,7 @@ something.
 
 .. code-block:: console
 
-        NO_TORNADO=1 python script.py
+   $ NO_TORNADO=1 python script.py
 
 Preview
 ~~~~~~~
