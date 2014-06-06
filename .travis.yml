@@ -11,8 +11,8 @@ install:
 script:
     - py.test --pep8 --cov pseud
 
-# after_success:
-#     coveralls
+after_success:
+    coveralls
 
 notifications:
     email: false
