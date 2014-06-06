@@ -146,7 +146,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         client_id = b'john'
         server_id = b'server'
-        endpoint = 'tcp://127.0.0.1:8998'
+        endpoint = b'tcp://127.0.0.1:8999'
         server_public, server_secret = zmq.curve_keypair()
         client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'untrusted_curve'
