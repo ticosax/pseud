@@ -128,14 +128,13 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
 
-        server.start()
-        client.start()
+        yield server.start()
+        yield client.start()
 
         register_rpc(name='string.lower')(str.lower)
 
-        future = client.string.lower('BAR')
         with pytest.raises(TimeoutError):
-            yield future
+            yield client.string.lower('BAR')
         server.stop()
         client.stop()
 
