@@ -10,7 +10,7 @@ pseud
    :target: https://pypi.python.org/pypi/pseud/
    :alt: Latest Version
 
-.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.svg
+.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.png
    :target: https://landscape.io/github/ezeep/pseud/master
    :alt: Code Health
 
