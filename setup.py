@@ -63,5 +63,6 @@ setup(name='pseud',
           'Operating System :: OS Independent',
           'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3.4',
-      ]
+      ],
+      keywords='rpc zeromq pyzmq curve bidirectional tornado gevent',
       )
