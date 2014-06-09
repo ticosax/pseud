@@ -126,7 +126,7 @@ class TornadoBaseRPC(BaseRPC):
             self.io_loop.start()
         else:
             # Warmup delay !!
-            yield async_sleep(self.io_loop, .1)
+            yield async_sleep(self.io_loop, .15)
 
     def read_forever(self, socket, callback):
         stream = zmqstream.ZMQStream(socket,
