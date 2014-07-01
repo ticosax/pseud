@@ -1,3 +1,5 @@
+import functools
+
 import pytest
 from zope.interface.registry import Components
 
@@ -27,6 +29,12 @@ def test_rpc_simple_registration():
 
     assert isinstance(get_rpc_callable('totally.something.else'),
                       RPCCallable)
+
+    def call_me_again():
+        return True
+
+    register_rpc(functools.partial(call_me_again), name='call_me_again')
+    assert get_rpc_callable('call_me_again')() is True
 
 
 def test_rpc_restricted_registration():

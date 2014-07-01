@@ -72,13 +72,16 @@ class RPCCallable(object):
 
 def register_rpc(func=None, name=None, domain='default', registry=registry):
     def wrapper(fn):
-        try:
-            # PY3 or PY2+future
-            fn_name = fn.__name__
-        except AttributeError:
-            # PY2
-            fn_name = fn.func_name
-        endpoint_name = name or fn_name
+        if name is None:
+            try:
+                # PY3 or PY2+future
+                fn_name = fn.__name__
+            except AttributeError:
+                # PY2
+                fn_name = fn.func_name
+            endpoint_name = fn_name
+        else:
+            endpoint_name = name
         registered_name = '{}:{}'.format(endpoint_name, domain)
         registry.registerUtility(RPCCallable(fn, name=endpoint_name,
                                              domain=domain),
