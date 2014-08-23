@@ -8,12 +8,9 @@ import zmq.green as zmq
 
 def test_client_creation():
     from pseud._gevent import Client
-    identity = __name__
     peer_identity = 'echo'
-    client = Client(peer_identity,
-                    identity=identity)
-    assert client.peer_identity == peer_identity
-    assert client.identity == identity
+    client = Client(peer_identity)
+    assert client.peer_routing_id == peer_identity
     assert client.security_plugin == 'noop_auth_backend'
 
 
@@ -44,11 +41,9 @@ def make_one_server_socket(identity, endpoint):
     return port, router_sock
 
 
-def make_one_client(identity, peer_identity, timeout=5,
-                    registry=None):
+def make_one_client(peer_identity, timeout=5, registry=None):
     from pseud._gevent import Client
     client = Client(peer_identity,
-                    identity=identity,
                     timeout=timeout,
                     registry=registry)
     return client
@@ -59,7 +54,7 @@ def test_client_method_wrapper():
     endpoint = 'inproc://{}'.format(__name__)
     identity = __name__
     peer_identity = 'echo'
-    client = make_one_client(identity, peer_identity)
+    client = make_one_client(peer_identity)
     method_name = 'a.b.c.d'
     with pytest.raises(RuntimeError):
         # If not connected can not call anything
@@ -79,17 +74,16 @@ def test_client_method_wrapper():
 def test_job_executed():
     from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import OK, VERSION, WORK
-    identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
     port, socket = make_one_server_socket(peer_identity, endpoint)
 
-    client = make_one_client(identity, peer_identity)
+    client = make_one_client(peer_identity)
     client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
     request = gevent.spawn(socket.recv_multipart).get()
-    server_id, delimiter, version, uid, message_type, message = request
+    routing_id, delimiter, version, uid, message_type, message = request
     assert delimiter == ''
     assert version == VERSION
     assert uid
@@ -100,7 +94,7 @@ def test_job_executed():
     assert locator == 'please.do_that_job'
     assert args == [1, 2, 3]
     assert kw == {'b': 4}
-    reply = [identity, '', version, uid, OK, msgpack_packb(True)]
+    reply = [routing_id, '', version, uid, OK, msgpack_packb(True)]
     gevent.spawn(socket.send_multipart, reply)
     assert future.get() is True
     assert not client.future_pool
@@ -115,7 +109,7 @@ def test_job_server_never_reply():
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
     port, socket = make_one_server_socket(peer_identity, endpoint)
-    client = make_one_client(identity, peer_identity,
+    client = make_one_client(peer_identity,
                              timeout=.5)
     client.connect(endpoint + ':{}'.format(port))
 
@@ -144,7 +138,7 @@ def test_client_registry():
     identity = 'client0'
     peer_identity = 'echo'
     registry = create_local_registry(identity)
-    client = make_one_client(identity, peer_identity,
+    client = make_one_client(peer_identity,
                              registry=registry)
 
     @client.register_rpc

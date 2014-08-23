@@ -44,37 +44,47 @@ def test_testing_heartbeat_backend_server():
 
 class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
-    def make_one_server(self, identity, endpoint,
-                        heartbeat_plugin,
+    def make_one_server(self, user_id, endpoint,
+                        security_plugin='noop_auth_backend',
+                        heartbeat_plugin=None,
                         io_loop=None):
         from pseud import Server
-        server = Server(identity, heartbeat_plugin=heartbeat_plugin,
+        server = Server(user_id, heartbeat_plugin=heartbeat_plugin,
+                        security_plugin=security_plugin,
                         io_loop=io_loop)
         return server
 
-    def make_one_client(self, identity, peer_identity,
-                        heartbeat_plugin,
+    def make_one_client(self, peer_routing_id,
+                        security_plugin='noop_auth_backend',
+                        heartbeat_plugin=None,
+                        user_id=None,
+                        password=None,
                         io_loop=None):
         from pseud import Client
-        client = Client(peer_identity,
-                        identity=identity,
+        client = Client(peer_routing_id,
+                        security_plugin=security_plugin,
                         heartbeat_plugin=heartbeat_plugin,
+                        user_id=user_id,
+                        password=password,
                         io_loop=io_loop)
         return client
 
     def test_basic_heartbeating(self):
-        client_id = b'client'
         server_id = b'server'
         endpoint = b'ipc://here'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
             server_id, endpoint,
+            security_plugin='plain',
             heartbeat_plugin=heartbeat_backend,
             io_loop=self.io_loop)
 
-        client = self.make_one_client(client_id, server_id,
+        client = self.make_one_client(server_id,
+                                      security_plugin='plain',
                                       heartbeat_plugin=heartbeat_backend,
+                                      user_id=b'client',
+                                      password=b'client',
                                       io_loop=self.io_loop)
         server.bind(endpoint)
         client.connect(endpoint)
@@ -99,24 +109,27 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                                  self.stop)
         self.wait()
         assert len(sink) >= 10
-        assert all([client_id == i for i in sink])
+        assert all([b'client' == i for i in sink])
         monitoring_socket.close()
         client.stop()
         server.stop()
 
     def test_basic_heartbeating_with_disconnection(self):
-        client_id = b'client'
         server_id = b'server'
-        endpoint = b'ipc://here'
+        endpoint = b'tcp://127.0.0.1:5000'
         heartbeat_backend = 'testing_heartbeat_backend'
 
         server = self.make_one_server(
             server_id, endpoint,
+            security_plugin='plain',
             heartbeat_plugin=heartbeat_backend,
             io_loop=self.io_loop)
 
-        client = self.make_one_client(client_id, server_id,
+        client = self.make_one_client(server_id,
+                                      security_plugin='plain',
                                       heartbeat_plugin=heartbeat_backend,
+                                      user_id=b'client',
+                                      password=b'client',
                                       io_loop=self.io_loop)
         server.bind(endpoint)
         client.connect(endpoint)
@@ -143,6 +156,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                                  client.stop)
         self.wait()
         assert len(sink) < 10
+        print sink
         assert b"Gone b'client'" in sink
         monitoring_socket.close()
         server.stop()

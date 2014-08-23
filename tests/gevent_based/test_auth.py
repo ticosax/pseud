@@ -54,24 +54,22 @@ def test_trusted_curve():
     from pseud._gevent import Client, Server
     from pseud.utils import register_rpc
 
-    client_id = 'client'
     server_id = 'server'
     endpoint = 'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
-    client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
-    client = Client(server_id,
-                    identity=client_id,
-                    security_plugin=security_plugin,
-                    public_key=client_public,
-                    secret_key=client_secret,
-                    peer_public_key=server_public)
 
     server = Server(server_id, security_plugin=security_plugin,
                     public_key=server_public,
                     secret_key=server_secret)
-
     server.bind(endpoint)
+    bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
+    client = Client(server_id,
+                    security_plugin=security_plugin,
+                    public_key=bob_public,
+                    secret_key=bob_secret,
+                    peer_public_key=server_public)
+
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
@@ -88,14 +86,12 @@ def test_trusted_curve():
 
 def test_trusted_curve_with_wrong_peer_public_key():
     from pseud._gevent import Client, Server
-    client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://{}'.format(__name__)
     endpoint = 'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     client = Client(server_id,
-                    identity=client_id,
                     security_plugin='trusted_curve',
                     public_key=client_public,
                     secret_key=client_secret,
@@ -135,7 +131,7 @@ def test_untrusted_curve_with_allowed_password():
                     public_key=client_public,
                     secret_key=client_secret,
                     peer_public_key=server_public,
-                    login=client_id,
+                    user_id=client_id,
                     password=password)
 
     server = Server(server_id,
@@ -181,7 +177,7 @@ def test_untrusted_curve_with_allowed_password_and_client_disconnect():
                     public_key=client_public,
                     secret_key=client_secret,
                     peer_public_key=server_public,
-                    login=client_id,
+                    user_id=client_id,
                     password=password)
 
     server = Server(server_id,
@@ -219,19 +215,18 @@ def test_untrusted_curve_with_wrong_password():
 
     client_id = 'john'
     server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8998'
+    endpoint = 'tcp://127.0.0.1:8999'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'untrusted_curve'
     password = 's3cret!'
 
     client = Client(server_id,
-                    identity=client_id,
                     security_plugin=security_plugin,
                     public_key=client_public,
                     secret_key=client_secret,
                     peer_public_key=server_public,
-                    login=client_id,
+                    user_id=client_id,
                     password=password)
 
     server = Server(server_id,
@@ -263,25 +258,23 @@ def test_untrusted_curve_with_wrong_password():
 def test_client_can_reconnect():
     from pseud._gevent import Client, Server
 
-    client_id = 'client'
     server_id = 'server'
     endpoint = 'tcp://127.0.0.1:8989'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
-    client = Client(server_id,
-                    identity=client_id,
-                    security_plugin=security_plugin,
-                    public_key=client_public,
-                    secret_key=client_secret,
-                    peer_public_key=server_public)
-
     server = Server(server_id, security_plugin=security_plugin,
                     public_key=server_public,
                     secret_key=server_secret)
-
     server.bind(endpoint)
+    bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
+    client = Client(server_id,
+                    security_plugin=security_plugin,
+                    public_key=bob_public,
+                    secret_key=bob_secret,
+                    peer_public_key=server_public)
+
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
@@ -302,3 +295,44 @@ def test_client_can_reconnect():
 
     client.stop()
     server.stop()
+
+def test_server_can_send_to_trustable_peer_identity():
+    """
+    Uses internal metadata of zmq.Frame.get() to fetch identity of sender
+    """
+    from pseud._gevent import Client, Server
+
+    server_id = 'server'
+    endpoint = 'tcp://127.0.0.1:8989'
+    server_public, server_secret = zmq.curve_keypair()
+    security_plugin = 'trusted_curve'
+
+    server = Server(server_id, security_plugin=security_plugin,
+                    public_key=server_public,
+                    secret_key=server_secret,
+                    )
+    server.bind(endpoint)
+
+    bob_public, bob_secret = server.auth_backend.known_identities['bob']
+    client = Client(server_id,
+                    user_id='bob',
+                    security_plugin=security_plugin,
+                    public_key=bob_public,
+                    secret_key=bob_secret,
+                    peer_public_key=server_public,
+                    )
+    client.connect(endpoint)
+    assert server.socket.mechanism == zmq.CURVE
+    assert client.socket.mechanism == zmq.CURVE
+
+    server.start()
+    client.start()
+
+    @server.register_rpc(with_identity=True)
+    def echo(peer_identity, message):
+        return peer_identity, message
+
+    result = client.echo('one').get()
+    assert result == ['bob', 'one']
+    server.stop()
+    client.stop()

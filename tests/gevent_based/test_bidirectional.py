@@ -4,28 +4,34 @@ from gevent.timeout import Timeout
 import zmq.green as zmq
 
 
-def make_one_server(identity, proxy_to=None):
+def make_one_server(identity, proxy_to=None,
+                    security_plugin='noop_auth_backend'):
     from pseud._gevent import Server
-    server = Server(identity, proxy_to=proxy_to)
+    server = Server(identity,
+                    proxy_to=proxy_to,
+                    security_plugin=security_plugin)
     return server
 
 
-def make_one_client(identity, peer_identity):
+def make_one_client(peer_routing_id, security_plugin='noop_auth_backend',
+                    user_id=None, password=None):
     from pseud._gevent import Client
-    client = Client(peer_identity,
-                    identity=identity)
+    client = Client(peer_routing_id,
+                    security_plugin=security_plugin,
+                    user_id=user_id,
+                    password=password,
+                    )
     return client
 
 
 def test_client_can_send():
     from pseud.utils import register_rpc
-    client_id = 'client'
     server_id = 'server'
     endpoint = 'inproc://here'
 
     server = make_one_server(server_id)
 
-    client = make_one_client(client_id, server_id)
+    client = make_one_client(server_id)
 
     server.bind(endpoint)
     server.start()
@@ -47,11 +53,14 @@ def test_server_can_send():
 
     client_id = 'client'
     server_id = 'server'
-    endpoint = 'inproc://here'
+    endpoint = 'tcp://127.0.0.1:5000'
 
-    server = make_one_server(server_id)
+    # PLAIN
+    server = make_one_server(server_id, security_plugin='plain')
 
-    client = make_one_client(client_id, server_id)
+    client = make_one_client(server_id, user_id=client_id,
+                             password=client_id,
+                             security_plugin='plain')
 
     server.bind(endpoint)
     server.start()
@@ -61,6 +70,9 @@ def test_server_can_send():
 
     import string
     register_rpc(name='string.lower')(string.lower)
+
+    result = client.string.lower('TATA').get()
+    assert result == 'tata'
 
     future = server.send_to(client_id).string.lower('SCREAM')
 
@@ -72,12 +84,18 @@ def test_server_can_send():
 def test_server_can_send_to_several_client():
     from pseud.utils import register_rpc
     server_id = 'server'
-    endpoint = 'inproc://here'
+    endpoint = 'tcp://127.0.0.1:5000'
 
-    server = make_one_server(server_id, endpoint)
+    server = make_one_server(server_id, security_plugin='plain')
 
-    client1 = make_one_client('client1', server_id)
-    client2 = make_one_client('client2', server_id)
+    client1 = make_one_client(server_id, security_plugin='plain',
+                              user_id='client1',
+                              password='client1',
+                              )
+    client2 = make_one_client(server_id, security_plugin='plain',
+                              user_id='client2',
+                              password='client2',
+                              )
 
     server.bind(endpoint)
     client1.connect(endpoint)
@@ -88,6 +106,8 @@ def test_server_can_send_to_several_client():
 
     import string
     register_rpc(name='string.lower')(string.lower)
+    client1.string.lower('TATA').get()
+    client2.string.lower('TATA').get()
 
     future1 = server.send_to('client1').string.lower('SCREAM1')
 
@@ -106,7 +126,7 @@ def test_raises_if_module_not_found():
     endpoint = 'inproc://here'
     server = make_one_server(server_id)
 
-    client = make_one_client('client', server_id)
+    client = make_one_client(server_id)
     server.bind(endpoint)
     client.connect(endpoint)
     server.start()
@@ -130,8 +150,8 @@ def test_server_can_proxy_another_server():
     server2 = make_one_server('server2',
                               proxy_to=server1)
 
-    client1 = make_one_client('client1', 'server1')
-    client2 = make_one_client('client2', 'server2')
+    client1 = make_one_client('server1')
+    client2 = make_one_client('server2')
 
     server1.bind('inproc://server1')
     server2.bind('inproc://server2')
@@ -182,7 +202,7 @@ def test_server_run_async_rpc():
     server.bind('inproc://server')
     server.start()
 
-    client = make_one_client('client', 'server')
+    client = make_one_client('server')
     client.connect('inproc://server')
 
     @server.register_rpc
@@ -203,7 +223,7 @@ def test_timeout_and_error_received_later(capsys):
     endpoint = 'inproc://here'
     server = make_one_server(server_id)
 
-    client = make_one_client('client', server_id)
+    client = make_one_client(server_id)
     server.bind(endpoint)
     client.connect(endpoint)
     future = client.string.doesnotexists('QWERTY')
@@ -229,13 +249,12 @@ def test_timeout_and_error_received_later(capsys):
 def test_client_can_reconnect():
     from pseud.utils import register_rpc
 
-    client_id = 'client'
     server_id = 'server'
     endpoint = 'tcp://127.0.0.1:8989'
 
     server = make_one_server(server_id)
 
-    client = make_one_client(client_id, server_id)
+    client = make_one_client(server_id)
 
     server.bind(endpoint)
     server.start()

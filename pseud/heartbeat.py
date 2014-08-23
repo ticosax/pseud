@@ -33,10 +33,10 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     name = b'noop_heartbeat_backend'
 
-    def handle_heartbeat(self, peer_id):
+    def handle_heartbeat(self, *args):
         pass
 
-    def handle_timeout(self, peer_id):
+    def handle_timeout(self, *args):
         pass
 
     def configure(self):
@@ -55,10 +55,10 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     name = b'noop_heartbeat_backend'
 
-    def handle_timeout(self, peer_id):
+    def handle_timeout(self, *args):
         pass
 
-    def handle_heartbeat(self, peer_id):
+    def handle_heartbeat(self, *args):
         pass
 
     def configure(self):
@@ -74,17 +74,17 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
     name = b'testing_heartbeat_backend'
 
-    def handle_timeout(self, peer_id):
+    def handle_timeout(self, user_id, routing_id):
         pass
 
-    def handle_heartbeat(self, peer_id):
-        self.rpc.send_message([self.rpc.peer_identity, b'', VERSION,
+    def handle_heartbeat(self, user_id, routing_id):
+        self.rpc.send_message([routing_id, b'', VERSION,
                                b'', HEARTBEAT, b''])
 
     def configure(self):
         self.periodic_callback = self.rpc.create_periodic_callback(
-            functools.partial(self.handle_heartbeat, self.rpc.identity),
-            .1)
+            functools.partial(self.handle_heartbeat, b'',
+                              self.rpc.peer_routing_id), .1)
 
     def stop(self):
         try:
@@ -101,21 +101,21 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     max_time_before_dead = .2
     callback_pool = {}
 
-    def handle_timeout(self, peer_id):
-        logger.debug('Timeout detected for {!r}'.format(peer_id))
+    def handle_timeout(self, user_id, routing_id):
+        logger.debug('Timeout detected for {!r}'.format(routing_id))
         self.monitoring_socket.send(
-            'Gone {!r}'.format(bytes(peer_id)).encode())
+            'Gone {!r}'.format(bytes(user_id)).encode())
 
-    def handle_heartbeat(self, peer_id):
-        self.monitoring_socket.send(peer_id)
-        previous = self.callback_pool.pop(peer_id, None)
+    def handle_heartbeat(self, user_id, routing_id):
+        self.monitoring_socket.send(user_id)
+        previous = self.callback_pool.pop(user_id, None)
         if previous is not None:
             try:
                 self.rpc.io_loop.remove_timeout(previous)
             except AttributeError:
                 previous.kill()
-        self.callback_pool[peer_id] = self.rpc.create_later_callback(
-            functools.partial(self.handle_timeout, peer_id),
+        self.callback_pool[user_id] = self.rpc.create_later_callback(
+            functools.partial(self.handle_timeout, user_id, routing_id),
             self.max_time_before_dead)
 
     def configure(self):

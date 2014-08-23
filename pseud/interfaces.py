@@ -45,7 +45,7 @@ class IAuthenticationBackend(zope.interface.Interface):
         Can be either IOLoop, threading, or multiprocess.
         """
 
-    def handle_hello(peer_id, message_uuid, message):
+    def handle_hello(user_id, routing_id, message_uuid, message):
         """
         This method is receiving information that has been asked
         to authenticate the peer. It can be for instance login/password
@@ -56,9 +56,9 @@ class IAuthenticationBackend(zope.interface.Interface):
 
         .. code::
 
-            self.rpc.send_message([peer_id, '', VERSION, message_uuid,
+            self.rpc.send_message([routing_id, '', VERSION, message_uuid,
                                    AUTHENTICATED,
-                                   'Welcome {!r}'.format(peer_id)])
+                                   'Welcome {!r}'.format(user_id)])
         """
 
     def handle_authenticated(message):
@@ -72,13 +72,13 @@ class IAuthenticationBackend(zope.interface.Interface):
         authenctication challenge.
         """
 
-    def is_authenticated(peer_id):
+    def is_authenticated(user_id):
         """
         Must return True or False and tell if rpc must challenge
         authentication for the current peer.
         """
 
-    def get_predicate_arguments(peer_id):
+    def get_predicate_arguments(user_id):
         """
         If predicates needs to filter callables
         based on identity of user.
@@ -87,9 +87,15 @@ class IAuthenticationBackend(zope.interface.Interface):
         Must return a dict.
         """
 
-    def get_destination_id(identity):
+    def get_routing_id(user_id):
         """
-        Must return the socket id associated with given identity
+        Must return the socket id associated to the given identity
+        """
+
+    def register_routing_id(user_id, routing_id):
+        """
+        Must handle mapping between routing_id and user_id
+        for later use, when routing is asked knowing only user_id.
         """
 
 
@@ -98,11 +104,9 @@ class IBaseRPC(zope.interface.Interface):
     All methods that an rpc service must support
     to handle pseud protocol
     """
-    identity = zope.interface.Attribute("""
-        identity of current RPC
-        """)
-    peer_identity = zope.interface.Attribute("""
-        identity of peer to communicate with
+    user_id = zope.interface.Attribute("""
+        identity of current RPC.
+        Will be used as routing_id for server.
         """)
     context = zope.interface.Attribute("""
         ØMQ context
@@ -115,14 +119,6 @@ class IBaseRPC(zope.interface.Interface):
         """)
     secret_key = zope.interface.Attribute("""
         Z85 encoded private key of the zeromq curve keypair
-        """)
-    peer_public_key = zope.interface.Attribute("""
-        Z85 encoded public key of the zeromq curve
-        keypair from remote peer
-        """)
-    password = zope.interface.Attribute("""
-        If authentication is required by remote peer.
-        `identity` will be the login.
         """)
     heartbeat_plugin = zope.interface.Attribute("""
         Name of the plugin used as heartbeat backend
@@ -151,7 +147,7 @@ class IBaseRPC(zope.interface.Interface):
         Bind ØMQ socket to given endpoint
         """
 
-    def send_work(peer_identity, name, *args, **kw):
+    def send_work(user_id, name, *args, **kw):
         """
         Ask the peer to run specified task identified by name.
 
@@ -224,6 +220,17 @@ class IClient(IBaseRPC):
     """
     Interface for Clients
     """
+    peer_routing_id = zope.interface.Attribute("""
+        routing_id of peer to communicate with
+        """)
+    peer_public_key = zope.interface.Attribute("""
+        Z85 encoded public key of the zeromq curve
+        keypair from remote peer
+        """)
+    password = zope.interface.Attribute("""
+        If authentication is required by remote peer.
+        `user_id`` will be the login.
+        """)
 
 
 class IServer(IBaseRPC):
@@ -241,13 +248,13 @@ class IHeartbeatBackend(zope.interface.Interface):
         RPC instance
         """)
 
-    def handle_heartbeat(peer_id):
+    def handle_heartbeat(user_id, routing_id):
         """
         Called when an Hearbeat is received from given
         peer_id
         """
 
-    def handle_timeout(peer_id):
+    def handle_timeout(user_id, routing_id):
         """
         Called when a timeout is detected for given peer_id
         """

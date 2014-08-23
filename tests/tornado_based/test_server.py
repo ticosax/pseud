@@ -14,26 +14,26 @@ ioloop.install()
 
 def test_server_creation():
     from pseud import Server
-    identity = b'echo'
-    server = Server(identity)
-    assert server.identity == identity
+    user_id = b'echo'
+    server = Server(user_id)
+    assert server.user_id == user_id
     assert server.security_plugin == 'noop_auth_backend'
 
 
 def test_server_can_bind():
     from pseud import Server
-    identity = b'echo'
+    user_id = b'echo'
     endpoint = 'inproc://{}'.format(__name__).encode()
-    server = Server(identity,
+    server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.bind(endpoint)
 
 
 def test_server_can_connect():
     from pseud import Server
-    identity = b'echo'
+    user_id = b'echo'
     endpoint = b'tcp://127.0.0.1:5000'
-    server = Server(identity,
+    server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.connect(endpoint)
 
@@ -63,16 +63,15 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     timeout = 2
 
-    def make_one_client_socket(self, identity, endpoint):
+    def make_one_client_socket(self, endpoint):
         context = zmq.Context.instance()
         req_sock = context.socket(zmq.ROUTER)
-        req_sock.identity = identity
         req_sock.connect(endpoint)
         return req_sock
 
-    def make_one_server(self, identity, endpoint):
+    def make_one_server(self, user_id, endpoint):
         from pseud import Server
-        server = Server(identity, io_loop=self.io_loop)
+        server = Server(user_id, io_loop=self.io_loop)
         server.bind(endpoint)
         return server
 
@@ -82,7 +81,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         from pseud.interfaces import EMPTY_DELIMITER, OK, VERSION, WORK
         from pseud.utils import register_rpc
 
-        identity = b'echo'
+        user_id = b'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__).encode()
 
         @register_rpc
@@ -90,16 +89,16 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
             time.sleep(.2)
             return True
 
-        server = self.make_one_server(identity, endpoint)
-        socket = self.make_one_client_socket(b'client', endpoint)
+        server = self.make_one_server(user_id, endpoint)
+        socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack_packb(('job_success', (1, 2, 3), {'d': False}))
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, EMPTY_DELIMITER, VERSION, b'',
+                               [user_id, EMPTY_DELIMITER, VERSION, b'',
                                 WORK, work])
         yield server.start()
         response = yield tornado.gen.Task(stream.on_recv)
-        assert response == [identity, EMPTY_DELIMITER, VERSION, b'',
+        assert response == [user_id, EMPTY_DELIMITER, VERSION, b'',
                             OK, msgpack_packb(True)]
         server.stop()
 
@@ -108,18 +107,18 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         import pseud
         from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import EMPTY_DELIMITER, ERROR, VERSION, WORK
-        identity = b'echo'
+        user_id = b'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__).encode()
-        server = self.make_one_server(identity, endpoint)
-        socket = self.make_one_client_socket(b'client', endpoint)
+        server = self.make_one_server(user_id, endpoint)
+        socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack_packb(('thisIsNotAFunction', (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, EMPTY_DELIMITER, VERSION, b'', WORK,
+                               [user_id, EMPTY_DELIMITER, VERSION, b'', WORK,
                                 work])
         response = yield tornado.gen.Task(stream.on_recv)
-        assert response[:-1] == [identity, EMPTY_DELIMITER, VERSION, b'',
+        assert response[:-1] == [user_id, EMPTY_DELIMITER, VERSION, b'',
                                  ERROR]
         klass, message, traceback = msgpack_unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
@@ -134,22 +133,22 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         from pseud.interfaces import ERROR, VERSION, WORK
         from pseud.utils import register_rpc
 
-        identity = b'echo'
+        user_id = b'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__).encode()
 
         @register_rpc
         def job_buggy(*args, **kw):
             raise ValueError('too bad')
 
-        server = self.make_one_server(identity, endpoint)
-        socket = self.make_one_client_socket(b'client', endpoint)
+        server = self.make_one_server(user_id, endpoint)
+        socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         work = msgpack_packb(('job_buggy', (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
-                               [identity, b'', VERSION, b'', WORK, work])
+                               [user_id, b'', VERSION, b'', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
-        assert response[:-1] == [identity, b'', VERSION, b'', ERROR]
+        assert response[:-1] == [user_id, b'', VERSION, b'', ERROR]
         klass, message, traceback = msgpack_unpackb(response[-1])
         assert klass == 'ValueError'
         assert message == 'too bad'

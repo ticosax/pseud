@@ -12,20 +12,17 @@ ioloop.install()
 
 def test_client_creation():
     from pseud import Client
-    identity = __name__
-    peer_identity = b'echo'
-    client = Client(peer_identity,
-                    identity=identity)
-    assert client.peer_identity == peer_identity
-    assert client.identity == identity
+    peer_routing_id = b'echo'
+    client = Client(peer_routing_id)
+    assert client.peer_routing_id == peer_routing_id
     assert client.security_plugin == 'noop_auth_backend'
 
 
 def test_client_can_bind():
     from pseud import Client
     endpoint = 'ipc://{}'.format(__name__).encode()
-    peer_identity = b'echo'
-    client = Client(peer_identity)
+    peer_routing_id = b'echo'
+    client = Client(peer_routing_id)
     client.bind(endpoint)
     client.stop()
 
@@ -33,8 +30,8 @@ def test_client_can_bind():
 def test_client_can_connect():
     from pseud import Client
     endpoint = 'ipc://{}'.format(__name__).encode()
-    peer_identity = b'echo'
-    client = Client(peer_identity)
+    peer_routing_id = b'echo'
+    client = Client(peer_routing_id)
     client.connect(endpoint)
     client.stop()
 
@@ -48,11 +45,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         router_sock.bind(endpoint)
         return router_sock
 
-    def make_one_client(self, identity, peer_identity, timeout=5,
+    def make_one_client(self, peer_routing_id, user_id=None, timeout=5,
                         io_loop=None, registry=None):
         from pseud import Client
-        client = Client(peer_identity,
-                        identity=identity,
+        client = Client(peer_routing_id,
+                        user_id=user_id,
                         timeout=timeout,
                         io_loop=io_loop,
                         registry=registry)
@@ -62,9 +59,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_client_method_wrapper(self):
         from pseud.common import AttributeWrapper
         endpoint = 'ipc://{}'.format(__name__).encode()
-        identity = __name__.encode()
-        peer_identity = b'echo'
-        client = self.make_one_client(identity, peer_identity,
+        peer_routing_id = b'echo'
+        client = self.make_one_client(peer_routing_id,
                                       io_loop=self.io_loop)
         method_name = 'a.b.c.d'
         with pytest.raises(RuntimeError):
@@ -86,11 +82,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pseud._tornado import async_sleep
         from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import OK, VERSION, WORK
-        identity = b'client0'
-        peer_identity = b'echo'
+        peer_routing_id = b'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__).encode()
-        socket = self.make_one_server_socket(peer_identity, endpoint)
-        client = self.make_one_client(identity, peer_identity,
+        socket = self.make_one_server_socket(peer_routing_id, endpoint)
+        client = self.make_one_client(peer_routing_id,
                                       io_loop=self.io_loop)
         client.connect(endpoint)
 
@@ -98,7 +93,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future = client.please.do_that_job(1, 2, 3, b=4)
         yield async_sleep(self.io_loop, .1)
         request = yield tornado.gen.Task(stream.on_recv)
-        server_id, delimiter, version, uid, message_type, message = request
+        client_routing_id, delimiter, version, uid, message_type, message =\
+            request
         assert delimiter == b''
         assert version == VERSION
         assert uid
@@ -109,7 +105,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [identity, b'', version, uid, OK, msgpack_packb(True)]
+        reply = [client_routing_id, b'', version, uid, OK, msgpack_packb(True)]
         yield tornado.gen.Task(stream.send_multipart, reply)
         result = yield future
         assert result is True
@@ -122,11 +118,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pseud._tornado import async_sleep
         from pseud.common import msgpack_unpackb
         from pseud.interfaces import VERSION, WORK
-        identity = b'client0'
-        peer_identity = b'echo'
+        peer_routing_id = b'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__).encode()
-        socket = self.make_one_server_socket(peer_identity, endpoint)
-        client = self.make_one_client(identity, peer_identity,
+        socket = self.make_one_server_socket(peer_routing_id, endpoint)
+        client = self.make_one_client(peer_routing_id,
                                       timeout=1,
                                       io_loop=self.io_loop)
         client.connect(endpoint)
@@ -135,7 +130,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future = client.please.do_that_job(1, 2, 3, b=4)
         yield async_sleep(self.io_loop, .1)
         request = yield tornado.gen.Task(stream.on_recv)
-        server_id, delimiter, version, uid, message_type, message = request
+        _, delimiter, version, uid, message_type, message = request
         assert delimiter == b''
         assert version == VERSION
         assert uid
@@ -154,10 +149,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     def test_client_registry(self):
         from pseud.utils import create_local_registry, get_rpc_callable
-        identity = b'client0'
-        peer_identity = b'echo'
-        registry = create_local_registry(identity)
-        client = self.make_one_client(identity, peer_identity,
+        user_id = b'client'
+        peer_routing_id = b'echo'
+        registry = create_local_registry(user_id)
+        client = self.make_one_client(peer_routing_id, user_id=user_id,
                                       registry=registry)
 
         @client.register_rpc
