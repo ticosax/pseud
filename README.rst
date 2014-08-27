@@ -53,7 +53,7 @@ Tornado
 
 .. code-block:: console
 
-   $ pip install -e . tornado<4 futures
+   $ pip install -e . 'tornado<4' futures
 
 Gevent
 ------
