@@ -1,8 +1,11 @@
 Changelog history
 =================
 
-0.0.5 - Not Yet Released
+0.0.6 - Not Yet Released
 ------------------------
+
+0.0.5 - 2014/08/27
+------------------
 
     - Add python3.4 support for Tornado backend
 
