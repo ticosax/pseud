@@ -1,2 +1,6 @@
+-e .
 repoze.sphinx.autointerface
 sphinx
+Tornado
+futures
+Gevent
