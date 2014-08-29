@@ -441,8 +441,6 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.pending_keys = {}
         self.user_map = {}
         self.login2peer_id_mapping = {}
-        self.current_untrusted_key = None
-        self.connection_renewed = None
 
     def _zap_handler(self, message):
         """
@@ -452,12 +450,10 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
          mechanism, key) = message
         assert version == b'1.0'
         assert mechanism == b'CURVE'
-        if key not in self.trusted_keys:
-            self.current_untrusted_key = key
-            user_id = b''
-        else:
+        try:
             user_id = self.trusted_keys[key]
-            self.connection_renewed = key
+        except KeyError:
+            user_id = z85.encode(key)
         reply = [zid, delimiter, version, sequence, b'200', b'OK',
                  user_id, b'']
         self.zap_socket.send_multipart(reply)
@@ -484,10 +480,14 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
     def handle_hello(self, user_id, routing_id, message_uuid, message):
         login, password = msgpack_unpackb(message)
         if login in self.user_map and self.user_map[login] == password:
-            key = self.pending_keys[routing_id]
-            self.trusted_keys[key] = routing_id
+            key = z85.decode(self.pending_keys[routing_id])
+            self.trusted_keys[key] = login
             self.login2peer_id_mapping[login] = routing_id
-            reply = 'Welcome {!r}'.format(user_id).encode()
+            try:
+                del self.login2peer_id_mapping[self.pending_keys[routing_id]]
+            except KeyError:
+                pass
+            reply = 'Welcome {!r}'.format(login).encode()
             status = AUTHENTICATED
         else:
             reply = b'Authentication Error'
@@ -500,41 +500,24 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         pass
 
     def handle_authentication(self, user_id, routing_id, message_uuid):
-        if self.current_untrusted_key is not None:
-            self.pending_keys[routing_id] = self.current_untrusted_key
-            self.current_untrusted_key = None
+        self.pending_keys[routing_id] = user_id  # this is the client pub key
         reply = b'Authentication Required'
         status = UNAUTHORIZED
         self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
                                message_uuid, status, reply])
 
     def is_authenticated(self, user_id):
-        if (self.current_untrusted_key is None
-            and (user_id not in self.pending_keys
-                 or user_id in self.trusted_keys.values())):
-            if self.connection_renewed:
-                # We know that a trusted key just reconnect
-                # updates mappings where socket_id is used
-                previous_peer_id = self.trusted_keys[self.connection_renewed]
-                iterator = find_key_from_value(self.login2peer_id_mapping,
-                                               previous_peer_id)
-                login = next(iterator)
-                try:
-                    next(iterator)
-                except StopIteration:
-                    pass
-                else:
-                    del self.trusted_keys[self.connection_renewed]
-                    del self.login2peer_id_mapping[login]
-                    self.connection_renewed = None
-                    raise RuntimeError('Two peer with same identity has been'
-                                       ' detected')
-
-                self.login2peer_id_mapping[login] = user_id
-                self.trusted_keys[self.connection_renewed] = user_id
-                self.connection_renewed = None
-            return True
-        return False
+        result = False
+        if user_id in self.trusted_keys:
+            result = True
+        try:
+            if z85.decode(user_id) in self.trusted_keys:
+                result = True
+        except ValueError:
+            pass
+        if user_id in self.trusted_keys.values():
+            result = True
+        return result
 
     def stop(self):
         try:

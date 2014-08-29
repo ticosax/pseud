@@ -296,6 +296,7 @@ def test_client_can_reconnect():
     client.stop()
     server.stop()
 
+
 def test_server_can_send_to_trustable_peer_identity():
     """
     Uses internal metadata of zmq.Frame.get() to fetch identity of sender
