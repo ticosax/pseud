@@ -67,6 +67,8 @@ def make_one_client(peer_identity,
     return client
 
 
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating():
     client_id = 'client'
     server_id = 'server'
@@ -104,6 +106,8 @@ def test_basic_heartbeating():
         spawning.kill()
 
 
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating_with_disconnection():
     client_id = 'client'
     server_id = 'server'

@@ -55,6 +55,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
+    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send(self):
         from pseud.utils import register_rpc
@@ -81,6 +83,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
+    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
         from pseud.utils import register_rpc

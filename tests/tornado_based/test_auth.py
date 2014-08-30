@@ -379,6 +379,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
             return peer_identity, message
 
         result = yield client.echo(b'one')
-        assert result == [b'bob', b'one']
+        if zmq.zmq_version_info() >= (4, 1, 0):
+            assert result == [b'bob', b'one']
+        else:
+            assert result == [b'', b'one']
         server.stop()
         client.stop()
