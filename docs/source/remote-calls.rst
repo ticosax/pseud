@@ -126,7 +126,7 @@ by passing ``user_id`` and ``password`` arguments to the constructor.
 Then on the server side ``trusted_peer`` will just trust that given ``user_id``
 will identify the peer, and ignore the password.
 
-Given a client whose identity is ``'client'``, with a registered function named
+Given a client whose identity is ``'client1'``, with a registered function named
 ``addition``, the following statement may be used to send work from the server
 to the client:
 
@@ -146,6 +146,11 @@ to the client:
                     password='')
 
    client.connect('tcp://127.0.0.1:5555')
+
+   @client.register_rpc
+   def addition(a, b):
+       return a + b
+
    client.hello('Me')  # perform a first call to register itself
 
 .. note::
