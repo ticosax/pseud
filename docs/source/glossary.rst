@@ -14,3 +14,8 @@ Glossary
 
    domain
        Apply to predicates for job routing
+
+   VERSION
+       Versions of protocol. Useful to keep
+       backward compatibility in case of evolution
+       of the protocol.
