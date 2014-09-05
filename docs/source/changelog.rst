@@ -11,11 +11,16 @@ ________
       We can now reliably know who is sending messages, this feature is required
       with an authentication backend that use the zap handler.
       Just PLAIN, and CURVE are can do the job.
-      .. note::
-          This break backward compatibility.
-          Interfaces are renewed and internal API is modified.
-          It is not longer possible to hardcode socket identity for clients.
-      .. note:: pseud requires pyzmq 14.3.0 + libzmq-4.1.0 with ``zmq_msg_gets()``
+
+.. note::
+
+   This break backward compatibility.
+   Interfaces are renewed and internal API is modified.
+   It is not longer possible to hardcode socket's routing_id for clients.
+
+.. note::
+
+    pseud requires pyzmq 14.4.0 + libzmq-4.1.0 with ``zmq_msg_gets()``
 
 Bug Fixes
 _________
