@@ -41,13 +41,13 @@ You can start with the following snippet ::
         def handle_authenticated(self, message):
             pass
 
-        def is_authenticated(self, peer_id):
+        def is_authenticated(self, user_id):
             return True
 
         def save_last_work(self, message):
             pass
 
-        def get_predicate_arguments(self, peer_id):
+        def get_predicate_arguments(self, user_id):
             return {}
 
 In this example the name `'my_auth_backend'` will be used when instanciating
@@ -55,7 +55,7 @@ your RPC endpoint.
 
 .. code:: python
 
-    client = pseud.Client('local', 'remote',
+    client = pseud.Client('remote',
                           security_plugin='my_auth_backend')
 
 

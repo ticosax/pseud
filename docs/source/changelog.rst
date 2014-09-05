@@ -8,6 +8,9 @@ Features
 ________
 
     - Add reliable authentication (thx to zmq_msg_gets())
+      We can now reliably know who is sending messages, this feature is required
+      with an authentication backend that use the zap handler.
+      Just PLAIN, and CURVE are can do the job.
       .. note::
           This break backward compatibility.
           Interfaces are renewed and internal API is modified.
