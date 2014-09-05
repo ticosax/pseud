@@ -33,10 +33,10 @@ You can start with the following snippet ::
         def __init__(self, rpc):
             self.rpc = rpc
 
-        def handle_heartbeat(self, peer_id):
+        def handle_heartbeat(self, user_id, routing_id):
             pass
 
-        def handle_timeout(self, peer_id):
+        def handle_timeout(self, user_id, routing_id):
             pass
 
         def configure(self):
@@ -50,7 +50,7 @@ instanciating your RPC endpoint.
 
 .. code:: python
 
-    client = pseud.Client('local', 'remote',
+    client = pseud.Client('remote',
                           heartbeat_plugin='my_heartbeat_backend')
 
 

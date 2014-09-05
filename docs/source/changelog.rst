@@ -1,8 +1,26 @@
 Changelog history
 =================
 
-0.0.6 - Not Yet Released
+0.1.0 - Not Yet Released
 ------------------------
+
+Features
+________
+
+    - Add reliable authentication (thx to zmq_msg_gets())
+      We can now reliably know who is sending messages, this feature is required
+      with an authentication backend that use the zap handler.
+      Just PLAIN, and CURVE are can do the job.
+      .. note::
+          This break backward compatibility.
+          Interfaces are renewed and internal API is modified.
+          It is not longer possible to hardcode socket identity for clients.
+      .. note:: pseud requires pyzmq 14.3.0 + libzmq-4.1.0 with ``zmq_msg_gets()``
+
+Bug Fixes
+_________
+
+    - Tornado 4 is supported
 
 0.0.5 - 2014/08/27
 ------------------

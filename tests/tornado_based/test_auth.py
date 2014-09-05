@@ -65,26 +65,25 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud import Client, Server
         from pseud.utils import register_rpc
 
-        client_id = b'client'
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
-        client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'trusted_curve'
-        client = Client(server_id,
-                        identity=client_id,
-                        security_plugin=security_plugin,
-                        public_key=client_public,
-                        secret_key=client_secret,
-                        peer_public_key=server_public,
-                        io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin=security_plugin,
                         public_key=server_public,
                         secret_key=server_secret,
                         io_loop=self.io_loop)
-
         server.bind(endpoint)
+
+        bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
+        client = Client(server_id,
+                        user_id=b'bob',
+                        security_plugin=security_plugin,
+                        public_key=bob_public,
+                        secret_key=bob_secret,
+                        peer_public_key=server_public,
+                        io_loop=self.io_loop)
         client.connect(endpoint)
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
@@ -103,27 +102,27 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_trusted_curve_with_wrong_peer_public_key(self):
         from pseud import Client, Server
         from pseud.utils import register_rpc
-        client_id = b'client'
         server_id = b'server'
         endpoint = 'inproc://{}'.format(__name__).encode()
         endpoint = b'tcp://127.0.0.1:8998'
         server_public, server_secret = zmq.curve_keypair()
-        client_public, client_secret = zmq.curve_keypair()
-        client = Client(server_id,
-                        identity=client_id,
-                        security_plugin='trusted_curve',
-                        public_key=client_public,
-                        secret_key=client_secret,
-                        peer_public_key=z85.encode(b'R' * 32),
-                        timeout=.5,
-                        io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin='trusted_curve',
                         public_key=server_public,
                         secret_key=server_secret,
                         io_loop=self.io_loop)
-
         server.bind(endpoint)
+
+        alice_public, alice_secret = \
+            server.auth_backend.known_identities[b'alice']
+        client = Client(server_id,
+                        user_id=b'alice',
+                        security_plugin='trusted_curve',
+                        public_key=alice_public,
+                        secret_key=alice_secret,
+                        peer_public_key=z85.encode(b'R' * 32),
+                        timeout=.5,
+                        io_loop=self.io_loop)
         client.connect(endpoint)
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
@@ -157,7 +156,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
                         public_key=client_public,
                         secret_key=client_secret,
                         peer_public_key=server_public,
-                        login=client_id,
+                        user_id=client_id,
                         password=password,
                         io_loop=self.io_loop)
 
@@ -211,7 +210,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
                         public_key=client_public,
                         secret_key=client_secret,
                         peer_public_key=server_public,
-                        login=client_id,
+                        user_id=client_id,
                         password=password,
                         timeout=1,
                         io_loop=self.io_loop)
@@ -239,7 +238,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         assert result == 'foo'
         # Simulate disconnection and reconnection with new identity
         client.disconnect(endpoint)
-        client.identity = b'wow-doge'
         client.connect(endpoint)
         yield async_sleep(self.io_loop, .15)
         result = yield client.string.lower('ABC')
@@ -262,12 +260,11 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         password = b's3cret!'
 
         client = Client(server_id,
-                        identity=client_id,
+                        user_id=client_id,
                         security_plugin=security_plugin,
                         public_key=client_public,
                         secret_key=client_secret,
                         peer_public_key=server_public,
-                        login=client_id,
                         password=password,
                         io_loop=self.io_loop)
 
@@ -290,7 +287,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         register_rpc(name='string.lower')(str.lower)
 
-        future = client.string.lower('IMSCREAMING')
+        future = client.string.lower(b'IMSCREAMING')
         with pytest.raises(UnauthorizedError):
             yield future
         server.stop()
@@ -303,27 +300,25 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         from pseud import Client, Server
         from pseud._tornado import async_sleep
 
-        client_id = b'client'
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:8989'
         server_public, server_secret = zmq.curve_keypair()
-        client_public, client_secret = zmq.curve_keypair()
         security_plugin = 'trusted_curve'
-
-        client = Client(server_id,
-                        identity=client_id,
-                        security_plugin=security_plugin,
-                        public_key=client_public,
-                        secret_key=client_secret,
-                        peer_public_key=server_public,
-                        io_loop=self.io_loop)
 
         server = Server(server_id, security_plugin=security_plugin,
                         public_key=server_public,
                         secret_key=server_secret,
                         io_loop=self.io_loop)
-
         server.bind(endpoint)
+
+        bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
+        client = Client(server_id,
+                        user_id=b'bob',
+                        security_plugin=security_plugin,
+                        public_key=bob_public,
+                        secret_key=bob_secret,
+                        peer_public_key=server_public,
+                        io_loop=self.io_loop)
         client.connect(endpoint)
         assert server.socket.mechanism == zmq.CURVE
         assert client.socket.mechanism == zmq.CURVE
@@ -345,3 +340,48 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         client.stop()
         server.stop()
+
+    @tornado.testing.gen_test()
+    def test_server_can_send_to_trustable_peer_identity(self):
+        """
+        Uses internal metadata of zmq.Frame.get() to fetch identity of sender
+        """
+        from pseud import Client, Server
+
+        server_id = b'server'
+        endpoint = b'tcp://127.0.0.1:8989'
+        server_public, server_secret = zmq.curve_keypair()
+        security_plugin = 'trusted_curve'
+
+        server = Server(server_id, security_plugin=security_plugin,
+                        public_key=server_public,
+                        secret_key=server_secret,
+                        io_loop=self.io_loop)
+        server.bind(endpoint)
+
+        bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
+        client = Client(server_id,
+                        user_id=b'bob',
+                        security_plugin=security_plugin,
+                        public_key=bob_public,
+                        secret_key=bob_secret,
+                        peer_public_key=server_public,
+                        io_loop=self.io_loop)
+        client.connect(endpoint)
+        assert server.socket.mechanism == zmq.CURVE
+        assert client.socket.mechanism == zmq.CURVE
+
+        yield server.start()
+        yield client.start()
+
+        @server.register_rpc(with_identity=True)
+        def echo(peer_identity, message):
+            return peer_identity, message
+
+        result = yield client.echo(b'one')
+        if zmq.zmq_version_info() >= (4, 1, 0):
+            assert result == [b'bob', b'one']
+        else:
+            assert result == [b'', b'one']
+        server.stop()
+        client.stop()

@@ -43,34 +43,45 @@ def test_testing_heartbeat_backend_server():
                                       TestingHeartbeatBackendForServer)
 
 
-def make_one_server(identity, endpoint, heartbeat_plugin):
+def make_one_server(identity,
+                    heartbeat_plugin,
+                    security_plugin='noop_auth_backend'):
     from pseud._gevent import Server
     server = Server(identity,
-                    heartbeat_plugin=heartbeat_plugin)
+                    heartbeat_plugin=heartbeat_plugin,
+                    security_plugin=security_plugin)
     return server
 
 
-def make_one_client(identity, peer_identity,
-                    heartbeat_plugin):
+def make_one_client(peer_identity,
+                    heartbeat_plugin,
+                    security_plugin='noop_auth_backend',
+                    user_id=None,
+                    password=None):
     from pseud._gevent import Client
     client = Client(peer_identity,
-                    identity=identity,
-                    heartbeat_plugin=heartbeat_plugin)
+                    heartbeat_plugin=heartbeat_plugin,
+                    security_plugin=security_plugin,
+                    user_id=user_id,
+                    password=password)
     return client
 
 
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating():
     client_id = 'client'
     server_id = 'server'
     endpoint = 'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
-    server = make_one_server(
-        server_id, endpoint,
-        heartbeat_plugin=heartbeat_backend)
+    server = make_one_server(server_id, heartbeat_plugin=heartbeat_backend,
+                             security_plugin='plain')
 
-    client = make_one_client(client_id, server_id,
-                             heartbeat_plugin=heartbeat_backend)
+    client = make_one_client(server_id, heartbeat_plugin=heartbeat_backend,
+                             security_plugin='plain',
+                             user_id=client_id,
+                             password=client_id)
     server.bind(endpoint)
     client.connect(endpoint)
     context = zmq.Context.instance()
@@ -95,18 +106,21 @@ def test_basic_heartbeating():
         spawning.kill()
 
 
+@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating_with_disconnection():
     client_id = 'client'
     server_id = 'server'
     endpoint = 'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
-    server = make_one_server(
-        server_id, endpoint,
-        heartbeat_plugin=heartbeat_backend)
+    server = make_one_server(server_id, heartbeat_plugin=heartbeat_backend,
+                             security_plugin='plain')
 
-    client = make_one_client(client_id, server_id,
-                             heartbeat_plugin=heartbeat_backend)
+    client = make_one_client(server_id, heartbeat_plugin=heartbeat_backend,
+                             security_plugin='plain',
+                             user_id=client_id,
+                             password=client_id)
     server.bind(endpoint)
     client.connect(endpoint)
     context = zmq.Context.instance()

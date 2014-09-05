@@ -20,9 +20,9 @@ def periodic_loop(callback, timer):
         gevent.spawn(callback)
 
 
-def forever_loop(socket, callback):
+def forever_loop(socket, callback, copy):
     while True:
-        message = socket.recv_multipart()
+        message = socket.recv_multipart(copy=copy)
         gevent.spawn(callback, message)
 
 
@@ -34,8 +34,8 @@ class GeventBaseRPC(BaseRPC):
     def _backend_init(self, io_loop=None):
         self.io_loop = None
 
-    def send_work(self, peer_identity, name, *args, **kw):
-        message, uid = self._prepare_work(peer_identity, name, *args, **kw)
+    def send_work(self, user_id, name, *args, **kw):
+        message, uid = self._prepare_work(user_id, name, *args, **kw)
         self.create_timeout_detector(uid)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Sending work: {!r} {}'.format(
@@ -69,8 +69,8 @@ class GeventBaseRPC(BaseRPC):
         self.auth_backend.stop()
         self.heartbeat_backend.stop()
 
-    def read_forever(self, socket, callback):
-        return gevent.spawn(forever_loop, socket, callback)
+    def read_forever(self, socket, callback, copy=False):
+        return gevent.spawn(forever_loop, socket, callback, copy)
 
     def create_periodic_callback(self, callback, timer):
         return gevent.spawn(periodic_loop, callback, timer)
@@ -89,14 +89,17 @@ class GeventBaseRPC(BaseRPC):
 class Client(GeventBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, peer_identity, **kw):
-        super(Client, self).__init__(peer_identity=peer_identity,
-                                     **kw)
+    def __init__(self, peer_routing_id, routing_id=None, **kw):
+        if routing_id:
+            raise TypeError('routing_id argument is prohibited')
+        super(Client, self).__init__(peer_routing_id=peer_routing_id, **kw)
 
 
 @zope.interface.implementer(IServer)
 class Server(GeventBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, **kw):
-        super(Server, self).__init__(identity=identity, **kw)
+    def __init__(self, user_id, routing_id=None, **kw):
+        if routing_id:
+            raise TypeError('routing_id argument is prohibited')
+        super(Server, self).__init__(user_id=user_id, routing_id=user_id, **kw)

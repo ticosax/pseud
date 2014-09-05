@@ -5,7 +5,14 @@ import sys
 import traceback
 
 from concurrent.futures import TimeoutError
-import tornado.concurrent
+try:
+    from tornado.concurrent import FUTURES
+except ImportError:
+    import tornado.concurrent
+    future_class = tornado.concurrent.Future
+    FUTURES = [future_class]
+else:
+    future_class = FUTURES[0]
 import tornado.gen
 import zmq
 from zmq.eventloop import ioloop, zmqstream
@@ -48,31 +55,34 @@ class TornadoBaseRPC(BaseRPC):
             self.io_loop = io_loop
 
     @tornado.gen.coroutine
-    def _handle_work_proxy(self, locator, args, kw, peer_id, message_uuid):
+    def _handle_work_proxy(self, locator, args, kw, user_id, message_uuid):
         worker_callable = get_rpc_callable(
             locator,
             registry=self.registry,
-            **self.auth_backend.get_predicate_arguments(peer_id))
-        result = worker_callable(*args, **kw)
-        if isinstance(result, tornado.concurrent.Future):
+            **self.auth_backend.get_predicate_arguments(user_id))
+        if worker_callable.with_identity:
+            result = worker_callable(user_id, *args, **kw)
+        else:
+            result = worker_callable(*args, **kw)
+        if isinstance(result, FUTURES):
             result = yield result
             raise tornado.gen.Return(result)
         else:
             raise tornado.gen.Return(result)
 
     @tornado.gen.coroutine
-    def _handle_work(self, message, peer_id, message_uuid):
+    def _handle_work(self, message, routing_id, user_id, message_uuid):
         locator, args, kw = msgpack_unpackb(message)
         try:
             try:
                 result = yield self._handle_work_proxy(
-                    locator, args, kw, peer_id, message_uuid)
+                    locator, args, kw, user_id, message_uuid)
             except ServiceNotFoundError:
                 if self.proxy_to is None:
                     raise
                 else:
                     result = yield self.proxy_to._handle_work_proxy(
-                        locator, args, kw, peer_id, message_uuid)
+                        locator, args, kw, user_id, message_uuid)
 
         except Exception:
             logger.exception('Pseud job failed')
@@ -85,7 +95,7 @@ class TornadoBaseRPC(BaseRPC):
         else:
             status = OK
         response = msgpack_packb(result)
-        message = [peer_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
+        message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
                    response]
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Worker send reply {!r} {}'.format(
@@ -94,10 +104,10 @@ class TornadoBaseRPC(BaseRPC):
             )
         yield self.send_message(message)
 
-    def send_work(self, peer_identity, name, *args, **kw):
+    def send_work(self, user_id, name, *args, **kw):
         self.start()
-        message, uid = self._prepare_work(peer_identity, name, *args, **kw)
-        self.future_pool[uid] = future = tornado.concurrent.Future()
+        message, uid = self._prepare_work(user_id, name, *args, **kw)
+        self.future_pool[uid] = future = future_class()
         self.create_timeout_detector(uid)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Sending work: {!r} {}'.format(
@@ -128,10 +138,10 @@ class TornadoBaseRPC(BaseRPC):
             # Warmup delay !!
             yield async_sleep(self.io_loop, .15)
 
-    def read_forever(self, socket, callback):
+    def read_forever(self, socket, callback, copy=False):
         stream = zmqstream.ZMQStream(socket,
                                      io_loop=self.io_loop)
-        stream.on_recv(callback)
+        stream.on_recv(callback, copy=copy)
         return stream
 
     def create_periodic_callback(self, callback, timer):
@@ -171,14 +181,17 @@ class TornadoBaseRPC(BaseRPC):
 class Client(TornadoBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, peer_identity, **kw):
-        super(Client, self).__init__(peer_identity=peer_identity,
-                                     **kw)
+    def __init__(self, peer_routing_id, routing_id=None, **kw):
+        if routing_id:
+            raise TypeError('routing_id argument is prohibited')
+        super(Client, self).__init__(peer_routing_id=peer_routing_id, **kw)
 
 
 @zope.interface.implementer(IServer)
 class Server(TornadoBaseRPC):
     socket_type = zmq.ROUTER
 
-    def __init__(self, identity, **kw):
-        super(Server, self).__init__(identity=identity, **kw)
+    def __init__(self, user_id, routing_id=None, **kw):
+        if routing_id:
+            raise TypeError('routing_id argument is prohibited')
+        super(Server, self).__init__(user_id=user_id, routing_id=user_id, **kw)

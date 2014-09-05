@@ -13,16 +13,21 @@ ioloop.install()
 class ClientTestCase(tornado.testing.AsyncTestCase):
     timeout = 2
 
-    def make_one_server(self, identity, proxy_to=None):
+    def make_one_server(self, user_id, proxy_to=None,
+                        security_plugin='noop_auth_backend'):
         from pseud import Server
-        server = Server(identity, proxy_to=proxy_to,
+        server = Server(user_id, proxy_to=proxy_to,
+                        security_plugin=security_plugin,
                         io_loop=self.io_loop)
         return server
 
-    def make_one_client(self, identity, peer_identity):
+    def make_one_client(self, peer_routing_id, user_id=None,
+                        password=None, security_plugin='noop_auth_backend'):
         from pseud import Client
-        client = Client(peer_identity,
-                        identity=identity,
+        client = Client(peer_routing_id,
+                        user_id=user_id,
+                        password=password,
+                        security_plugin=security_plugin,
                         io_loop=self.io_loop)
         return client
 
@@ -30,39 +35,40 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     def test_client_can_send(self):
         from pseud.utils import register_rpc
 
-        client_id = b'client'
         server_id = b'server'
         endpoint = b'inproc://here'
 
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id)
+        client = self.make_one_client(server_id)
 
         server.bind(endpoint)
         yield server.start()
 
         client.connect(endpoint)
+        yield client.start()
 
         register_rpc(name='string.upper')(str.upper)
 
-        future = client.string.upper('hello')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'HELLO'
+        result = yield client.string.upper('hello')
+        assert result == 'HELLO'
         client.stop()
         server.stop()
 
+    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send(self):
         from pseud.utils import register_rpc
 
-        client_id = b'client'
         server_id = b'server'
-        endpoint = b'inproc://here'
+        endpoint = b'tcp://127.0.0.1:5000'
 
-        server = self.make_one_server(server_id)
+        server = self.make_one_server(server_id, security_plugin='plain')
 
-        client = self.make_one_client(client_id, server_id)
+        client = self.make_one_client(server_id, user_id=b'alice',
+                                      password=b'alice',
+                                      security_plugin='plain')
 
         server.bind(endpoint)
         client.connect(endpoint)
@@ -70,43 +76,50 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         yield client.start()
 
         register_rpc(name='string.lower')(str.lower)
+        yield client.string.lower('TATA')
 
-        future = server.send_to(client_id).string.lower('SCREAM')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'scream'
+        result = yield server.send_to(b'alice').string.lower('SCREAM')
+        assert result == 'scream'
         client.stop()
         server.stop()
 
+    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
         from pseud.utils import register_rpc
+        from pseud._tornado import async_sleep
 
         server_id = b'server'
-        endpoint = b'inproc://here'
+        endpoint = b'tcp://127.0.0.1:5000'
 
-        server = self.make_one_server(server_id)
+        server = self.make_one_server(server_id, security_plugin='plain')
 
-        client1 = self.make_one_client(b'client1', server_id)
-        client2 = self.make_one_client(b'client2', server_id)
+        client1 = self.make_one_client(server_id, user_id=b'alice',
+                                       password=b'alice',
+                                       security_plugin='plain')
+        client2 = self.make_one_client(server_id, user_id=b'bob',
+                                       password=b'bob',
+                                       security_plugin='plain')
 
         server.bind(endpoint)
+        yield server.start()
         client1.connect(endpoint)
         client2.connect(endpoint)
-        client1.start()
-        client2.start()
-        server.start()
+        yield client1.start()
+        yield client2.start()
 
         register_rpc(name='string.lower')(str.lower)
 
-        future1 = server.send_to(b'client1').string.lower('SCREAM1')
+        # call the server to register
+        yield client1.string.lower('TATA')
+        yield client2.string.lower('TATA')
+        result1 = yield server.send_to(b'alice').string.lower('SCREAM1')
 
-        future2 = server.send_to(b'client2').string.lower('SCREAM2')
+        result2 = yield server.send_to(b'bob').string.lower('SCREAM2')
 
-        self.io_loop.add_future(future2, self.stop)
-        self.wait()
-        assert future1.result() == 'scream1'
-        assert future2.result() == 'scream2'
+        assert result1 == 'scream1'
+        assert result2 == 'scream2'
         client1.stop()
         client2.stop()
         server.stop()
@@ -119,7 +132,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         endpoint = b'inproc://here'
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client(b'client', server_id)
+        client = self.make_one_client(server_id)
         server.bind(endpoint)
         client.connect(endpoint)
         yield server.start()
@@ -142,15 +155,15 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server1 = self.make_one_server(b'server1')
         server2 = self.make_one_server(b'server2', proxy_to=server1)
 
-        client1 = self.make_one_client(b'client1', b'server1')
-        client2 = self.make_one_client(b'client2', b'server2')
+        client1 = self.make_one_client(b'server1')
+        client2 = self.make_one_client(b'server2')
 
         server1.bind(b'inproc://server1')
         server2.bind(b'inproc://server2')
         client1.connect(b'inproc://server1')
         client2.connect(b'inproc://server2')
-        server1.start()
-        server2.start()
+        yield server1.start()
+        yield server2.start()
 
         # Local registration
         server1.register_rpc(name='str.lower')(str.lower)
@@ -176,18 +189,16 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert get_rpc_callable('str.lower',
                                 registry=server1.registry)('L') == 'l'
 
-        future1 = client1.str.lower('SCREAM')
-        future2 = client2.str.lower('SCREAM')
-        future3 = client1.str.upper('whisper')
-        future4 = client2.str.upper('whisper')
-        future5 = client2.bla.lower('SCREAM')
-        self.io_loop.add_future(future5, self.stop)
-        self.wait()
-        assert future1.result() == 'scream'
-        assert future2.result() == 'scream'
-        assert future3.result() == 'WHISPER'
-        assert future4.result() == 'WHISPER'
-        assert future5.result() == 'scream'
+        result1 = yield client1.str.lower('SCREAM')
+        result2 = yield client2.str.lower('SCREAM')
+        result3 = yield client1.str.upper('whisper')
+        result4 = yield client2.str.upper('whisper')
+        result5 = yield client2.bla.lower('SCREAM')
+        assert result1 == 'scream'
+        assert result2 == 'scream'
+        assert result3 == 'WHISPER'
+        assert result4 == 'WHISPER'
+        assert result5 == 'scream'
 
         client1.stop()
         client2.stop()
@@ -201,7 +212,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server.bind(b'inproc://server')
         server.start()
 
-        client = self.make_one_client(b'client', b'server')
+        client = self.make_one_client(b'server')
         client.connect(b'inproc://server')
 
         @server.register_rpc
@@ -210,11 +221,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
             yield async_sleep(self.io_loop, .01)
             raise tornado.gen.Return(True)
 
-        future = client.aysnc_task()
+        result = yield client.aysnc_task()
 
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() is True
+        assert result is True
 
     @tornado.testing.gen_test
     def test_timeout_and_error_received_later(self):
@@ -224,7 +233,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         endpoint = b'inproc://here'
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client(b'client', server_id)
+        client = self.make_one_client(server_id)
         server.bind(endpoint)
         client.connect(endpoint)
 
@@ -240,6 +249,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
                         reason='Needs zeromq build with libzmq >= 4.1.0')
+    @tornado.testing.gen_test
     def test_client_can_reconnect(self):
         from pseud.utils import register_rpc
 
@@ -249,7 +259,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         server = self.make_one_server(server_id)
 
-        client = self.make_one_client(client_id, server_id)
+        client = self.make_one_client(server_id)
 
         server.bind(endpoint)
         server.start()
@@ -258,17 +268,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         register_rpc(name='string.upper')(str.upper)
 
-        future = client.string.upper('hello')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'HELLO'
+        result = yield client.string.upper('hello')
+        assert result == 'HELLO'
 
         client.disconnect(endpoint)
         client.connect(endpoint)
-        future = client.string.upper('hello')
-        self.io_loop.add_future(future, self.stop)
-        self.wait()
-        assert future.result() == 'HELLO'
+        result = yield client.string.upper('hello')
+        assert result == 'HELLO'
 
         client.stop()
         server.stop()

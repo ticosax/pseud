@@ -24,7 +24,7 @@ def read_that_file(path):
 long_description = '\n'.join((read_that_file('README.rst'),
                               read_that_file('LICENSE.txt')))
 
-version = '0.0.6dev'
+version = '0.1.0dev'
 
 
 setup(name='pseud',
@@ -51,6 +51,7 @@ setup(name='pseud',
           'pytest',
           'pytest-cov',
           'pytest-pep8',
+          'pytest-capturelog',
           'coveralls',
           'tox',
       ],

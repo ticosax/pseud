@@ -12,17 +12,17 @@ def read_once(socket):
 
 def test_server_creation():
     from pseud._gevent import Server
-    identity = 'echo'
-    server = Server(identity)
-    assert server.identity == identity
+    user_id = 'echo'
+    server = Server(user_id)
+    assert server.user_id == user_id
     assert server.security_plugin == 'noop_auth_backend'
 
 
 def test_server_can_bind():
     from pseud._gevent import Server
-    identity = 'echo'
+    user_id = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
-    server = Server(identity,
+    server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.bind(endpoint)
     server.stop()
@@ -30,25 +30,24 @@ def test_server_can_bind():
 
 def test_server_can_connect():
     from pseud._gevent import Server
-    identity = 'echo'
+    user_id = 'echo'
     endpoint = 'tcp://127.0.0.1:5000'
-    server = Server(identity,
+    server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.connect(endpoint)
     server.stop()
 
 
-def make_one_client_socket(identity, endpoint):
+def make_one_client_socket(endpoint):
     context = zmq.Context.instance()
     req_sock = context.socket(zmq.ROUTER)
-    req_sock.identity = identity
     req_sock.connect(endpoint)
     return req_sock
 
 
-def make_one_server(identity, endpoint):
+def make_one_server(user_id, endpoint):
     from pseud._gevent import Server
-    server = Server(identity)
+    server = Server(user_id)
     server.bind(endpoint)
     return server
 
@@ -63,16 +62,16 @@ def test_job_running():
         time.sleep(.2)
         return True
 
-    identity = 'echo'
+    user_id = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
-    server = make_one_server(identity, endpoint)
+    server = make_one_server(user_id, endpoint)
     server.start()
-    socket = make_one_client_socket('client', endpoint)
+    socket = make_one_client_socket(endpoint)
     work = msgpack_packb((job_success.func_name, (1, 2, 3), {'d': False}))
-    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+    gevent.spawn(socket.send_multipart, [user_id, '', VERSION,
                                          '', WORK, work])
     response = gevent.spawn(read_once, socket).get()
-    assert response == [identity, '', VERSION, '', OK, msgpack_packb(True)]
+    assert response == [user_id, '', VERSION, '', OK, msgpack_packb(True)]
     server.stop()
 
 
@@ -80,18 +79,18 @@ def test_job_not_found():
     from pseud.common import msgpack_packb, msgpack_unpackb
     import pseud
     from pseud.interfaces import ERROR, VERSION, WORK
-    identity = 'echo'
+    user_id = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
-    server = make_one_server(identity, endpoint)
-    socket = make_one_client_socket('client', endpoint)
+    server = make_one_server(user_id, endpoint)
+    socket = make_one_client_socket(endpoint)
     work = msgpack_packb(('thisIsNotAFunction', (), {}))
     server.start()
-    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+    gevent.spawn(socket.send_multipart, [user_id, '', VERSION,
                                          '', WORK, work])
     result = gevent.event.AsyncResult()
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
-    assert response[:-1] == [identity, '', VERSION, '', ERROR]
+    assert response[:-1] == [user_id, '', VERSION, '', ERROR]
     klass, message, traceback = msgpack_unpackb(response[-1])
     assert klass == 'ServiceNotFoundError'
     assert message == 'thisIsNotAFunction'
@@ -109,18 +108,18 @@ def test_job_raise():
     def job_buggy(*args, **kw):
         raise ValueError('too bad')
 
-    identity = 'echo'
+    user_id = 'echo'
     endpoint = 'inproc://{}'.format(__name__)
-    server = make_one_server(identity, endpoint)
-    socket = make_one_client_socket('client', endpoint)
+    server = make_one_server(user_id, endpoint)
+    socket = make_one_client_socket(endpoint)
     work = msgpack_packb((job_buggy.func_name, (), {}))
     server.start()
-    gevent.spawn(socket.send_multipart, [identity, '', VERSION,
+    gevent.spawn(socket.send_multipart, [user_id, '', VERSION,
                                          '', WORK, work])
     result = gevent.event.AsyncResult()
     gevent.spawn(read_once, socket).link(result)
     response = result.get()
-    assert response[:-1] == [identity, '', VERSION, '', ERROR]
+    assert response[:-1] == [user_id, '', VERSION, '', ERROR]
     klass, message, traceback = msgpack_unpackb(response[-1])
     assert klass == 'ValueError'
     assert message == 'too bad'

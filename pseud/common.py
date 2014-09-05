@@ -111,16 +111,16 @@ def msgpack_packb(value):
 
 def msgpack_unpackb(value):
     """
-    USe custome deserializer to handle objects such as datetime
+    Use custom deserializer to handle objects such as datetime
     """
     return msgpack.unpackb(value, object_hook=pseud_decode, encoding='utf-8')
 
 
 class AttributeWrapper(object):
-    def __init__(self, rpc, name=None, peer_id=None):
+    def __init__(self, rpc, name=None, user_id=None):
         self.rpc = rpc
         self._part_names = name.split('.') if name is not None else []
-        self.peer_id = peer_id
+        self.user_id = user_id
 
     def __getattr__(self, name, default=_marker):
         try:
@@ -141,24 +141,22 @@ class AttributeWrapper(object):
     name = property(name_getter, name_setter)
 
     def __call__(self, *args, **kw):
-        destination = self.peer_id or self.rpc.peer_identity
-        return self.rpc.send_work(destination, self.name, *args, **kw)
+        user_id = self.user_id or self.rpc.peer_routing_id
+        return self.rpc.send_work(user_id, self.name, *args, **kw)
 
 
 class BaseRPC(object):
-    def __init__(self, identity=None, peer_identity=None,
+    def __init__(self, user_id=None, routing_id=None, peer_routing_id=None,
                  context=None, io_loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
-                 login=None,
-                 password=None,
-                 heartbeat_plugin='noop_heartbeat_backend',
-                 proxy_to=None,
-                 registry=None):
-        self.identity = identity
+                 password=None, heartbeat_plugin='noop_heartbeat_backend',
+                 proxy_to=None, registry=None):
+        self.user_id = user_id
+        self.routing_id = routing_id
         self.context = context or self._make_context()
-        self.peer_identity = peer_identity
+        self.peer_routing_id = peer_routing_id
         self.security_plugin = security_plugin
         self.future_pool = {}
         self.initialized = False
@@ -169,7 +167,6 @@ class BaseRPC(object):
         self.public_key = public_key
         self.secret_key = secret_key
         self.peer_public_key = peer_public_key
-        self.login = login
         self.password = password
         self.timeout = timeout
         self.heartbeat_backend = zope.component.getAdapter(
@@ -180,7 +177,7 @@ class BaseRPC(object):
         self._backend_init(io_loop=io_loop)
         self.reader = None
         self.registry = (registry if registry is not None
-                         else create_local_registry(identity or ''))
+                         else create_local_registry(user_id or ''))
         self.socket = None
 
     def __getattr__(self, name, default=_marker):
@@ -196,14 +193,14 @@ class BaseRPC(object):
                                    ' in order to call {!r}'.format(name))
             return AttributeWrapper(self, name=name)
 
-    def send_to(self, peer_id):
-        return AttributeWrapper(self, peer_id=peer_id)
+    def send_to(self, user_id):
+        return AttributeWrapper(self, user_id=user_id)
 
     def connect_or_bind(self, name, endpoint):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
-        if self.identity:
-            self.socket.identity = self.identity
+        if self.routing_id:
+            self.socket.identity = self.routing_id
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
             if zmq.zmq_version_info() >= (4, 1, 0):
@@ -220,11 +217,11 @@ class BaseRPC(object):
     def disconnect(self, endpoint):
         self.socket.disconnect(endpoint)
 
-    def _prepare_work(self, peer_identity, name, *args, **kw):
-        destination = self.auth_backend.get_destination_id(peer_identity)
+    def _prepare_work(self, user_id, name, *args, **kw):
+        routing_id = self.auth_backend.get_routing_id(user_id)
         work = msgpack_packb((name, args, kw))
         uid = uuid.uuid4().bytes
-        message = [destination, EMPTY_DELIMITER, VERSION, uid, WORK, work]
+        message = [routing_id, EMPTY_DELIMITER, VERSION, uid, WORK, work]
         return message, uid
 
     def create_timeout_detector(self, uuid):
@@ -240,30 +237,47 @@ class BaseRPC(object):
     def on_socket_ready(self, response):
         if len(response) == 4:
             # From REQ socket
-            version, message_uuid, message_type, message = response
-            peer_id = None
+            version, message_uuid, message_type = map(bytes, response[:-1])
+            message = response[-1]
+            routing_id = None
         else:
             # from ROUTER socket
-            peer_id, delimiter, version, message_uuid, message_type, message =\
-                response
+            routing_id, delimiter, version, message_uuid, message_type = map(
+                bytes, response[:-1])
+            message = response[-1]
+        try:
+            user_id = message.get(b'User-Id').encode('utf-8')
+        except zmq.ZMQError:
+            # no zap handler
+            user_id = b''
+        except TypeError:
+            if zmq.zmq_version_info() >= (4, 1, 0):
+                raise
+            # older versions of libzmq
+            user_id = b''
+        else:
+            self.auth_backend.register_routing_id(user_id, routing_id)
+
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Message received for {!r}: {!r} {}'.format(
-                self.identity,
-                response[:-1],
+                self.user_id,
+                map(bytes, response[:-1]),
                 pprint.pformat(
                     msgpack_unpackb(response[-1])
-                    if message_type in (WORK, OK, HELLO) else response[-1])))
+                    if message_type in (WORK, OK, HELLO)
+                    else bytes(response[-1]))))
         assert version == VERSION
-        if not self.auth_backend.is_authenticated(peer_id):
+        if not self.auth_backend.is_authenticated(user_id):
             if message_type != HELLO:
-                self.auth_backend.handle_authentication(peer_id, message_uuid)
+                self.auth_backend.handle_authentication(user_id, routing_id,
+                                                        message_uuid)
             else:
-                self.auth_backend.handle_hello(peer_id, message_uuid,
-                                               message)
+                self.auth_backend.handle_hello(user_id, routing_id,
+                                               message_uuid, message)
         else:
-            self.heartbeat_backend.handle_heartbeat(peer_id)
+            self.heartbeat_backend.handle_heartbeat(user_id, routing_id)
             if message_type == WORK:
-                self._handle_work(message, peer_id, message_uuid)
+                self._handle_work(message, routing_id, user_id, message_uuid)
             elif message_type == OK:
                 return self._handle_ok(message, message_uuid)
             elif message_type == ERROR:
@@ -271,9 +285,11 @@ class BaseRPC(object):
             elif message_type == AUTHENTICATED:
                 self.auth_backend.handle_authenticated(message)
             elif message_type == UNAUTHORIZED:
-                self.auth_backend.handle_authentication(peer_id, message_uuid)
+                self.auth_backend.handle_authentication(user_id, routing_id,
+                                                        message_uuid)
             elif message_type == HELLO:
-                self.auth_backend.handle_hello(peer_id, message_uuid, message)
+                self.auth_backend.handle_hello(user_id, routing_id,
+                                               message_uuid, message)
             elif message_type == HEARTBEAT:
                 # Can ignore, because every message is an heartbeat
                 pass
@@ -282,25 +298,28 @@ class BaseRPC(object):
                              ' received {!r}'.format(message_type))
                 raise NotImplementedError
 
-    def _handle_work_proxy(self, locator, args, kw, peer_id, message_uuid):
+    def _handle_work_proxy(self, locator, args, kw, user_id,
+                           message_uuid):
         worker_callable = get_rpc_callable(
             locator,
             registry=self.registry,
-            **self.auth_backend.get_predicate_arguments(peer_id))
+            **self.auth_backend.get_predicate_arguments(user_id))
+        if worker_callable.with_identity:
+            return worker_callable(user_id, *args, **kw)
         return worker_callable(*args, **kw)
 
-    def _handle_work(self, message, peer_id, message_uuid):
+    def _handle_work(self, message, routing_id, user_id, message_uuid):
         locator, args, kw = msgpack_unpackb(message)
         try:
             try:
-                result = self._handle_work_proxy(locator, args, kw, peer_id,
-                                                 message_uuid)
+                result = self._handle_work_proxy(locator, args, kw, user_id,
+                                                 message_uuid, )
             except ServiceNotFoundError:
                 if self.proxy_to is None:
                     raise
                 else:
                     result = self.proxy_to._handle_work_proxy(locator, args,
-                                                              kw, peer_id,
+                                                              kw, user_id,
                                                               message_uuid)
 
         except Exception:
@@ -314,7 +333,7 @@ class BaseRPC(object):
         else:
             status = OK
         response = msgpack_packb(result)
-        message = [peer_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
+        message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
                    response]
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Worker send reply {!r} {!r}'.format(

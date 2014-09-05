@@ -116,15 +116,52 @@ Server wants to make the client working
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to let the server send jobs to its connected clients, the caller
-should know the identity of the specified client beforehand. How to get a list
-of currently connected clients is described in the :ref:`heartbeating`
-section.
+should know the identity of the specified client beforehand.
+section. By default all clients are anonymous for the server. This is why it
+is necessary to rely on your own ``security_plugin`` to perform
+the authentication.
+
+The most simple authentication that you can use is ``plain`` for the client,
+by passing ``user_id`` and ``password`` arguments to the constructor.
+Then on the server side ``trusted_peer`` will just trust that given ``user_id``
+will identify the peer, and ignore the password.
 
 Given a client whose identity is ``'client'``, with a registered function named
 ``addition``, the following statement may be used to send work from the server
-to the client ::
+to the client:
 
-   # gevent process
-   server.send_to('client').addition(2, 4).get() == 6
+.. code:: python
 
+   # server.py
+   server = Server('service', security_plugin='trusted_peer')
+   server.bind('tcp://127.0.0.1:5555')
+   server.start()
 
+.. code:: python
+
+   # client.py
+   client = Client('service',
+                    security_plugin='plain',
+                    user_id='client1',
+                    password='')
+
+   client.connect('tcp://127.0.0.1:5555')
+   client.hello('Me')  # perform a first call to register itself
+
+.. note::
+
+    The client needs to perform at least one call to the server
+    to register itself. Otherwise the server won't know a client is connected
+    to it. On real condition the heartbeat backend will take care of it.
+    So you do not have to worry about it.
+
+.. code:: python
+
+   # server.py
+
+   # gevent api
+   server.send_to('client1').addition(2, 4).get() == 6
+
+.. note::
+
+    the ``client1`` string is the user_id provided by the client.

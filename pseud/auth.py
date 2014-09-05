@@ -1,11 +1,10 @@
 import itertools
 import logging
 
-from future.builtins import bytes
-from future.utils import viewitems
 import zope.component
 import zope.interface
 import zmq
+from zmq.utils import z85
 
 from .common import msgpack_packb, msgpack_unpackb
 from .interfaces import (AUTHENTICATED,
@@ -59,8 +58,11 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
-    def get_destination_id(self, identity):
-        return identity
+    def get_routing_id(self, user_id):
+        return user_id
+
+    def register_routing_id(self, user_id, routing_id):
+        pass
 
 
 @register_auth_backend
@@ -106,8 +108,11 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
-    def get_destination_id(self, identity):
-        return identity
+    def get_routing_id(self, user_id):
+        return user_id
+
+    def register_routing_id(self, user_id, routing_id):
+        pass
 
 
 @register_auth_backend
@@ -116,6 +121,8 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
 class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     """
     Server trusts peer certificate and allows every peer.
+
+    Note: This is an example for testing only.
     """
     name = 'trusted_curve'
 
@@ -130,9 +137,12 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         assert self.rpc.socket.get(zmq.CURVE_SERVER)
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
-        zap_socket.bind('inproc://zeromq.zap.01')
+        zap_socket.bind(b'inproc://zeromq.zap.01')
         self.reader = self.rpc.read_forever(zap_socket,
-                                            self._zap_handler)
+                                            self._zap_handler,
+                                            copy=True)
+        self.known_identities = {b'bob': zmq.curve_keypair(),
+                                 b'alice': zmq.curve_keypair()}
 
     def _zap_handler(self, message):
         """
@@ -142,8 +152,18 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
          mechanism, key) = message
         assert version == b'1.0'
         assert mechanism == b'CURVE'
-        reply = [zid, delimiter, version, sequence, b'200', b'OK',
-                 bytes(self.name, 'utf-8'), b'']
+        for known_identity, pair in self.known_identities.items():
+            if key == z85.decode(pair[0]):
+                response_code = b'200'
+                response_msg = b'OK'
+                break
+        else:
+            known_identity = b''
+            response_code = b'400'
+            response_msg = b'Unauthorized'
+
+        reply = [zid, delimiter, version, sequence, response_code,
+                 response_msg, known_identity, b'']
         self.zap_socket.send_multipart(reply)
 
     def handle_hello(self, *args):
@@ -161,8 +181,11 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
-    def get_destination_id(self, identity):
-        return identity
+    def get_routing_id(self, user_id):
+        return user_id
+
+    def register_routing_id(self, user_id, routing_id):
+        pass
 
     def stop(self):
         try:
@@ -173,6 +196,156 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
             self.reader.close()
         self.zap_socket.close()
         self.zap_socket = None
+
+
+@register_auth_backend
+@zope.interface.implementer(IAuthenticationBackend)
+@zope.component.adapter(IClient)
+class PlainForClient(_BaseAuthBackend):
+    """
+    Simple username password auth
+    """
+    name = 'plain'
+
+    def __init__(self, rpc):
+        self.rpc = rpc
+
+    def configure(self):
+        self.rpc.socket.plain_username = self.rpc.user_id
+        self.rpc.socket.plain_password = self.rpc.password
+        assert self.rpc.socket.mechanism == zmq.PLAIN
+
+    def stop(self):
+        pass
+
+    def handle_hello(self, *args):
+        pass
+
+    def handle_authenticated(self, message):
+        pass
+
+    def save_last_work(self, message):
+        pass
+
+    def is_authenticated(self, peer_id):
+        return True
+
+    def get_predicate_arguments(self, peer_id):
+        return {}
+
+    def get_routing_id(self, user_id):
+        return user_id
+
+    def register_routing_id(self, user_id, routing_id):
+        pass
+
+
+@register_auth_backend
+@zope.interface.implementer(IAuthenticationBackend)
+@zope.component.adapter(IServer)
+class PlainForServer(_BaseAuthBackend):
+    """
+    Allow peers to connect if username == password
+    using PLAIN mechanism.
+
+    .. note::
+        For testing usage only
+    """
+    name = 'plain'
+
+    def __init__(self, rpc):
+        self.rpc = rpc
+        self.routing_mapping = {}
+
+    def configure(self):
+        self.rpc.socket.plain_server = True
+        assert self.rpc.socket.mechanism == zmq.PLAIN
+        assert self.rpc.socket.get(zmq.PLAIN_SERVER)
+        self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
+        zap_socket.linger = 1
+        zap_socket.bind('inproc://zeromq.zap.01')
+        self.reader = self.rpc.read_forever(zap_socket,
+                                            self._zap_handler,
+                                            copy=True)
+
+    def _zap_handler(self, message):
+        """
+        `ZAP <http://rfc.zeromq.org/spec:27>`_
+        """
+        (zid, delimiter, version, sequence, domain, address, identity,
+         mechanism, login, password) = message
+        assert version == b'1.0'
+        assert mechanism == b'PLAIN'
+        if login == password:
+            response_code = b'200'
+            response_msg = b'OK'
+            known_identity = login
+        else:
+            known_identity = b''
+            response_code = b'400'
+            response_msg = b'Unauthorized'
+
+        reply = [zid, delimiter, version, sequence, response_code,
+                 response_msg, known_identity, b'']
+        self.zap_socket.send_multipart(reply)
+
+    def handle_hello(self, *args):
+        pass
+
+    def handle_authenticated(self, message):
+        pass
+
+    def save_last_work(self, message):
+        pass
+
+    def is_authenticated(self, peer_id):
+        return True
+
+    def get_predicate_arguments(self, peer_id):
+        return {}
+
+    def get_routing_id(self, user_id):
+        return self.routing_mapping[user_id]
+
+    def register_routing_id(self, user_id, routing_id):
+        self.routing_mapping[user_id] = routing_id
+
+    def stop(self):
+        try:
+            self.reader.kill()
+        except AttributeError:
+            self.reader.on_recv(None)
+            self.reader.flush()
+            self.reader.close()
+        self.zap_socket.close()
+        self.zap_socket = None
+
+
+@register_auth_backend
+@zope.interface.implementer(IAuthenticationBackend)
+@zope.component.adapter(IServer)
+class TrustedPeerForServer(PlainForServer):
+    """
+    Trust id given by remote peer, using PLAIN mechanism.
+    There is no password control.
+    """
+    name = 'trusted_peer'
+
+    def _zap_handler(self, message):
+        """
+        `ZAP <http://rfc.zeromq.org/spec:27>`_
+        """
+        (zid, delimiter, version, sequence, domain, address, identity,
+         mechanism, login, password) = message
+        assert version == b'1.0'
+        assert mechanism == b'PLAIN'
+        response_code = b'200'
+        response_msg = b'OK'
+        known_identity = login
+
+        reply = [zid, delimiter, version, sequence, response_code,
+                 response_msg, known_identity, b'']
+        self.zap_socket.send_multipart(reply)
 
 
 @register_auth_backend
@@ -200,7 +373,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         self.rpc.socket.curve_secretkey = self.rpc.secret_key
         assert self.rpc.socket.mechanism == zmq.CURVE
 
-    def handle_authentication(self, peer_id, message_uuid):
+    def handle_authentication(self, user_id, routing_id, message_uuid):
         if next(self.counter) >= self.max_retries:
             try:
                 future = self.rpc.future_pool.pop(message_uuid)
@@ -210,9 +383,9 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
                 future.set_exception(UnauthorizedError('Max authentication'
                                                        ' retries reached'))
         else:
-            self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION,
+            self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
                                    message_uuid, HELLO,
-                                   msgpack_packb((self.rpc.login,
+                                   msgpack_packb((self.rpc.user_id,
                                                   self.rpc.password))])
 
     def handle_hello(self, *args):
@@ -237,14 +410,11 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     def get_predicate_arguments(self, peer_id):
         return {}
 
-    def get_destination_id(self, identity):
-        return identity
+    def get_routing_id(self, user_id):
+        return user_id
 
-
-def find_key_from_value(mapping, value):
-    for key, _value in viewitems(mapping):
-        if _value == value:
-            yield key
+    def register_routing_id(self, user_id, routing_id):
+        pass
 
 
 @register_auth_backend
@@ -271,8 +441,6 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.pending_keys = {}
         self.user_map = {}
         self.login2peer_id_mapping = {}
-        self.current_untrusted_key = None
-        self.connection_renewed = None
 
     def _zap_handler(self, message):
         """
@@ -282,12 +450,12 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
          mechanism, key) = message
         assert version == b'1.0'
         assert mechanism == b'CURVE'
-        if key not in self.trusted_keys:
-            self.current_untrusted_key = key
-        else:
-            self.connection_renewed = key
+        try:
+            user_id = self.trusted_keys[key]
+        except KeyError:
+            user_id = z85.encode(key)
         reply = [zid, delimiter, version, sequence, b'200', b'OK',
-                 bytes(self.name, 'utf-8'), b'']
+                 user_id, b'']
         self.zap_socket.send_multipart(reply)
 
     def configure(self):
@@ -300,69 +468,56 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         zap_socket.linger = 1
         zap_socket.bind(b'inproc://zeromq.zap.01')
         self.reader = self.rpc.read_forever(zap_socket,
-                                            self._zap_handler)
+                                            self._zap_handler,
+                                            copy=True)
 
-    def get_destination_id(self, identity):
-        return self.login2peer_id_mapping[identity]
+    def get_routing_id(self, user_id):
+        return self.login2peer_id_mapping[user_id]
 
-    def handle_hello(self, peer_id, message_uuid, message):
+    def register_routing_id(self, user_id, routing_id):
+        self.login2peer_id_mapping[user_id] = routing_id
+
+    def handle_hello(self, user_id, routing_id, message_uuid, message):
         login, password = msgpack_unpackb(message)
         if login in self.user_map and self.user_map[login] == password:
-            key = self.pending_keys[peer_id]
-            self.trusted_keys[key] = peer_id
-            self.login2peer_id_mapping[login] = peer_id
-            reply = 'Welcome {!r}'.format(peer_id).encode()
+            key = z85.decode(self.pending_keys[routing_id])
+            self.trusted_keys[key] = login
+            self.login2peer_id_mapping[login] = routing_id
+            try:
+                del self.login2peer_id_mapping[self.pending_keys[routing_id]]
+            except KeyError:
+                pass
+            reply = 'Welcome {!r}'.format(login).encode()
             status = AUTHENTICATED
         else:
             reply = b'Authentication Error'
             status = UNAUTHORIZED
         logger.debug('Sending Hello reply: {!r}'.format(reply))
-        self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION, message_uuid,
-                               status, reply])
+        self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
+                               message_uuid, status, reply])
 
     def handle_authenticated(self, message):
         pass
 
-    def handle_authentication(self, peer_id, message_uuid):
-        if self.current_untrusted_key is not None:
-            self.pending_keys[peer_id] = self.current_untrusted_key
-            self.current_untrusted_key = None
+    def handle_authentication(self, user_id, routing_id, message_uuid):
+        self.pending_keys[routing_id] = user_id  # this is the client pub key
         reply = b'Authentication Required'
         status = UNAUTHORIZED
-        self.rpc.send_message([peer_id, EMPTY_DELIMITER, VERSION, message_uuid,
-                               status, reply])
+        self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
+                               message_uuid, status, reply])
 
-    def is_authenticated(self, peer_id):
-        if (self.current_untrusted_key is None
-            and (peer_id not in self.pending_keys
-                 or peer_id in self.trusted_keys.values())):
-            try:
-                self.pending_keys[peer_id]
-            except KeyError:
-                pass
-            if self.connection_renewed:
-                # We know that a trusted key just reconnect
-                # updates mappings where socket_id is used
-                previous_peer_id = self.trusted_keys[self.connection_renewed]
-                iterator = find_key_from_value(self.login2peer_id_mapping,
-                                               previous_peer_id)
-                login = next(iterator)
-                try:
-                    next(iterator)
-                except StopIteration:
-                    pass
-                else:
-                    del self.trusted_keys[self.connection_renewed]
-                    del self.login2peer_id_mapping[login]
-                    self.connection_renewed = None
-                    raise RuntimeError('Two peer with same identity has been'
-                                       ' detected')
-
-                self.login2peer_id_mapping[login] = peer_id
-                self.trusted_keys[self.connection_renewed] = peer_id
-                self.connection_renewed = None
-            return True
-        return False
+    def is_authenticated(self, user_id):
+        result = False
+        if user_id in self.trusted_keys:
+            result = True
+        try:
+            if z85.decode(user_id) in self.trusted_keys:
+                result = True
+        except ValueError:
+            pass
+        if user_id in self.trusted_keys.values():
+            result = True
+        return result
 
     def stop(self):
         try:

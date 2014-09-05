@@ -56,10 +56,12 @@ def create_local_registry(name):
 
 @zope.interface.implementer(IRPCCallable)
 class RPCCallable(object):
-    def __init__(self, func, name, domain='default'):
+    def __init__(self, func, name, domain='default',
+                 with_identity=False):
         self.func = func
         self.name = name
         self.domain = domain
+        self.with_identity = with_identity
 
     def __call__(self, *args, **kw):
         return self.func(*args, **kw)
@@ -70,7 +72,8 @@ class RPCCallable(object):
                                          name=self.domain).test(*args, **kw)
 
 
-def register_rpc(func=None, name=None, domain='default', registry=registry):
+def register_rpc(func=None, name=None, domain='default', registry=registry,
+                 with_identity=False):
     def wrapper(fn):
         if name is None:
             try:
@@ -84,7 +87,8 @@ def register_rpc(func=None, name=None, domain='default', registry=registry):
             endpoint_name = name
         registered_name = '{}:{}'.format(endpoint_name, domain)
         registry.registerUtility(RPCCallable(fn, name=endpoint_name,
-                                             domain=domain),
+                                             domain=domain,
+                                             with_identity=with_identity),
                                  IRPCRoute,
                                  name=registered_name)
         return fn

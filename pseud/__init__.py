@@ -91,7 +91,7 @@ class SyncBaseRPC(BaseRPC):
     def send_message(self, message):
         self.socket.send_multipart(message)
         try:
-            response = self.socket.recv_multipart()
+            response = self.socket.recv_multipart(copy=False)
         except zmq.Again:
             raise TimeoutError
         return self.on_socket_ready(response)
