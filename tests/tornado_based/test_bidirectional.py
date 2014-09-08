@@ -55,7 +55,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+    @pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                         zmq.pyzmq_version_info() < (14, 4)),
                         reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send(self):
@@ -83,12 +84,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+    @pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                         zmq.pyzmq_version_info() < (14, 4)),
                         reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_server_can_send_to_several_client(self):
         from pseud.utils import register_rpc
-        from pseud._tornado import async_sleep
 
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:5000'
@@ -238,7 +239,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
 
         future = client.string.doesnotexists('QWERTY')
-        future.set_exception(TimeoutError)
+        future.set_exception(TimeoutError())
         yield async_sleep(self.io_loop, .01)
         # at this point the future is not in the pool of futures,
         # thought we will still received the answer from the server
@@ -247,13 +248,13 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         server.close()
         client.close()
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                        reason='Needs zeromq build with libzmq >= 4.1.0')
+    @pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                         zmq.pyzmq_version_info() < (14, 4)),
+                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test
     def test_client_can_reconnect(self):
         from pseud.utils import register_rpc
 
-        client_id = b'client'
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:8989'
 

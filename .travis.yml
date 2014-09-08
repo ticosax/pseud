@@ -20,11 +20,11 @@ before_install:
     - if [[ $LIBZMQ_MASTER == true ]]; then cd libzmq-master && ./autogen.sh && ./configure && make -j && sudo make install && sudo ldconfig && cd -; fi
 
 install:
-    - if [[ $LIBZMQ_MASTER == true ]]; then pip install -q cython --install-option='--no-cython-compile'; fi
+    - if [[ $LIBZMQ_MASTER == true || $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -q cython --install-option='--no-cython-compile'; fi
     - if [[ $TRAVIS_PYTHON_VERSION == '2.7' && $LIBZMQ_MASTER == true ]]; then pip install git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq && pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == true ]]; then pip install git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq && pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == true ]]; then pip install git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq && pip install git+https://github.com/surfly/gevent.git@master#egg=gevent && pip install -e .[Tornado,Gevent] pytest-pep8 pytest-cov coveralls; fi
     - if [[ $TRAVIS_PYTHON_VERSION == '2.7' && $LIBZMQ_MASTER == false ]]; then pip install pyzmq --install-option='--zmq=bundled' && pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == false ]]; then pip install pyzmq --install-option='--zmq=bundled' && pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == false ]]; then pip install pyzmq --install-option='--zmq=bundled' && pip install git+https://github.com/surfly/gevent.git@master#egg=gevent && pip install -e .[Tornado,Gevent] pytest-pep8 pytest-cov coveralls; fi
 
 script:
     - py.test --pep8 --cov pseud

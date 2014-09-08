@@ -54,8 +54,8 @@ def test_trusted_curve():
     from pseud._gevent import Client, Server
     from pseud.utils import register_rpc
 
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8998'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
@@ -76,8 +76,7 @@ def test_trusted_curve():
 
     server.start()
     client.start()
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
     future = client.string.lower('FOO')
     assert future.get() == 'foo'
     server.stop()
@@ -86,16 +85,16 @@ def test_trusted_curve():
 
 def test_trusted_curve_with_wrong_peer_public_key():
     from pseud._gevent import Client, Server
-    server_id = 'server'
-    endpoint = 'inproc://{}'.format(__name__)
-    endpoint = 'tcp://127.0.0.1:8998'
+    server_id = b'server'
+    endpoint = 'inproc://{}'.format(__name__).encode()
+    endpoint = b'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     client = Client(server_id,
                     security_plugin='trusted_curve',
                     public_key=client_public,
                     secret_key=client_secret,
-                    peer_public_key=z85.encode('R' * 32))
+                    peer_public_key=z85.encode(b'R' * 32))
 
     server = Server(server_id, security_plugin='trusted_curve',
                     public_key=server_public,
@@ -118,13 +117,13 @@ def test_untrusted_curve_with_allowed_password():
     from pseud._gevent import Client, Server
     from pseud.utils import register_rpc
 
-    client_id = 'john'
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8998'
+    client_id = b'john'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'untrusted_curve'
-    password = 's3cret!'
+    password = b's3cret!'
 
     client = Client(server_id,
                     security_plugin=security_plugin,
@@ -148,8 +147,7 @@ def test_untrusted_curve_with_allowed_password():
     server.auth_backend.user_map[client_id] = password
 
     server.start()
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
     future = client.string.lower('FOO')
     future2 = client.string.lower('FOO_JJ')
     assert future.get() == 'foo'
@@ -164,13 +162,13 @@ def test_untrusted_curve_with_allowed_password_and_client_disconnect():
     from pseud._gevent import Client, Server
     from pseud.utils import register_rpc
 
-    client_id = 'john'
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8998'
+    client_id = b'john'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8998'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'untrusted_curve'
-    password = 's3cret!'
+    password = b's3cret!'
 
     client = Client(server_id,
                     security_plugin=security_plugin,
@@ -194,13 +192,12 @@ def test_untrusted_curve_with_allowed_password_and_client_disconnect():
     server.auth_backend.user_map[client_id] = password
 
     server.start()
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
     future = client.string.lower('FOO')
     assert future.get() == 'foo'
     # Simulate disconnection and reconnection with new identity
     client.socket.disconnect(endpoint)
-    client.socket.identity = 'wow-doge'
+    client.socket.identity = b'wow-doge'
     client.socket.connect(endpoint)
     gevent.sleep(.1)  # Warmup
     assert client.string.lower('ABC').get() == 'abc'
@@ -213,13 +210,13 @@ def test_untrusted_curve_with_wrong_password():
     from pseud.interfaces import UnauthorizedError
     from pseud.utils import register_rpc
 
-    client_id = 'john'
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8999'
+    client_id = b'john'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8999'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'untrusted_curve'
-    password = 's3cret!'
+    password = b's3cret!'
 
     client = Client(server_id,
                     security_plugin=security_plugin,
@@ -240,12 +237,11 @@ def test_untrusted_curve_with_wrong_password():
     assert client.socket.mechanism == zmq.CURVE
 
     # configure manually authentication backend
-    server.auth_backend.user_map[client_id] = password + 'Looser'
+    server.auth_backend.user_map[client_id] = password + b'Looser'
 
     server.start()
     client.start()
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
     future = client.string.lower('IMSCREAMING')
     with pytest.raises(UnauthorizedError):
         future.get()
@@ -253,13 +249,14 @@ def test_untrusted_curve_with_wrong_password():
     client.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
                     reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_client_can_reconnect():
     from pseud._gevent import Client, Server
 
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8989'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8989'
     server_public, server_secret = zmq.curve_keypair()
     client_public, client_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
@@ -281,8 +278,7 @@ def test_client_can_reconnect():
 
     server.start()
 
-    import string
-    server.register_rpc(name='string.upper')(string.upper)
+    server.register_rpc(name='string.upper')(str.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
@@ -297,14 +293,17 @@ def test_client_can_reconnect():
     server.stop()
 
 
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_server_can_send_to_trustable_peer_identity():
     """
     Uses internal metadata of zmq.Frame.get() to fetch identity of sender
     """
     from pseud._gevent import Client, Server
 
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8989'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8989'
     server_public, server_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
@@ -314,9 +313,9 @@ def test_server_can_send_to_trustable_peer_identity():
                     )
     server.bind(endpoint)
 
-    bob_public, bob_secret = server.auth_backend.known_identities['bob']
+    bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
     client = Client(server_id,
-                    user_id='bob',
+                    user_id=b'bob',
                     security_plugin=security_plugin,
                     public_key=bob_public,
                     secret_key=bob_secret,
@@ -335,8 +334,8 @@ def test_server_can_send_to_trustable_peer_identity():
 
     result = client.echo('one').get()
     if zmq.zmq_version_info() >= (4, 1, 0):
-        assert result == ['bob', 'one']
+        assert result == [b'bob', 'one']
     else:
-        assert result == ['', 'one']
+        assert result == [b'', 'one']
     server.stop()
     client.stop()
