@@ -25,9 +25,8 @@ def make_one_client(peer_routing_id, security_plugin='noop_auth_backend',
 
 
 def test_client_can_send():
-    from pseud.utils import register_rpc
-    server_id = 'server'
-    endpoint = 'inproc://here'
+    server_id = b'server'
+    endpoint = b'inproc://here'
 
     server = make_one_server(server_id)
 
@@ -39,8 +38,7 @@ def test_client_can_send():
     client.connect(endpoint)
     client.start()
 
-    import string
-    register_rpc(name='string.upper')(string.upper)
+    server.register_rpc(name='string.upper')(str.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
@@ -48,14 +46,15 @@ def test_client_can_send():
     server.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
                     reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_server_can_send():
     from pseud.utils import register_rpc
 
-    client_id = 'client'
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:5000'
+    client_id = b'client'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:5000'
 
     # PLAIN
     server = make_one_server(server_id, security_plugin='plain')
@@ -70,8 +69,7 @@ def test_server_can_send():
     client.connect(endpoint)
     client.start()
 
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
 
     result = client.string.lower('TATA').get()
     assert result == 'tata'
@@ -83,22 +81,23 @@ def test_server_can_send():
     server.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
                     reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_server_can_send_to_several_client():
     from pseud.utils import register_rpc
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:5000'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:5000'
 
     server = make_one_server(server_id, security_plugin='plain')
 
     client1 = make_one_client(server_id, security_plugin='plain',
-                              user_id='client1',
-                              password='client1',
+                              user_id=b'client1',
+                              password=b'client1',
                               )
     client2 = make_one_client(server_id, security_plugin='plain',
-                              user_id='client2',
-                              password='client2',
+                              user_id=b'client2',
+                              password=b'client2',
                               )
 
     server.bind(endpoint)
@@ -108,14 +107,13 @@ def test_server_can_send_to_several_client():
     client1.start()
     client2.start()
 
-    import string
-    register_rpc(name='string.lower')(string.lower)
+    register_rpc(name='string.lower')(str.lower)
     client1.string.lower('TATA').get()
     client2.string.lower('TATA').get()
 
-    future1 = server.send_to('client1').string.lower('SCREAM1')
+    future1 = server.send_to(b'client1').string.lower('SCREAM1')
 
-    future2 = server.send_to('client2').string.lower('SCREAM2')
+    future2 = server.send_to(b'client2').string.lower('SCREAM2')
 
     assert future1.get() == 'scream1'
     assert future2.get() == 'scream2'
@@ -126,8 +124,8 @@ def test_server_can_send_to_several_client():
 
 def test_raises_if_module_not_found():
     from pseud.interfaces import ServiceNotFoundError
-    server_id = 'server'
-    endpoint = 'inproc://here'
+    server_id = b'server'
+    endpoint = b'inproc://here'
     server = make_one_server(server_id)
 
     client = make_one_client(server_id)
@@ -150,29 +148,28 @@ def test_server_can_proxy_another_server():
     from pseud.interfaces import ServiceNotFoundError
     from pseud.utils import get_rpc_callable, register_rpc
 
-    server1 = make_one_server('server1')
-    server2 = make_one_server('server2',
+    server1 = make_one_server(b'server1')
+    server2 = make_one_server(b'server2',
                               proxy_to=server1)
 
-    client1 = make_one_client('server1')
-    client2 = make_one_client('server2')
+    client1 = make_one_client(b'server1')
+    client2 = make_one_client(b'server2')
 
-    server1.bind('inproc://server1')
-    server2.bind('inproc://server2')
-    client1.connect('inproc://server1')
-    client2.connect('inproc://server2')
+    server1.bind(b'inproc://server1')
+    server2.bind(b'inproc://server2')
+    client1.connect(b'inproc://server1')
+    client2.connect(b'inproc://server2')
     server1.start()
     server2.start()
 
-    import string
     # Local registration
-    server1.register_rpc(name='str.lower')(string.lower)
+    server1.register_rpc(name='str.lower')(str.lower)
 
     # Global registration
-    register_rpc(name='str.upper')(string.upper)
+    register_rpc(name='str.upper')(str.upper)
 
     # local registration only to proxy
-    server2.register_rpc(name='bla.lower')(string.lower)
+    server2.register_rpc(name='bla.lower')(str.lower)
 
     with pytest.raises(ServiceNotFoundError):
         get_rpc_callable('str.lower', registry=server2.registry)
@@ -202,12 +199,12 @@ def test_server_can_proxy_another_server():
 
 
 def test_server_run_async_rpc():
-    server = make_one_server('server')
-    server.bind('inproc://server')
+    server = make_one_server(b'server')
+    server.bind(b'inproc://server')
     server.start()
 
-    client = make_one_client('server')
-    client.connect('inproc://server')
+    client = make_one_client(b'server')
+    client.connect(b'inproc://server')
 
     @server.register_rpc
     def aysnc_task():
@@ -223,8 +220,8 @@ def test_timeout_and_error_received_later(capsys):
     capsys is comming from pytest magic
     http://pytest.org/latest/capture.html
     """
-    server_id = 'server'
-    endpoint = 'inproc://here'
+    server_id = b'server'
+    endpoint = b'inproc://here'
     server = make_one_server(server_id)
 
     client = make_one_client(server_id)
@@ -248,13 +245,12 @@ def test_timeout_and_error_received_later(capsys):
     client.close()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                    reason='Needs zeromq build with libzmq >= 4.1.0')
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
+                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_client_can_reconnect():
-    from pseud.utils import register_rpc
-
-    server_id = 'server'
-    endpoint = 'tcp://127.0.0.1:8989'
+    server_id = b'server'
+    endpoint = b'tcp://127.0.0.1:8989'
 
     server = make_one_server(server_id)
 
@@ -265,8 +261,7 @@ def test_client_can_reconnect():
 
     client.connect(endpoint)
 
-    import string
-    register_rpc(name='string.upper')(string.upper)
+    server.register_rpc(name='string.upper')(str.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'

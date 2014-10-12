@@ -251,7 +251,8 @@ class BaseRPC(object):
             # no zap handler
             user_id = b''
         except TypeError:
-            if zmq.zmq_version_info() >= (4, 1, 0):
+            if (zmq.zmq_version_info() >= (4, 1, 0) and
+                    zmq.pyzmq_version_info() >= (14, 4)):
                 raise
             # older versions of libzmq
             user_id = b''

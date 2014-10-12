@@ -293,7 +293,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         server.stop()
         client.stop()
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+    @pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                         zmq.pyzmq_version_info() < (14, 4)),
                         reason='Needs pyzmq build with libzmq >= 4.1.0')
     @tornado.testing.gen_test()
     def test_client_can_reconnect(self):
@@ -379,7 +380,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
             return peer_identity, message
 
         result = yield client.echo(b'one')
-        if zmq.zmq_version_info() >= (4, 1, 0):
+        if (zmq.zmq_version_info() >= (4, 1, 0) and
+                zmq.pyzmq_version_info()[:3] >= (14, 4, 0)):
             assert result == [b'bob', b'one']
         else:
             assert result == [b'', b'one']

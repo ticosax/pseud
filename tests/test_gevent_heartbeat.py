@@ -67,12 +67,13 @@ def make_one_client(peer_identity,
     return client
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
                     reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating():
-    client_id = 'client'
-    server_id = 'server'
-    endpoint = 'ipc://here'
+    client_id = b'client'
+    server_id = b'server'
+    endpoint = b'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(server_id, heartbeat_plugin=heartbeat_backend,
@@ -86,8 +87,8 @@ def test_basic_heartbeating():
     client.connect(endpoint)
     context = zmq.Context.instance()
     monitoring_socket = context.socket(zmq.SUB)
-    monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-    monitoring_socket.connect('ipc://testing_heartbeating_backend')
+    monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
+    monitoring_socket.connect(b'ipc://testing_heartbeating_backend')
     server.start()
     client.start()
 
@@ -106,12 +107,13 @@ def test_basic_heartbeating():
         spawning.kill()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
+@pytest.mark.skipif((zmq.zmq_version_info() < (4, 1, 0) or
+                     zmq.pyzmq_version_info() < (14, 4)),
                     reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_basic_heartbeating_with_disconnection():
-    client_id = 'client'
-    server_id = 'server'
-    endpoint = 'ipc://here'
+    client_id = b'client'
+    server_id = b'server'
+    endpoint = b'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(server_id, heartbeat_plugin=heartbeat_backend,
@@ -125,8 +127,8 @@ def test_basic_heartbeating_with_disconnection():
     client.connect(endpoint)
     context = zmq.Context.instance()
     monitoring_socket = context.socket(zmq.SUB)
-    monitoring_socket.setsockopt(zmq.SUBSCRIBE, '')
-    monitoring_socket.connect('ipc://testing_heartbeating_backend')
+    monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
+    monitoring_socket.connect(b'ipc://testing_heartbeating_backend')
     sink = []
 
     spawning = gevent.spawn(collector, sink, monitoring_socket)
@@ -137,7 +139,7 @@ def test_basic_heartbeating_with_disconnection():
     gevent.sleep(.7)
     try:
         assert len(sink) < 10
-        assert "Gone b'client'" in sink
+        assert b"Gone b'client'" in sink
     finally:
         monitoring_socket.close()
         client.stop()
