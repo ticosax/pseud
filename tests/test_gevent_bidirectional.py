@@ -38,7 +38,7 @@ def test_client_can_send():
     client.connect(endpoint)
     client.start()
 
-    register_rpc(name='string.upper')(str.upper)
+    server.register_rpc(name='string.upper')(str.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'
@@ -261,7 +261,7 @@ def test_client_can_reconnect():
 
     client.connect(endpoint)
 
-    register_rpc(name='string.upper')(str.upper)
+    server.register_rpc(name='string.upper')(str.upper)
 
     future = client.string.upper('hello')
     assert future.get() == 'HELLO'

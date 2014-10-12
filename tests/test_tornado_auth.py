@@ -63,6 +63,7 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_trusted_curve(self):
         from pseud import Client, Server
+        from pseud.utils import register_rpc
 
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:8998'
@@ -90,10 +91,10 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         yield server.start()
         yield client.start()
 
-        server.register_rpc(name='string.lower')(str.lower)
+        register_rpc(name='string.lower')(str.lower)
 
-        result = yield client.string.lower(b'FOO')
-        assert result == b'foo'
+        result = yield client.string.lower('FOO')
+        assert result == 'foo'
         server.stop()
         client.stop()
 
