@@ -58,7 +58,7 @@ class GeventBaseRPC(BaseRPC):
         if self.reader is None:
             self.reader = self.read_forever(self.socket,
                                             self.on_socket_ready)
-            gevent.sleep(.1)
+            gevent.sleep(.2)
 
     def stop(self):
         if self.reader is not None:
