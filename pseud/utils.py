@@ -103,8 +103,10 @@ def get_rpc_callable(name, registry=registry, *args, **kw):
     Supports predicate API (check like checking permissions)
     TODO improve sorting
     """
-    for rpc_call in sorted(registry.getAllUtilitiesRegisteredFor(
-            IRPCRoute), key=lambda c: c.domain == 'default', reverse=False):
+    for rpc_call in sorted(reversed(registry.getAllUtilitiesRegisteredFor(
+            IRPCRoute)),
+            key=lambda c: c.domain == 'default',
+            reverse=False):
         if rpc_call.name != name:
             continue
         if rpc_call.test(*args, **kw):

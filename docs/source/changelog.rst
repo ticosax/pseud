@@ -27,6 +27,7 @@ Bug Fixes
 _________
 
     - Tornado 4 is supported
+    - RPCCallable from local registry receive better priority if two registered RPCs share the same name.
 
 0.0.5 - 2014/08/27
 ------------------
