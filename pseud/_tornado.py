@@ -159,7 +159,7 @@ class TornadoBaseRPC(BaseRPC):
 
     def timeout_task(self, uuid):
         try:
-            self.future_pool[uuid].set_exception(TimeoutError)
+            self.future_pool[uuid].set_exception(TimeoutError())
         except KeyError:
             pass
 

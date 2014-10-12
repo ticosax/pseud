@@ -82,10 +82,12 @@ def test_rpc_restricted_registration():
 
 def test_registration_with_custom_registry():
     from pseud.utils import (get_rpc_callable,
+                             registry,
                              register_rpc,
                              )
 
-    local_registry = Components(name='local')
+    local_registry = Components(name='local',
+                                bases=(registry,))
 
     @register_rpc(name='try_to_call_me')
     def callme(*args, **kw):

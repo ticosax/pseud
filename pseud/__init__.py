@@ -93,7 +93,7 @@ class SyncBaseRPC(BaseRPC):
         try:
             response = self.socket.recv_multipart(copy=False)
         except zmq.Again:
-            raise TimeoutError
+            raise TimeoutError()
         return self.on_socket_ready(response)
 
     def _store_result_in_future(self, future, result):
