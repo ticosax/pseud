@@ -38,7 +38,7 @@ setup(name='pseud',
       include_package_data=True,
       zip_safe=True,
       install_requires=[
-          'pyzmq',
+          'pyzmq>=14.4',
           'msgpack-python',
           'zope.component',
           'python-dateutil',

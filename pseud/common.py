@@ -250,11 +250,6 @@ class BaseRPC(object):
         except zmq.ZMQError:
             # no zap handler
             user_id = b''
-        except TypeError:
-            if zmq.zmq_version_info() >= (4, 1, 0):
-                raise
-            # older versions of libzmq
-            user_id = b''
         else:
             self.auth_backend.register_routing_id(user_id, routing_id)
 
