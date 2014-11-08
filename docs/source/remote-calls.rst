@@ -112,12 +112,12 @@ You can also decide to provide your own name (dotted name) to the callable
 
    client.this.is.a.name().get() == 'Done'
 
-Server wants to make the client working
+Server wants to make the client do work
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to let the server send jobs to its connected clients, the caller
 should know the identity of the specified client beforehand.
-section. By default all clients are anonymous for the server. This is why it
+By default all clients are anonymous for the server. This is why it
 is necessary to rely on your own ``security_plugin`` to perform
 the authentication.
 
