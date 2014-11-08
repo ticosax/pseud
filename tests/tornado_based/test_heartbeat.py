@@ -70,8 +70,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
                         io_loop=io_loop)
         return client
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     def test_basic_heartbeating(self):
         server_id = b'server'
         endpoint = b'ipc://here'
@@ -117,8 +115,6 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         client.stop()
         server.stop()
 
-    @pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                        reason='Needs pyzmq build with libzmq >= 4.1.0')
     def test_basic_heartbeating_with_disconnection(self):
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:5000'
