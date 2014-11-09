@@ -253,8 +253,6 @@ def test_untrusted_curve_with_wrong_password():
     client.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_client_can_reconnect():
     from pseud._gevent import Client, Server
 

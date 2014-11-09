@@ -56,22 +56,15 @@ For ubuntu distribution, a ppa exists.
 
 .. code-block:: console
 
-   $ curl https://github.com/zeromq/libzmq/archive/master.zip -L > libzmq.zip
-   $ sh -c 'cd libzmq; sh autogen.sh; ./configure; make -j; sudo make install; sudo ldconfig'
+   $ curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1.zip
+   $ sh -c 'cd zeromq4-1; sh autogen.sh; ./configure --with-libsodium; make -j; sudo make install; sudo ldconfig'
 
-If pyzmq 14.4 is released on pypi then you can install it with following command:
 
-.. code-block:: console
-
-   $ pip install pyzmq
-
-Otherwise you will also need to install pyzmq from the source
-with the help of cython.
+Then you can install latest pyzmq from pypi
 
 .. code-block:: console
 
-   $ pip install cython --install-option='--no-cython-compile'
-   $ pip install -e git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq
+   $ pip install pyzmq --install-option="--zmq=/usr/local"
 
 
 Choose your backend

@@ -8,26 +8,19 @@ python:
     - "2.7"
     - "3.4"
 
-env:
-    - LIBZMQ_MASTER=true
-    - LIBZMQ_MASTER=false
-
 before_install:
-    - if [[ $LIBZMQ_MASTER == true ]]; then sudo add-apt-repository -y ppa:shnatsel/dnscrypt; fi
-    - if [[ $LIBZMQ_MASTER == true ]]; then sudo apt-get update && sudo apt-get install libsodium-dev; fi
-    - if [[ $LIBZMQ_MASTER == true ]]; then curl https://github.com/zeromq/libzmq/archive/master.zip -L > libzmq-master.zip; fi
-    - if [[ $LIBZMQ_MASTER == true ]]; then unzip libzmq-master.zip; fi
-    - if [[ $LIBZMQ_MASTER == true ]]; then cd libzmq-master && ./autogen.sh && ./configure && make -j && sudo make install && sudo ldconfig && cd -; fi
+    - sudo add-apt-repository -y ppa:shnatsel/dnscrypt
+    - sudo apt-get update && sudo apt-get install libsodium-dev
+    - curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1-master.zip
+    - unzip zeromq4-1-master.zip
+    - cd zeromq4-1-master && ./autogen.sh && ./configure --with-libsodium && make -j && sudo make install && sudo ldconfig && cd -
 
 install:
-    - if [[ $LIBZMQ_MASTER == true ]]; then pip install -q cython --install-option='--no-cython-compile'; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' && $LIBZMQ_MASTER == true ]]; then pip install git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq && pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == true ]]; then pip install git+https://github.com/zeromq/pyzmq.git@master#egg=pyzmq && pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' && $LIBZMQ_MASTER == false ]]; then pip install pyzmq --install-option='--zmq=bundled' && pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' && $LIBZMQ_MASTER == false ]]; then pip install pyzmq --install-option='--zmq=bundled' && pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
 
 script:
-    - py.test --pep8 --cov pseud
+    - py.test --pep8 pseud tests --cov pseud
 
 after_success:
     coveralls
