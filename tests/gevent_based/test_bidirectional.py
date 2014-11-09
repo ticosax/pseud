@@ -48,8 +48,6 @@ def test_client_can_send():
     server.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_server_can_send():
     from pseud.utils import register_rpc
 
@@ -83,8 +81,6 @@ def test_server_can_send():
     server.stop()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                    reason='Needs pyzmq build with libzmq >= 4.1.0')
 def test_server_can_send_to_several_client():
     from pseud.utils import register_rpc
     server_id = 'server'
@@ -248,8 +244,6 @@ def test_timeout_and_error_received_later(capsys):
     client.close()
 
 
-@pytest.mark.skipif(zmq.zmq_version_info() < (4, 1, 0),
-                    reason='Needs zeromq build with libzmq >= 4.1.0')
 def test_client_can_reconnect():
     from pseud.utils import register_rpc
 
