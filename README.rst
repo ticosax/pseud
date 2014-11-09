@@ -57,7 +57,7 @@ For ubuntu distribution, a ppa exists.
 .. code-block:: console
 
    $ curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1.zip
-   $ sh -c 'cd zeromq4-1; sh autogen.sh; ./configure --with-libsodium; make -j; sudo make install; sudo ldconfig'
+   $ sh -c 'unzip zeromq4-1.zip; cd zeromq4-1; sh autogen.sh; ./configure --with-libsodium; make -j; sudo make install; sudo ldconfig'
 
 
 Then you can install latest pyzmq from pypi
