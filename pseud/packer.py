@@ -44,8 +44,8 @@ _pickle_dumps = functools.partial(
 _datetime_objs = (
     datetime.tzinfo, datetime.timedelta, datetime.datetime, datetime.date)
 _default = {
-    i + 123: (cls, _pickle_dumps, pickle.loads)
-    for i, cls in enumerate(_datetime_objs)
+    i: (cls, _pickle_dumps, pickle.loads)
+    for i, cls in enumerate(_datetime_objs, start=123)
 }
 
 
