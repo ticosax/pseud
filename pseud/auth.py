@@ -6,7 +6,6 @@ import zope.interface
 import zmq
 from zmq.utils import z85
 
-from .common import msgpack_packb, msgpack_unpackb
 from .interfaces import (AUTHENTICATED,
                          EMPTY_DELIMITER,
                          IAuthenticationBackend,
@@ -17,6 +16,7 @@ from .interfaces import (AUTHENTICATED,
                          UnauthorizedError,
                          VERSION,
                          )
+from .packer import Packer
 from .utils import register_auth_backend
 
 logger = logging.getLogger(__name__)
@@ -366,6 +366,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         super(CurveWithUntrustedKeyForClient, self).__init__(*args, **kw)
         self.counter = itertools.count()
         self.last_messages = []
+        self.packer = Packer()
 
     def configure(self):
         self.rpc.socket.curve_serverkey = self.rpc.peer_public_key
@@ -385,8 +386,8 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         else:
             self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
                                    message_uuid, HELLO,
-                                   msgpack_packb((self.rpc.user_id,
-                                                  self.rpc.password))])
+                                   self.packer.packb((self.rpc.user_id,
+                                                      self.rpc.password))])
 
     def handle_hello(self, *args):
         pass
@@ -478,7 +479,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.login2peer_id_mapping[user_id] = routing_id
 
     def handle_hello(self, user_id, routing_id, message_uuid, message):
-        login, password = msgpack_unpackb(message)
+        login, password = self.packer.unpackb(message)
         if login in self.user_map and self.user_map[login] == password:
             key = z85.decode(self.pending_keys[routing_id])
             self.trusted_keys[key] = login

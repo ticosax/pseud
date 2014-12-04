@@ -18,7 +18,7 @@ import zmq
 from zmq.eventloop import ioloop, zmqstream
 import zope.interface
 
-from .common import BaseRPC, msgpack_packb, msgpack_unpackb
+from .common import BaseRPC
 from .interfaces import (
     IClient,
     IServer,
@@ -72,7 +72,7 @@ class TornadoBaseRPC(BaseRPC):
 
     @tornado.gen.coroutine
     def _handle_work(self, message, routing_id, user_id, message_uuid):
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = self.packer.unpackb(message)
         try:
             try:
                 result = yield self._handle_work_proxy(
@@ -94,7 +94,7 @@ class TornadoBaseRPC(BaseRPC):
             status = ERROR
         else:
             status = OK
-        response = msgpack_packb(result)
+        response = self.packer.packb(result)
         message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
                    response]
         if logger.isEnabledFor(logging.DEBUG):
@@ -112,7 +112,7 @@ class TornadoBaseRPC(BaseRPC):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
-                pprint.pformat(msgpack_unpackb(message[-1]))))
+                pprint.pformat(self.packer.unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)
         self.send_message(message)
         self.io_loop.add_future(future,

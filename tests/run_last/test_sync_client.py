@@ -61,8 +61,8 @@ def test_client_method_wrapper():
 
 
 def test_job_executed():
-    from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import OK, VERSION, WORK
+    from pseud.packer import Packer
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
@@ -75,11 +75,11 @@ def test_job_executed():
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [peer_id, _, version, uid, OK, msgpack_packb(True)]
+        reply = [peer_id, _, version, uid, OK, Packer().packb(True)]
         socket.send_multipart(reply)
 
     thread = threading.Thread(target=make_one_server_thread,
@@ -96,8 +96,8 @@ def test_job_executed():
 
 
 def test_job_failure():
-    from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import ERROR, VERSION, WORK
+    from pseud.packer import Packer
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
@@ -110,13 +110,12 @@ def test_job_failure():
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [peer_id, _, version, uid, ERROR, msgpack_packb(('ValueError',
-                                                                 'too bad',
-                                                                 'traceback'))]
+        reply = [peer_id, _, version, uid, ERROR, Packer().packb(
+            ('ValueError', 'too bad', 'traceback'))]
         socket.send_multipart(reply)
 
     thread = threading.Thread(target=make_one_server_thread,
@@ -133,8 +132,8 @@ def test_job_failure():
 
 
 def test_job_failure_service_not_found():
-    from pseud.common import msgpack_packb, msgpack_unpackb
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
+    from pseud.packer import Packer
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
@@ -147,11 +146,11 @@ def test_job_failure_service_not_found():
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
         assert args == [1, 2, 3]
         assert kw == {'b': 4}
-        reply = [peer_id, _, version, uid, ERROR, msgpack_packb(
+        reply = [peer_id, _, version, uid, ERROR, Packer().packb(
             ('ServiceNotFoundError', 'too bad', 'traceback'))]
         socket.send_multipart(reply)
 
@@ -169,8 +168,8 @@ def test_job_failure_service_not_found():
 
 
 def test_job_server_never_reply():
-    from pseud.common import msgpack_unpackb
     from pseud.interfaces import TimeoutError, VERSION, WORK
+    from pseud.packer import Packer
     context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
@@ -183,7 +182,7 @@ def test_job_server_never_reply():
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == b'please.do_that_job'
         assert args == [1, 2]
         assert kw == {'b': 5}
