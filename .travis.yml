@@ -4,9 +4,9 @@ cache:
     apt
     pip
 
-python:
-    - "2.7"
-    - "3.4"
+env:
+    - TESTENV=py27
+    - TESTENV=py34
 
 before_install:
     - sudo add-apt-repository -y ppa:shnatsel/dnscrypt
@@ -16,11 +16,10 @@ before_install:
     - cd zeromq4-1-master && ./autogen.sh && ./configure && make -j && sudo make install && sudo ldconfig && cd -
 
 install:
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install -e .[Tornado] pytest-pep8 pytest-cov coveralls; fi
+    - pip install tox coveralls
 
 script:
-    - py.test --pep8 pseud tests --cov pseud
+    - tox -e $TESTENV -- --cov pseud
 
 after_success:
     coveralls
