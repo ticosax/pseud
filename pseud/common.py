@@ -1,4 +1,3 @@
-import datetime
 import functools
 import inspect
 import logging
@@ -13,7 +12,6 @@ import dateutil.parser
 import dateutil.tz
 from future import standard_library
 from future.builtins import str
-import msgpack
 import zmq
 import zope.component
 import zope.interface
@@ -39,6 +37,7 @@ from .utils import (get_rpc_callable,
                     register_rpc,
                     create_local_registry,
                     )
+from .packer import Packer
 
 
 logger = logging.getLogger(__name__)
@@ -77,45 +76,6 @@ def format_remote_traceback(traceback):
 UTC = dateutil.tz.tzutc()
 
 
-def pseud_decode(obj):
-    if '__datetime__' in obj:
-        if obj['tz'] is not None:
-            dt = dateutil.parser.parse(obj['as_str'])
-            dt = dt.astimezone(dateutil.tz.gettz(obj['tz']))
-        else:
-            dt = dateutil.parser.parse(obj['as_str'], ignoretz=True)
-        return dt
-    return obj
-
-
-def pseud_encode(obj):
-    if isinstance(obj, datetime.datetime):
-        serialized = {}
-        if obj.tzinfo:
-            serialized['tz'] = obj.tzinfo.tzname(obj)
-            obj = obj.astimezone(UTC).replace(tzinfo=None)
-        else:
-            serialized['tz'] = None
-        serialized['__datetime__'] = True
-        serialized['as_str'] = obj.isoformat() + 'Z'
-        return serialized
-    return obj
-
-
-def msgpack_packb(value):
-    """
-    Add support for custom object type like datetime
-    """
-    return msgpack.packb(value, default=pseud_encode, use_bin_type=True)
-
-
-def msgpack_unpackb(value):
-    """
-    Use custom deserializer to handle objects such as datetime
-    """
-    return msgpack.unpackb(value, object_hook=pseud_decode, encoding='utf-8')
-
-
 class AttributeWrapper(object):
     def __init__(self, rpc, name=None, user_id=None):
         self.rpc = rpc
@@ -152,7 +112,7 @@ class BaseRPC(object):
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
                  password=None, heartbeat_plugin='noop_heartbeat_backend',
-                 proxy_to=None, registry=None):
+                 proxy_to=None, registry=None, translation_table=None):
         self.user_id = user_id
         self.routing_id = routing_id
         self.context = context or self._make_context()
@@ -179,6 +139,7 @@ class BaseRPC(object):
         self.registry = (registry if registry is not None
                          else create_local_registry(user_id or ''))
         self.socket = None
+        self.packer = Packer(translation_table)
 
     def __getattr__(self, name, default=_marker):
         if name in ('connect', 'bind'):
@@ -219,7 +180,7 @@ class BaseRPC(object):
 
     def _prepare_work(self, user_id, name, *args, **kw):
         routing_id = self.auth_backend.get_routing_id(user_id)
-        work = msgpack_packb((name, args, kw))
+        work = self.packer.packb((name, args, kw))
         uid = uuid.uuid4().bytes
         message = [routing_id, EMPTY_DELIMITER, VERSION, uid, WORK, work]
         return message, uid
@@ -258,7 +219,7 @@ class BaseRPC(object):
                 self.user_id,
                 map(bytes, response[:-1]),
                 pprint.pformat(
-                    msgpack_unpackb(response[-1])
+                    self.packer.unpackb(response[-1])
                     if message_type in (WORK, OK, HELLO)
                     else bytes(response[-1]))))
         assert version == VERSION
@@ -304,7 +265,7 @@ class BaseRPC(object):
         return worker_callable(*args, **kw)
 
     def _handle_work(self, message, routing_id, user_id, message_uuid):
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = self.packer.unpackb(message)
         try:
             try:
                 result = self._handle_work_proxy(locator, args, kw, user_id,
@@ -327,7 +288,7 @@ class BaseRPC(object):
             status = ERROR
         else:
             status = OK
-        response = msgpack_packb(result)
+        response = self.packer.packb(result)
         message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
                    response]
         if logger.isEnabledFor(logging.DEBUG):
@@ -338,14 +299,14 @@ class BaseRPC(object):
         self.send_message(message)
 
     def _handle_ok(self, message, message_uuid):
-        value = msgpack_unpackb(message)
+        value = self.packer.unpackb(message)
         logger.debug('Client result {!r} from {!r}'.format(value,
                                                            message_uuid))
         future = self.future_pool.pop(message_uuid)
         self._store_result_in_future(future, value)
 
     def _handle_error(self, message, message_uuid):
-        value = msgpack_unpackb(message)
+        value = self.packer.unpackb(message)
         future = self.future_pool.pop(message_uuid, DummyFuture())
         klass, message, traceback = value
         full_message = '\n'.join((format_remote_traceback(traceback),

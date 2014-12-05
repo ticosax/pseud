@@ -333,8 +333,8 @@ def test_server_can_send_to_trustable_peer_identity():
 
     result = client.echo('one').get()
     if zmq.zmq_version_info() >= (4, 1, 0):
-        assert result == ['bob', 'one']
+        assert result == ('bob', 'one')
     else:
-        assert result == ['', 'one']
+        assert result == ('', 'one')
     server.stop()
     client.stop()

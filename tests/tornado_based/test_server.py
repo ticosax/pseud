@@ -77,8 +77,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_running(self):
-        from pseud.common import msgpack_packb
         from pseud.interfaces import EMPTY_DELIMITER, OK, VERSION, WORK
+        from pseud.packer import Packer
         from pseud.utils import register_rpc
 
         user_id = b'echo'
@@ -92,27 +92,27 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         server = self.make_one_server(user_id, endpoint)
         socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
-        work = msgpack_packb(('job_success', (1, 2, 3), {'d': False}))
+        work = Packer().packb(('job_success', (1, 2, 3), {'d': False}))
         yield tornado.gen.Task(stream.send_multipart,
                                [user_id, EMPTY_DELIMITER, VERSION, b'',
                                 WORK, work])
         yield server.start()
         response = yield tornado.gen.Task(stream.on_recv)
         assert response == [user_id, EMPTY_DELIMITER, VERSION, b'',
-                            OK, msgpack_packb(True)]
+                            OK, Packer().packb(True)]
         server.stop()
 
     @tornado.testing.gen_test
     def test_job_not_found(self):
         import pseud
-        from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import EMPTY_DELIMITER, ERROR, VERSION, WORK
+        from pseud.packer import Packer
         user_id = b'echo'
         endpoint = 'inproc://{}'.format(self.__class__.__name__).encode()
         server = self.make_one_server(user_id, endpoint)
         socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
-        work = msgpack_packb(('thisIsNotAFunction', (), {}))
+        work = Packer().packb(('thisIsNotAFunction', (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
                                [user_id, EMPTY_DELIMITER, VERSION, b'', WORK,
@@ -120,7 +120,7 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         response = yield tornado.gen.Task(stream.on_recv)
         assert response[:-1] == [user_id, EMPTY_DELIMITER, VERSION, b'',
                                  ERROR]
-        klass, message, traceback = msgpack_unpackb(response[-1])
+        klass, message, traceback = Packer().unpackb(response[-1])
         assert klass == 'ServiceNotFoundError'
         assert message == 'thisIsNotAFunction'
         # pseud.__file__ might ends with .pyc
@@ -129,8 +129,8 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_raise(self):
-        from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import ERROR, VERSION, WORK
+        from pseud.packer import Packer
         from pseud.utils import register_rpc
 
         user_id = b'echo'
@@ -143,13 +143,13 @@ class ServerTestCase(tornado.testing.AsyncTestCase):
         server = self.make_one_server(user_id, endpoint)
         socket = self.make_one_client_socket(endpoint)
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
-        work = msgpack_packb(('job_buggy', (), {}))
+        work = Packer().packb(('job_buggy', (), {}))
         yield server.start()
         yield tornado.gen.Task(stream.send_multipart,
                                [user_id, b'', VERSION, b'', WORK, work])
         response = yield tornado.gen.Task(stream.on_recv)
         assert response[:-1] == [user_id, b'', VERSION, b'', ERROR]
-        klass, message, traceback = msgpack_unpackb(response[-1])
+        klass, message, traceback = Packer().unpackb(response[-1])
         assert klass == 'ValueError'
         assert message == 'too bad'
         assert __file__ in traceback

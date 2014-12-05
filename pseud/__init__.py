@@ -14,8 +14,6 @@ from . import auth, heartbeat, predicate  # NOQA
 from .common import (BaseRPC,
                      format_remote_traceback,
                      internal_exceptions,
-                     msgpack_packb,
-                     msgpack_unpackb,
                      )
 from . import interfaces
 from .interfaces import (IClient,
@@ -54,24 +52,24 @@ class SyncBaseRPC(BaseRPC):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
-                pprint.pformat(msgpack_unpackb(message[-1]))))
+                pprint.pformat(self.packer.unpackb(message[-1]))))
         response = self.send_message(message)
         return response
 
     def _prepare_work(self, name, *args, **kw):
-        work = msgpack_packb((name, args, kw))
+        work = self.packer.packb((name, args, kw))
         uid = uuid.uuid4().bytes
         message = [VERSION, uid, WORK, work]
         return message, uid
 
     def _handle_ok(self, message, message_uuid):
-        value = msgpack_unpackb(message)
+        value = self.packer.unpackb(message)
         logger.debug('SyncClient result {!r} from {!r}'.format(value,
                                                                message_uuid))
         return value
 
     def _handle_error(self, message, message_uuid):
-        value = msgpack_unpackb(message)
+        value = self.packer.unpackb(message)
         klass, message, traceback = value
         full_message = '\n'.join((format_remote_traceback(traceback),
                                   message))

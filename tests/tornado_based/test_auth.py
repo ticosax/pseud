@@ -378,8 +378,8 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         result = yield client.echo(b'one')
         if zmq.zmq_version_info() >= (4, 1, 0):
-            assert result == [b'bob', b'one']
+            assert result == (b'bob', b'one')
         else:
-            assert result == [b'', b'one']
+            assert result == (b'', b'one')
         server.stop()
         client.stop()

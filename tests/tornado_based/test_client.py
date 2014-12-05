@@ -80,8 +80,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_job_executed(self):
         from pseud._tornado import async_sleep
-        from pseud.common import msgpack_packb, msgpack_unpackb
         from pseud.interfaces import OK, VERSION, WORK
+        from pseud.packer import Packer
         peer_routing_id = b'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__).encode()
         socket = self.make_one_server_socket(peer_routing_id, endpoint)
@@ -101,11 +101,12 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
-        reply = [client_routing_id, b'', version, uid, OK, msgpack_packb(True)]
+        reply = [
+            client_routing_id, b'', version, uid, OK, Packer().packb(True)]
         yield tornado.gen.Task(stream.send_multipart, reply)
         result = yield future
         assert result is True
@@ -116,8 +117,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_job_server_never_reply(self):
         from pseud._tornado import async_sleep
-        from pseud.common import msgpack_unpackb
         from pseud.interfaces import VERSION, WORK
+        from pseud.packer import Packer
         peer_routing_id = b'echo'
         endpoint = 'ipc://{}'.format(self.__class__.__name__).encode()
         socket = self.make_one_server_socket(peer_routing_id, endpoint)
@@ -137,9 +138,9 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
-        locator, args, kw = msgpack_unpackb(message)
+        locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
         with pytest.raises(TimeoutError):
             yield future

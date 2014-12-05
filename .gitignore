@@ -5,3 +5,5 @@ docs/build/
 .coverage
 .tox/
 .cache/
+__pycache__/
+*.pyc

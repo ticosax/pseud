@@ -7,7 +7,7 @@ from gevent.timeout import Timeout
 import zmq.green as zmq
 import zope.interface
 
-from .common import BaseRPC, msgpack_unpackb
+from .common import BaseRPC
 from .interfaces import IClient, IServer
 
 
@@ -40,7 +40,7 @@ class GeventBaseRPC(BaseRPC):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Sending work: {!r} {}'.format(
                 message[:-1],
-                pprint.pformat(msgpack_unpackb(message[-1]))))
+                pprint.pformat(self.packer.unpackb(message[-1]))))
         self.auth_backend.save_last_work(message)
         self.start()
         self.send_message(message)
