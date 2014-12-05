@@ -1,6 +1,7 @@
 import datetime
 
 from dateutil.tz import tzlocal
+import pytest
 
 
 def test_datetime_without_timezone():
@@ -24,6 +25,14 @@ def test_packer_normal():
     assert packer.unpackb(packer.packb('data')) == 'data'
 
 
+def test_packer_failure():
+    import msgpack
+    from pseud.packer import Packer
+    packer = Packer()
+    with pytest.raises(msgpack.ExtraData):
+        packer.unpackb(b'--')
+
+
 def test_packer_translation():
     import msgpack
     from pseud.packer import Packer
@@ -43,3 +52,22 @@ def test_packer_translation():
         b'\x81\xc4\x03key\xc7\x03\x05\xa2--')
     assert packer.unpackb(
         packer.packb({'key': A(b'arg')})) == {'key': A(b'arg')}
+
+    packer.register_ext_handler(
+        0, A, lambda obj: b'overidden', lambda data: A(b'arbitrary'))
+    # Checks pack_cache is valid
+    assert packer.unpackb(
+        packer.packb({'key': A(b'arg')})) != {'key': A(b'arg')}
+
+    # Mostly for coverage of error paths.
+    class B(object):
+        pass
+
+    # Two different error paths.
+    with pytest.raises(TypeError):
+        packer.packb(B())
+    with pytest.raises(TypeError):
+        packer.packb(B())
+
+    dumb_packer = Packer()
+    dumb_packer.unpackb(packer.packb(A('')))

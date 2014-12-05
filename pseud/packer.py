@@ -109,3 +109,4 @@ class Packer:
             raise ValueError('Code %s is already in the table: %s' % (
                 code, self.translation_table))
         self.translation_table[code] = (base_class, packer, unpacker)
+        self._pack_cache.pop(base_class, None)
