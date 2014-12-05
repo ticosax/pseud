@@ -13,7 +13,7 @@ before_install:
     - sudo apt-get update && sudo apt-get install libsodium-dev
     - curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1-master.zip
     - unzip zeromq4-1-master.zip
-    - cd zeromq4-1-master && ./autogen.sh && ./configure --with-libsodium && make -j && sudo make install && sudo ldconfig && cd -
+    - cd zeromq4-1-master && ./autogen.sh && ./configure && make -j && sudo make install && sudo ldconfig && cd -
 
 install:
     - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -e .[Tornado,Gevent] futures pytest-pep8 pytest-cov coveralls; fi
