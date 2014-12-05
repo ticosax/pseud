@@ -442,6 +442,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.pending_keys = {}
         self.user_map = {}
         self.login2peer_id_mapping = {}
+        self.packer = Packer()
 
     def _zap_handler(self, message):
         """

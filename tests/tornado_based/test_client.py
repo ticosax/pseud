@@ -103,9 +103,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
-        reply = [client_routing_id, b'', version, uid, OK, Packer().packb(True)]
+        reply = [
+            client_routing_id, b'', version, uid, OK, Packer().packb(True)]
         yield tornado.gen.Task(stream.send_multipart, reply)
         result = yield future
         assert result is True
@@ -139,7 +140,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
         with pytest.raises(TimeoutError):
             yield future

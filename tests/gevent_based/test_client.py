@@ -52,7 +52,6 @@ def make_one_client(peer_identity, timeout=5, registry=None):
 def test_client_method_wrapper():
     from pseud.common import AttributeWrapper
     endpoint = 'inproc://{}'.format(__name__)
-    identity = __name__
     peer_identity = 'echo'
     client = make_one_client(peer_identity)
     method_name = 'a.b.c.d'
@@ -92,7 +91,7 @@ def test_job_executed():
     assert message_type == WORK
     locator, args, kw = Packer().unpackb(message)
     assert locator == 'please.do_that_job'
-    assert args == [1, 2, 3]
+    assert args == (1, 2, 3)
     assert kw == {'b': 4}
     reply = [routing_id, '', version, uid, OK, Packer().packb(True)]
     gevent.spawn(socket.send_multipart, reply)
@@ -105,7 +104,6 @@ def test_job_executed():
 def test_job_server_never_reply():
     from pseud.interfaces import VERSION, WORK
     from pseud.packer import Packer
-    identity = 'client0'
     peer_identity = 'echo'
     endpoint = 'tcp://127.0.0.1'
     port, socket = make_one_server_socket(peer_identity, endpoint)
@@ -124,7 +122,7 @@ def test_job_server_never_reply():
     assert message_type == WORK
     locator, args, kw = Packer().unpackb(message)
     assert locator == 'please.do_that_job'
-    assert args == [1, 2, 3]
+    assert args == (1, 2, 3)
     assert kw == {'b': 4}
     with pytest.raises(Timeout):
         assert future.get()

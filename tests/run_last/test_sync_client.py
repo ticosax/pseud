@@ -77,7 +77,7 @@ def test_job_executed():
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
         reply = [peer_id, _, version, uid, OK, Packer().packb(True)]
         socket.send_multipart(reply)
@@ -112,7 +112,7 @@ def test_job_failure():
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
         reply = [peer_id, _, version, uid, ERROR, Packer().packb(
             ('ValueError', 'too bad', 'traceback'))]
@@ -148,7 +148,7 @@ def test_job_failure_service_not_found():
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == 'please.do_that_job'
-        assert args == [1, 2, 3]
+        assert args == (1, 2, 3)
         assert kw == {'b': 4}
         reply = [peer_id, _, version, uid, ERROR, Packer().packb(
             ('ServiceNotFoundError', 'too bad', 'traceback'))]
@@ -184,7 +184,7 @@ def test_job_server_never_reply():
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
         assert locator == b'please.do_that_job'
-        assert args == [1, 2]
+        assert args == (1, 2)
         assert kw == {'b': 5}
 
     thread = threading.Thread(target=make_one_server_thread,
