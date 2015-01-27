@@ -142,8 +142,6 @@ class BaseRPC(object):
         self.packer = Packer(translation_table)
 
     def __getattr__(self, name, default=_marker):
-        if name in ('connect', 'bind'):
-            return functools.partial(self.connect_or_bind, name)
         try:
             if default is _marker:
                 return super(BaseRPC, self).__getattr__(name)
@@ -157,7 +155,7 @@ class BaseRPC(object):
     def send_to(self, user_id):
         return AttributeWrapper(self, user_id=user_id)
 
-    def connect_or_bind(self, name, endpoint):
+    def _connect_or_bind(self, endpoint):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
         if self.routing_id:
@@ -171,9 +169,15 @@ class BaseRPC(object):
         self.socket.SNDTIMEO = int(self.timeout * 1000)
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
-        caller = operator.methodcaller(name, endpoint)
-        caller(self.socket)
         self.initialized = True
+
+    def connect(self, endpoint):
+        self._connect_or_bind(endpoint)
+        self.socket.connect(endpoint)
+
+    def bind(self, endpoint):
+        self._connect_or_bind(endpoint)
+        self.socket.bind(endpoint)
 
     def disconnect(self, endpoint):
         self.socket.disconnect(endpoint)
