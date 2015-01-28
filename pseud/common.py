@@ -155,7 +155,7 @@ class BaseRPC(object):
     def send_to(self, user_id):
         return AttributeWrapper(self, user_id=user_id)
 
-    def _connect_or_bind(self, endpoint):
+    def _setup_socket(self):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
         if self.routing_id:
@@ -172,11 +172,11 @@ class BaseRPC(object):
         self.initialized = True
 
     def connect(self, endpoint):
-        self._connect_or_bind(endpoint)
+        self._setup_socket()
         self.socket.connect(endpoint)
 
     def bind(self, endpoint):
-        self._connect_or_bind(endpoint)
+        self._setup_socket()
         self.socket.bind(endpoint)
 
     def disconnect(self, endpoint):
