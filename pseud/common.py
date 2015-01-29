@@ -2,7 +2,6 @@ import functools
 import inspect
 import logging
 import pprint
-import sys
 import textwrap
 import traceback
 import uuid
@@ -281,12 +280,11 @@ class BaseRPC(object):
                                                               kw, user_id,
                                                               message_uuid)
 
-        except Exception:
+        except Exception as error:
             logger.exception('Pseud job failed')
-            exc_type, exc_value = sys.exc_info()[:2]
             traceback_ = traceback.format_exc()
-            name = exc_type.__name__
-            message = str(exc_value)
+            name = error.__class__.__name__
+            message = str(error)
             result = (name, message, traceback_)
             status = ERROR
         else:
