@@ -1,7 +1,6 @@
 import functools
 import inspect
 import logging
-import operator
 import pprint
 import sys
 import textwrap
