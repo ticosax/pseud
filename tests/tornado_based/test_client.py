@@ -79,7 +79,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_executed(self):
-        from pseud._tornado import async_sleep
         from pseud.interfaces import OK, VERSION, WORK
         from pseud.packer import Packer
         peer_routing_id = b'echo'
@@ -91,7 +90,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         future = client.please.do_that_job(1, 2, 3, b=4)
-        yield async_sleep(self.io_loop, .1)
         request = yield tornado.gen.Task(stream.on_recv)
         _, _ = request
         request = yield tornado.gen.Task(stream.on_recv)
@@ -118,7 +116,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_server_never_reply(self):
-        from pseud._tornado import async_sleep
         from pseud.interfaces import VERSION, WORK
         from pseud.packer import Packer
         peer_routing_id = b'echo'
@@ -132,7 +129,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
 
         future = client.please.do_that_job(1, 2, 3, b=4)
-        yield async_sleep(self.io_loop, .1)
         request = yield tornado.gen.Task(stream.on_recv)
         _, _ = request
         request = yield tornado.gen.Task(stream.on_recv)
