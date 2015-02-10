@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import functools
 
-import pytest
 import tornado.testing
 import zmq
 import zope.interface.verify
@@ -94,10 +93,8 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
         monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
         monitoring_socket.connect('ipc://testing_heartbeating_backend')
         stream = zmqstream.ZMQStream(monitoring_socket, io_loop=self.io_loop)
-        started = server.start()
+        server.start()
         client.start()
-        self.io_loop.add_future(started, self.stop)
-        self.wait()
 
         sink = []
 
@@ -106,7 +103,7 @@ class HeartbeatTestCase(tornado.testing.AsyncTestCase):
 
         stream.on_recv(functools.partial(collector, sink))
 
-        self.io_loop.add_timeout(self.io_loop.time() + 1,
+        self.io_loop.add_timeout(self.io_loop.time() + 1.1,
                                  self.stop)
         self.wait()
         assert len(sink) >= 10

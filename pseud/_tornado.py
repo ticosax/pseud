@@ -1,3 +1,4 @@
+from collections import Counter
 import functools
 import logging
 import pprint
@@ -33,6 +34,9 @@ from .utils import get_rpc_callable
 ioloop.install()
 
 logger = logging.getLogger(__name__)
+
+
+MAX_EHOSTUNREACH_RETRY = 2
 
 
 def async_sleep(io_loop, duration):
@@ -102,7 +106,7 @@ class TornadoBaseRPC(BaseRPC):
                 message[:-1],
                 pprint.pformat(result))
             )
-        yield self.send_message(message)
+        self.send_message(message)
 
     def send_work(self, user_id, name, *args, **kw):
         self.start()
@@ -119,9 +123,21 @@ class TornadoBaseRPC(BaseRPC):
                                 functools.partial(self.cleanup_future, uid))
         return future
 
-    @tornado.gen.coroutine
+    def _retry(self, msg):
+        self.send_message(msg)
+
+    def send_callback(self, counter, msg, status):
+        if (isinstance(status, zmq.ZMQError) and
+                status.errno == zmq.EHOSTUNREACH):
+            # ROUTER does not know yet the recipient
+            if counter[msg[0]] > MAX_EHOSTUNREACH_RETRY:
+                return
+            counter[msg[0]] += 1
+            # retry in 100 ms
+            self.create_later_callback(functools.partial(self._retry, msg), .1)
+
     def send_message(self, message):
-        yield tornado.gen.Task(self.reader.send_multipart, message)
+        self.reader.send_multipart(message)
 
     def _store_result_in_future(self, future, result):
         future.set_result(result)
@@ -134,14 +150,12 @@ class TornadoBaseRPC(BaseRPC):
         if self.internal_loop:
             logger.debug('{} started'.format(self.__class__.__name__))
             self.io_loop.start()
-        else:
-            # Warmup delay !!
-            yield async_sleep(self.io_loop, .15)
 
     def read_forever(self, socket, callback, copy=False):
         stream = zmqstream.ZMQStream(socket,
                                      io_loop=self.io_loop)
         stream.on_recv(callback, copy=copy)
+        stream.on_send(functools.partial(self.send_callback, Counter()))
         return stream
 
     def create_periodic_callback(self, callback, timer):
