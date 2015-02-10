@@ -74,7 +74,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert wrapper.name == method_name
         with pytest.raises(TimeoutError):
             future = wrapper()
-            future.result(timeout=.1)
+            future.result(timeout=.01)
         client.stop()
 
     @tornado.testing.gen_test
