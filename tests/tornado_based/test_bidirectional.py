@@ -74,7 +74,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         yield client.start()
 
         register_rpc(name='string.lower')(str.lower)
-        yield client.string.lower('TATA')
+
+        # Let the probing functionality some time to finish
+        for _ in range(4):
+            yield tornado.gen.moment
 
         result = yield server.send_to(b'alice').string.lower('SCREAM')
         assert result == 'scream'
@@ -107,9 +110,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         register_rpc(name='string.lower')(str.lower)
 
-        # call the server to register
-        yield client1.string.lower('TATA')
-        yield client2.string.lower('TATA')
+        # Let the probing functionality some time to finish
+        for _ in range(4):
+            yield tornado.gen.moment
+
         result1 = yield server.send_to(b'alice').string.lower('SCREAM1')
 
         result2 = yield server.send_to(b'bob').string.lower('SCREAM2')

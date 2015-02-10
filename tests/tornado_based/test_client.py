@@ -93,6 +93,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         future = client.please.do_that_job(1, 2, 3, b=4)
         yield async_sleep(self.io_loop, .1)
         request = yield tornado.gen.Task(stream.on_recv)
+        _, _ = request
+        request = yield tornado.gen.Task(stream.on_recv)
         client_routing_id, delimiter, version, uid, message_type, message =\
             request
         assert delimiter == b''
@@ -128,8 +130,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
+
         future = client.please.do_that_job(1, 2, 3, b=4)
         yield async_sleep(self.io_loop, .1)
+        request = yield tornado.gen.Task(stream.on_recv)
+        _, _ = request
         request = yield tornado.gen.Task(stream.on_recv)
         _, delimiter, version, uid, message_type, message = request
         assert delimiter == b''

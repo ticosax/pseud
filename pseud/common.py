@@ -153,11 +153,12 @@ class BaseRPC(object):
     def send_to(self, user_id):
         return AttributeWrapper(self, user_id=user_id)
 
-    def _setup_socket(self):
+    def _setup_socket(self, probing=False):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
         if self.routing_id:
             self.socket.identity = self.routing_id
+        self.socket.PROBE_ROUTER = probing
         if self.socket_type == zmq.ROUTER:
             self.socket.ROUTER_MANDATORY = True
             if zmq.zmq_version_info() >= (4, 1, 0):
@@ -170,7 +171,7 @@ class BaseRPC(object):
         self.initialized = True
 
     def connect(self, endpoint):
-        self._setup_socket()
+        self._setup_socket(probing=True)
         self.socket.connect(endpoint)
 
     def bind(self, endpoint):
@@ -203,6 +204,12 @@ class BaseRPC(object):
             version, message_uuid, message_type = map(bytes, response[:-1])
             message = response[-1]
             routing_id = None
+        elif len(response) == 2:
+            # PROBING Messages
+            routing_id = bytes(response[0])
+            version = b''
+            message_type = None
+            message = response[-1]
         else:
             # from ROUTER socket
             routing_id, delimiter, version, message_uuid, message_type = map(
@@ -224,6 +231,11 @@ class BaseRPC(object):
                     self.packer.unpackb(response[-1])
                     if message_type in (WORK, OK, HELLO)
                     else bytes(response[-1]))))
+        if message_type is None:
+            # It means it is a probing message.
+            # We do not need to go further, we can discard this message.
+            return
+
         assert version == VERSION
         if not self.auth_backend.is_authenticated(user_id):
             if message_type != HELLO:

@@ -32,8 +32,7 @@ def make_one_server_thread(context, identity, endpoint, callback):
     router_sock = context.socket(zmq.ROUTER)
     router_sock.identity = identity
     router_sock.bind(endpoint)
-    response = router_sock.recv_multipart()
-    callback(router_sock, response)
+    callback(router_sock)
 
 
 def make_one_client(timeout=5):
@@ -67,7 +66,9 @@ def test_job_executed():
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
-    def server_callback(socket, request):
+    def server_callback(socket):
+        _ = socket.recv_multipart()  # PROBING
+        request = socket.recv_multipart()
         peer_id, _, version, uid, message_type, message = request
         assert _ == b''
         assert version == VERSION
@@ -102,7 +103,9 @@ def test_job_failure():
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
-    def server_callback(socket, request):
+    def server_callback(socket):
+        _ = socket.recv_multipart()  # PROBING
+        request = socket.recv_multipart()
         peer_id, _, version, uid, message_type, message = request
         assert _ == b''
         assert version == VERSION
@@ -138,7 +141,9 @@ def test_job_failure_service_not_found():
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
-    def server_callback(socket, request):
+    def server_callback(socket):
+        _ = socket.recv_multipart()  # PROBING
+        request = socket.recv_multipart()
         peer_id, _, version, uid, message_type, message = request
         assert _ == b''
         assert version == VERSION

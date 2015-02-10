@@ -143,28 +143,21 @@ to the client:
    client = Client('service',
                     security_plugin='plain',
                     user_id='client1',
-                    password='')
+                    password='',
+                    io_loop=io_loop)  # io_loop is your current io_loop
 
    client.connect('tcp://127.0.0.1:5555')
+   client.start()
 
    @client.register_rpc
    def addition(a, b):
        return a + b
 
-   client.hello('Me')  # perform a first call to register itself
-
-.. note::
-
-    The client needs to perform at least one call to the server
-    to register itself. Otherwise the server won't know a client is connected
-    to it. On real condition the heartbeat backend will take care of it.
-    So you do not have to worry about it.
 
 .. code:: python
 
    # server.py
 
-   # gevent api
    server.send_to('client1').addition(2, 4).get() == 6
 
 .. note::

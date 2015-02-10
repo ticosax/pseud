@@ -71,9 +71,6 @@ def test_server_can_send():
     import string
     register_rpc(name='string.lower')(string.lower)
 
-    result = client.string.lower('TATA').get()
-    assert result == 'tata'
-
     future = server.send_to(client_id).string.lower('SCREAM')
 
     assert future.get() == 'scream'
@@ -106,8 +103,6 @@ def test_server_can_send_to_several_client():
 
     import string
     register_rpc(name='string.lower')(string.lower)
-    client1.string.lower('TATA').get()
-    client2.string.lower('TATA').get()
 
     future1 = server.send_to('client1').string.lower('SCREAM1')
 
