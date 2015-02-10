@@ -133,8 +133,8 @@ class TornadoBaseRPC(BaseRPC):
             if counter[msg[0]] > MAX_EHOSTUNREACH_RETRY:
                 return
             counter[msg[0]] += 1
-            # retry in 100 ms
-            self.create_later_callback(functools.partial(self._retry, msg), .1)
+            # retry in 150 ms
+            self.create_later_callback(functools.partial(self._retry, msg), .15)
 
     def send_message(self, message):
         self.reader.send_multipart(message)
