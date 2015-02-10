@@ -53,14 +53,16 @@ def test_server_with_its_loop_instance():
             server.stop()
 
         stop_thread = threading.Thread(
-            target=functools.partial(stop_server, server, can_stop))
+            target=stop_server,
+            args=(server, can_stop))
 
         stop_thread.start()
         server.start()
 
     can_stop = threading.Event()
     server_thread = threading.Thread(
-        target=functools.partial(start_server, can_stop))
+        target=start_server,
+        args=(can_stop,))
     server_thread.start()
 
     client = SyncClient()
