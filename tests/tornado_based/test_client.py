@@ -60,6 +60,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pseud.common import AttributeWrapper
         endpoint = 'ipc://{}'.format(__name__).encode()
         peer_routing_id = b'echo'
+        socket = self.make_one_server_socket(peer_routing_id, endpoint)
         client = self.make_one_client(peer_routing_id,
                                       io_loop=self.io_loop)
         method_name = 'a.b.c.d'
