@@ -36,7 +36,7 @@ ioloop.install()
 logger = logging.getLogger(__name__)
 
 
-MAX_EHOSTUNREACH_RETRY = 2
+MAX_EHOSTUNREACH_RETRY = 3
 
 
 def async_sleep(io_loop, duration):

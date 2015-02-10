@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import functools
 import os.path
 import threading
 import time
@@ -42,20 +43,30 @@ def test_server_with_its_loop_instance():
     from pseud import SyncClient, Server
     endpoint = b'ipc:///tmp/test_socket'
 
-    def start_server():
+    def start_server(can_stop):
         server = Server(b'a')
         server.bind(endpoint)
         server.register_rpc(str.lower)
-        server.io_loop.add_timeout(server.io_loop.time() + .2,
-                                   server.stop)
+
+        def stop_server(server, can_stop):
+            can_stop.wait()
+            server.stop()
+
+        stop_thread = threading.Thread(
+            target=functools.partial(stop_server, server, can_stop))
+
+        stop_thread.start()
         server.start()
 
-    server_thread = threading.Thread(target=start_server)
+    can_stop = threading.Event()
+    server_thread = threading.Thread(
+        target=functools.partial(start_server, can_stop))
     server_thread.start()
 
     client = SyncClient()
     client.connect(endpoint)
     result = client.lower('TOTO')
+    can_stop.set()
     assert result == 'toto'
 
 
