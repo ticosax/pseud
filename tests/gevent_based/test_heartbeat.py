@@ -1,7 +1,7 @@
 import pytest
 gevent = pytest.importorskip('gevent')
-import zmq.green as zmq
-import zope.interface.verify
+import zmq.green as zmq  # NOQA
+import zope.interface.verify  # NOQA
 
 
 def collector(sink, socket):

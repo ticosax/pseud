@@ -10,17 +10,16 @@ import zope.interface
 with standard_library.hooks():
     import builtins
 
-from . import auth, heartbeat, predicate  # NOQA
+from . import auth, interfaces, heartbeat, predicate  # NOQA
 from .common import (BaseRPC,
                      format_remote_traceback,
                      internal_exceptions,
-                     )
-from . import interfaces
+                     )  # NOQA
 from .interfaces import (IClient,
                          TimeoutError,
                          VERSION,
                          WORK,
-                         )
+                         )  # NOQA
 try:
     from ._tornado import Client, Server
     if os.getenv('NO_TORNADO'):

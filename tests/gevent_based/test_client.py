@@ -2,8 +2,8 @@ import uuid
 
 import pytest
 gevent = pytest.importorskip('gevent')
-from gevent.timeout import Timeout
-import zmq.green as zmq
+from gevent.timeout import Timeout  # NOQA
+import zmq.green as zmq  # NOQA
 
 
 def test_client_creation():
