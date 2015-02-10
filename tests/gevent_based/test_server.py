@@ -3,7 +3,7 @@ import time
 
 import pytest
 gevent = pytest.importorskip('gevent')
-import zmq.green as zmq
+import zmq.green as zmq  # NOQA
 
 
 def read_once(socket):

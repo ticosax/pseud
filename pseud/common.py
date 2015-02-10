@@ -17,7 +17,7 @@ import zope.interface
 with standard_library.hooks():
     import builtins
 
-from . import interfaces
+from . import interfaces  # NOQA
 from .interfaces import (AUTHENTICATED,
                          EMPTY_DELIMITER,
                          ERROR,
@@ -30,12 +30,12 @@ from .interfaces import (AUTHENTICATED,
                          UNAUTHORIZED,
                          VERSION,
                          WORK,
-                         )
+                         )  # NOQA
 from .utils import (get_rpc_callable,
                     register_rpc,
                     create_local_registry,
-                    )
-from .packer import Packer
+                    )  # NOQA
+from .packer import Packer  # NOQA
 
 
 logger = logging.getLogger(__name__)

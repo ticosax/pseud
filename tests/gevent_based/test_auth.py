@@ -1,9 +1,9 @@
 import pytest
 from zope.interface.verify import verifyClass
 gevent = pytest.importorskip('gevent')
-from gevent.timeout import Timeout
-import zmq.green as zmq
-from zmq.utils import z85
+from gevent.timeout import Timeout  # NOQA
+import zmq.green as zmq  # NOQA
+from zmq.utils import z85  # NOQA
 
 
 def test_noop_auth_backend_client():

@@ -141,7 +141,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     def test_untrusted_curve_with_allowed_password(self):
         from pseud import Client, Server
         from pseud.utils import register_rpc
-        from pseud._tornado import async_sleep
 
         client_id = b'john'
         server_id = b'server'
@@ -179,13 +178,9 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         register_rpc(name='string.lower')(str.lower)
 
-        future = client.string.lower('FOO')
-        future2 = client.string.lower('FOO_JJ')
-        yield async_sleep(self.io_loop, .01)
-        future3 = server.send_to(client_id).string.lower('ABC')
-        result = yield future
-        result2 = yield future2
-        result3 = yield future3
+        result = yield client.string.lower('FOO')
+        result2 = yield client.string.lower('FOO_JJ')
+        result3 = yield server.send_to(client_id).string.lower('ABC')
         assert result == 'foo'
         assert result2 == 'foo_jj'
         assert result3 == 'abc'
@@ -195,7 +190,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_untrusted_curve_with_allowed_password_and_client_disconnect(self):
         from pseud import Client, Server
-        from pseud._tornado import async_sleep
 
         client_id = b'john'
         server_id = b'server'
@@ -239,7 +233,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
         # Simulate disconnection and reconnection with new identity
         client.disconnect(endpoint)
         client.connect(endpoint)
-        yield async_sleep(self.io_loop, .15)
         result = yield client.string.lower('ABC')
         assert result == 'abc'
         server.stop()
@@ -296,7 +289,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test()
     def test_client_can_reconnect(self):
         from pseud import Client, Server
-        from pseud._tornado import async_sleep
 
         server_id = b'server'
         endpoint = b'tcp://127.0.0.1:8989'
@@ -331,7 +323,6 @@ class CurveTestCase(tornado.testing.AsyncTestCase):
 
         client.disconnect(endpoint)
         client.connect(endpoint)
-        yield async_sleep(self.io_loop, .1)
 
         result = yield client.string.upper('hello2')
         assert result == 'HELLO2'
