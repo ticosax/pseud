@@ -204,8 +204,12 @@ take into consideration the user_id to perform the routing.
    client = Client('service',
                    security_plugin='plain',
                    user_id='alice',
-                   password='')
+                   password='',
+                   io_loop=io_loop)
    client.connect('tcp://127.0.0.1:5555')
+   client.start()
+   # Now the client will automatically send a PROBING message to its peer,
+   # to register itself.
 
    # Action that the client will perform when
    # requested by the server.
@@ -213,20 +217,9 @@ take into consideration the user_id to perform the routing.
    def sheep():
        return 'beeeh'
 
-   # The client needs to perform a first call
-   # to the server in order to register itself.
-   # on production this will be handle automatically
-   # by the heartbeat backend. The first heartbeat will
-   # trigger the authentication. Then until the client
-   # disconnect the server will not ask the client
-   # to reconnect.
 
-   # assume we are inside a coroutine
-   result = yield client.hello('alice')
-   assert result == 'Hello alice'
-
-Back on server side, now the client as registered itself, we can send
-to it any commands the client is able to do.
+Back on server side, now the client as registered itself thanks to PROBING, we can send
+to it any commands the client is allowed to execute.
 
 .. code-block:: python
 

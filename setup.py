@@ -53,6 +53,7 @@ setup(name='pseud',
           'pytest-pep8',
           'pytest-capturelog',
           'coveralls',
+          'tornado>=4.1'
           'tox',
       ],
       cmdclass={'test': PyTest},

@@ -60,6 +60,7 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         from pseud.common import AttributeWrapper
         endpoint = 'ipc://{}'.format(__name__).encode()
         peer_routing_id = b'echo'
+        socket = self.make_one_server_socket(peer_routing_id, endpoint)
         client = self.make_one_client(peer_routing_id,
                                       io_loop=self.io_loop)
         method_name = 'a.b.c.d'
@@ -74,12 +75,11 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         assert wrapper.name == method_name
         with pytest.raises(TimeoutError):
             future = wrapper()
-            future.result(timeout=.1)
+            future.result(timeout=.01)
         client.stop()
 
     @tornado.testing.gen_test
     def test_job_executed(self):
-        from pseud._tornado import async_sleep
         from pseud.interfaces import OK, VERSION, WORK
         from pseud.packer import Packer
         peer_routing_id = b'echo'
@@ -91,7 +91,8 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
         future = client.please.do_that_job(1, 2, 3, b=4)
-        yield async_sleep(self.io_loop, .1)
+        request = yield tornado.gen.Task(stream.on_recv)
+        _, _ = request
         request = yield tornado.gen.Task(stream.on_recv)
         client_routing_id, delimiter, version, uid, message_type, message =\
             request
@@ -116,7 +117,6 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_job_server_never_reply(self):
-        from pseud._tornado import async_sleep
         from pseud.interfaces import VERSION, WORK
         from pseud.packer import Packer
         peer_routing_id = b'echo'
@@ -128,8 +128,10 @@ class ClientTestCase(tornado.testing.AsyncTestCase):
         client.connect(endpoint)
 
         stream = zmqstream.ZMQStream(socket, io_loop=self.io_loop)
+
         future = client.please.do_that_job(1, 2, 3, b=4)
-        yield async_sleep(self.io_loop, .1)
+        request = yield tornado.gen.Task(stream.on_recv)
+        _, _ = request
         request = yield tornado.gen.Task(stream.on_recv)
         _, delimiter, version, uid, message_type, message = request
         assert delimiter == b''

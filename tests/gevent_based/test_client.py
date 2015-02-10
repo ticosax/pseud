@@ -82,6 +82,8 @@ def test_job_executed():
 
     future = client.please.do_that_job(1, 2, 3, b=4)
     request = gevent.spawn(socket.recv_multipart).get()
+    _, _ = request
+    request = gevent.spawn(socket.recv_multipart).get()
     routing_id, delimiter, version, uid, message_type, message = request
     assert delimiter == ''
     assert version == VERSION
@@ -112,6 +114,8 @@ def test_job_server_never_reply():
     client.connect(endpoint + ':{}'.format(port))
 
     future = client.please.do_that_job(1, 2, 3, b=4)
+    request = gevent.spawn(socket.recv_multipart).get()
+    _, _ = request
     request = gevent.spawn(socket.recv_multipart).get()
     server_id, delimiter, version, uid, message_type, message = request
     assert delimiter == ''
