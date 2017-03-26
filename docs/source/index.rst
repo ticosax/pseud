@@ -21,9 +21,9 @@ Initialize an RPC peer playing as a server
    def hello(name):
        return 'Hello {0}'.format(name)
 
-   server.start() # this would block within its own io_loop
+   await server.start() # this would block within its own io_loop
 
-Prepare a tornado-based client
+Prepare a client
 
 .. code-block:: python
 
@@ -40,22 +40,8 @@ then make a remote procedure call (rpc)
 .. code-block:: python
 
    # Assume we are inside a coroutine
-   response = yield client.hello('Charly')
+   response = await client.hello('Charly')
    assert response == 'Hello Charly'
-
-A gevent api is also available for clients
-
-.. code-block:: python
-
-   # The gevent client
-   from pseud import Client
-
-
-   client = Client('service')
-   client.connect('tcp://127.0.0.1:5555')
-
-   assert client.hello('Charly').get() == 'Hello Charly'
-
 
 Narrative Documentation
 =======================
