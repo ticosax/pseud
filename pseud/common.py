@@ -1,55 +1,43 @@
+import asyncio
+import builtins
+from collections import Counter
+import contextlib
+import datetime as dt
 import functools
 import inspect
 import logging
 import pprint
+import sys
 import textwrap
 import traceback
 import uuid
 
-import dateutil.parser
-import dateutil.tz
-from future import standard_library
-from future.builtins import str
 import zmq
+import zmq.asyncio
 import zope.component
 import zope.interface
 
-with standard_library.hooks():
-    import builtins
-
-from . import interfaces  # NOQA
-from .interfaces import (AUTHENTICATED,
-                         EMPTY_DELIMITER,
-                         ERROR,
-                         HEARTBEAT,
-                         HELLO,
-                         IAuthenticationBackend,
-                         IHeartbeatBackend,
-                         OK,
-                         ServiceNotFoundError,
-                         UNAUTHORIZED,
-                         VERSION,
-                         WORK,
-                         )  # NOQA
-from .utils import (get_rpc_callable,
-                    register_rpc,
-                    create_local_registry,
-                    )  # NOQA
+from . import interfaces
+from .interfaces import (AUTHENTICATED, EMPTY_DELIMITER, ERROR,  # NOQA
+                         HEARTBEAT, HELLO, OK, UNAUTHORIZED, VERSION, WORK,
+                         IAuthenticationBackend, IHeartbeatBackend,
+                         ServiceNotFoundError)
 from .packer import Packer  # NOQA
-
+from .utils import (create_local_registry, get_rpc_callable,  # NOQA
+                    register_rpc)
 
 logger = logging.getLogger(__name__)
 
 _marker = object()
 
+MAX_EHOSTUNREACH_RETRY = 3
 
-internal_exceptions = tuple(name for name in dir(interfaces)
-                            if inspect.isclass(getattr(interfaces, name))
-                            and issubclass(getattr(interfaces, name),
-                                           Exception))
+internal_exceptions = tuple(name for name in dir(interfaces) if
+                            inspect.isclass(getattr(interfaces, name)) and
+                            issubclass(getattr(interfaces, name), Exception))
 
 
-class DummyFuture(object):
+class DummyFuture:
     """
     When future is gone replace it with this one to display
     incoming messages associating to ghost future.
@@ -57,7 +45,7 @@ class DummyFuture(object):
     def set_exception(self, exception):
         try:
             raise exception
-        except:
+        except Exception:
             logger.exception('Captured exception from main loop')
             raise
 
@@ -71,7 +59,23 @@ def format_remote_traceback(traceback):
         """.format(pivot.join(str(traceback).splitlines())))
 
 
-UTC = dateutil.tz.tzutc()
+UTC = dt.timezone.utc
+
+
+def handle_result(future):
+    try:
+        future.result()
+    except asyncio.CancelledError:
+        pass
+    except Exception:
+        logger.exception('Unhandled Exception')
+        raise
+
+
+async def read_forever(socket, callback, copy=False):
+    while True:
+        result = await socket.recv_multipart(copy=copy)
+        await callback(result)
 
 
 class AttributeWrapper(object):
@@ -83,9 +87,8 @@ class AttributeWrapper(object):
     def __getattr__(self, name, default=_marker):
         try:
             if default is _marker:
-                return super(AttributeWrapper, self).__getattr__(name)
-            return super(AttributeWrapper, self).__getattr__(name,
-                                                             default=default)
+                return super().__getattr__(name)
+            return super().__getattr__(name, default=default)
         except AttributeError:
             self.name = name
             return self
@@ -105,7 +108,7 @@ class AttributeWrapper(object):
 
 class BaseRPC(object):
     def __init__(self, user_id=None, routing_id=None, peer_routing_id=None,
-                 context=None, io_loop=None,
+                 context=None, loop=None,
                  security_plugin='noop_auth_backend',
                  public_key=None, secret_key=None,
                  peer_public_key=None, timeout=5,
@@ -132,7 +135,8 @@ class BaseRPC(object):
             IHeartbeatBackend,
             name=heartbeat_plugin)
         self.proxy_to = proxy_to
-        self._backend_init(io_loop=io_loop)
+        self.reader = None
+        self.loop = loop or asyncio.get_event_loop()
         self.reader = None
         self.registry = (registry if registry is not None
                          else create_local_registry(user_id or ''))
@@ -142,8 +146,8 @@ class BaseRPC(object):
     def __getattr__(self, name, default=_marker):
         try:
             if default is _marker:
-                return super(BaseRPC, self).__getattr__(name)
-            return super(BaseRPC, self).__getattr__(name, default=default)
+                return super().__getattr__(name)
+            return super().__getattr__(name, default=default)
         except AttributeError:
             if not self.initialized:
                 raise RuntimeError('You must connect or bind first'
@@ -157,14 +161,14 @@ class BaseRPC(object):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
         if self.routing_id:
-            self.socket.identity = self.routing_id
+            self.socket.setsockopt(zmq.IDENTITY, self.routing_id)
         if self.socket_type == zmq.ROUTER:
-            self.socket.ROUTER_MANDATORY = True
+            self.socket.setsockopt(zmq.ROUTER_MANDATORY, True)
             if zmq.zmq_version_info() >= (4, 1, 0):
-                self.socket.ROUTER_HANDOVER = True
+                self.socket.setsockopt(zmq.ROUTER_HANDOVER, True)
         elif self.socket_type == zmq.REQ:
-            self.socket.RCVTIMEO = int(self.timeout * 1000)
-        self.socket.SNDTIMEO = int(self.timeout * 1000)
+            self.socket.setsockopt(zmq.RCVTIMEO, int(self.timeout * 1000))
+        self.socket.setsockopt(zmq.SNDTIMEO, int(self.timeout * 1000))
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
         self.initialized = True
@@ -188,8 +192,8 @@ class BaseRPC(object):
         return message, uid
 
     def create_timeout_detector(self, uuid):
-        self.create_later_callback(functools.partial(self.timeout_task, uuid),
-                                   self.timeout)
+        return self.loop.call_later(
+            self.timeout, functools.partial(self.timeout_task, uuid))
 
     def cleanup_future(self, uuid, future):
         try:
@@ -197,7 +201,7 @@ class BaseRPC(object):
         except KeyError:
             pass
 
-    def on_socket_ready(self, response):
+    async def on_socket_ready(self, response):
         if len(response) == 4:
             # From REQ socket
             version, message_uuid, message_type = map(bytes, response[:-1])
@@ -210,101 +214,63 @@ class BaseRPC(object):
             message = response[-1]
         try:
             user_id = message.get(b'User-Id').encode('utf-8')
-        except zmq.ZMQError:
+        except zmq.error.ZMQError:
             # no zap handler
             user_id = b''
         else:
             self.auth_backend.register_routing_id(user_id, routing_id)
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Message received for {!r}: {!r} {}'.format(
-                self.user_id,
-                map(bytes, response[:-1]),
-                pprint.pformat(
-                    self.packer.unpackb(response[-1])
+            logger.debug(
+                'Message received for {}: '
+                'meta: {} message: {}'.format(
+                    (self.user_id.hex() if self.user_id is not None
+                     else user_id.hex()),
+                    b''.join(map(bytes, response[:-1])).hex(),
+                    pprint.pformat(self.packer.unpackb(response[-1]))
                     if message_type in (WORK, OK, HELLO)
-                    else bytes(response[-1]))))
+                    else bytes(response[-1]).hex()))
         assert version == VERSION
         if not self.auth_backend.is_authenticated(user_id):
             if message_type != HELLO:
-                self.auth_backend.handle_authentication(user_id, routing_id,
-                                                        message_uuid)
-            else:
-                self.auth_backend.handle_hello(user_id, routing_id,
-                                               message_uuid, message)
-        else:
-            self.heartbeat_backend.handle_heartbeat(user_id, routing_id)
-            if message_type == WORK:
-                self._handle_work(message, routing_id, user_id, message_uuid)
-            elif message_type == OK:
-                return self._handle_ok(message, message_uuid)
-            elif message_type == ERROR:
-                self._handle_error(message, message_uuid)
-            elif message_type == AUTHENTICATED:
-                self.auth_backend.handle_authenticated(message)
-            elif message_type == UNAUTHORIZED:
-                self.auth_backend.handle_authentication(user_id, routing_id,
-                                                        message_uuid)
-            elif message_type == HELLO:
-                self.auth_backend.handle_hello(user_id, routing_id,
-                                               message_uuid, message)
-            elif message_type == HEARTBEAT:
-                # Can ignore, because every message is an heartbeat
-                pass
-            else:
-                logger.error('Unknown message_type'
-                             ' received {!r}'.format(message_type))
-                raise NotImplementedError
+                return await self.auth_backend.handle_authentication(
+                    user_id, routing_id, message_uuid)
+            return await self.auth_backend.handle_hello(
+                user_id, routing_id, message_uuid, message)
 
-    def _handle_work_proxy(self, locator, args, kw, user_id,
-                           message_uuid):
-        worker_callable = get_rpc_callable(
-            locator,
-            registry=self.registry,
-            **self.auth_backend.get_predicate_arguments(user_id))
-        if worker_callable.with_identity:
-            return worker_callable(user_id, *args, **kw)
-        return worker_callable(*args, **kw)
+        await self.heartbeat_backend.handle_heartbeat(user_id, routing_id)
+        return await self.dispatch(message_type, message, routing_id, user_id,
+                                   message_uuid)
 
-    def _handle_work(self, message, routing_id, user_id, message_uuid):
-        locator, args, kw = self.packer.unpackb(message)
-        try:
-            try:
-                result = self._handle_work_proxy(locator, args, kw, user_id,
-                                                 message_uuid, )
-            except ServiceNotFoundError:
-                if self.proxy_to is None:
-                    raise
-                else:
-                    result = self.proxy_to._handle_work_proxy(locator, args,
-                                                              kw, user_id,
-                                                              message_uuid)
-
-        except Exception as error:
-            logger.exception('Pseud job failed')
-            traceback_ = traceback.format_exc()
-            name = error.__class__.__name__
-            message = str(error)
-            result = (name, message, traceback_)
-            status = ERROR
-        else:
-            status = OK
-        response = self.packer.packb(result)
-        message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
-                   response]
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Worker send reply {!r} {!r}'.format(
-                message[:-1],
-                pprint.pformat(result))
-            )
-        self.send_message(message)
+    async def dispatch(self, message_type, message, routing_id, user_id,
+                       message_uuid):
+        if message_type == WORK:
+            return await self._handle_work(
+                message, routing_id, user_id, message_uuid)
+        if message_type == OK:
+            return self._handle_ok(message, message_uuid)
+        if message_type == ERROR:
+            return self._handle_error(message, message_uuid)
+        if message_type == AUTHENTICATED:
+            return await self.auth_backend.handle_authenticated(message)
+        if message_type == UNAUTHORIZED:
+            return await self.auth_backend.handle_authentication(
+                user_id, routing_id, message_uuid)
+        if message_type == HELLO:
+            return self.auth_backend.handle_hello(user_id, routing_id,
+                                                  message_uuid, message)
+        if message_type == HEARTBEAT:
+            # Can ignore, because every message is an heartbeat
+            return
+        logger.error('Unknown message_type received {!r}'.format(message_type))
+        raise NotImplementedError
 
     def _handle_ok(self, message, message_uuid):
         value = self.packer.unpackb(message)
         logger.debug('Client result {!r} from {!r}'.format(value,
                                                            message_uuid))
         future = self.future_pool.pop(message_uuid)
-        self._store_result_in_future(future, value)
+        future.set_result(value)
 
     def _handle_error(self, message, message_uuid):
         value = self.packer.unpackb(message)
@@ -330,3 +296,106 @@ class BaseRPC(object):
     @property
     def register_rpc(self):
         return functools.partial(register_rpc, registry=self.registry)
+
+    def _make_context(self):
+        instance = zmq.asyncio.Context.instance()
+        assert isinstance(instance, zmq.asyncio.Context)
+        return instance
+
+    async def _handle_work_proxy(self, locator, args, kw, user_id,
+                                 message_uuid):
+        worker_callable = get_rpc_callable(
+            locator,
+            registry=self.registry,
+            **self.auth_backend.get_predicate_arguments(user_id))
+        if worker_callable.with_identity:
+            result = worker_callable(user_id, *args, **kw)
+        else:
+            result = worker_callable(*args, **kw)
+        if asyncio.iscoroutine(result):
+            result = await result
+        return result
+
+    async def _handle_work(self, message, routing_id, user_id, message_uuid):
+        locator, args, kw = self.packer.unpackb(message)
+        try:
+            try:
+                result = await self._handle_work_proxy(
+                    locator, args, kw, user_id, message_uuid)
+            except ServiceNotFoundError:
+                if self.proxy_to is None:
+                    raise
+                result = await self.proxy_to._handle_work_proxy(
+                    locator, args, kw, user_id, message_uuid)
+
+        except Exception:
+            logger.exception('Pseud job failed')
+            exc_type, exc_value = sys.exc_info()[:2]
+            traceback_ = traceback.format_exc()
+            name = exc_type.__name__
+            message = str(exc_value)
+            result = (name, message, traceback_)
+            status = ERROR
+        else:
+            status = OK
+        response = self.packer.packb(result)
+        message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status,
+                   response]
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Worker send reply {!r} {}'.format(
+                message[:-1],
+                pprint.pformat(result))
+            )
+        await self.send_message(message)
+
+    async def send_work(self, user_id, name, *args, **kw):
+        await self.start()
+        message, uid = self._prepare_work(user_id, name, *args, **kw)
+        self.future_pool[uid] = future = self.loop.create_future()
+        future.add_done_callback(functools.partial(self.cleanup_future, uid))
+        asyncio.ensure_future(future, loop=self.loop)
+        self.create_timeout_detector(uid)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Sending work: {!r} {}'.format(
+                message[:-1],
+                pprint.pformat(self.packer.unpackb(message[-1]))))
+        self.auth_backend.save_last_work(message)
+        await self.send_message(message)
+        return await future
+
+    async def send_message(self, message):
+        try:
+            await self.socket.send_multipart(message)
+        except zmq.error.ZMQError as exc:
+            if exc.errno == zmq.EHOSTUNREACH:
+                # ROUTER does not know yet the recipient
+                if self.counter[message[0]] > MAX_EHOSTUNREACH_RETRY:
+                    return
+                self.counter[message[0]] += 1
+                # retry in 100 ms
+                await asyncio.sleep(.1)
+                await self.send_message(message)
+
+    async def start(self):
+        if self.reader is None:
+            self.reader = self.loop.create_task(
+                read_forever(self.socket, self.on_socket_ready))
+            self.reader.add_done_callback(handle_result)
+        self.counter = Counter()
+
+    def timeout_task(self, uuid):
+        try:
+            self.future_pool[uuid].set_exception(asyncio.TimeoutError())
+        except KeyError:
+            pass
+
+    async def stop(self):
+        if self.reader is not None:
+            self.reader.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.reader
+            self.reader = None
+        if not self.socket.closed:
+            self.socket.close(linger=0)
+        await self.auth_backend.stop()
+        await self.heartbeat_backend.stop()

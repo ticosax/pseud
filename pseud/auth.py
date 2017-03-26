@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import itertools
 import logging
 
@@ -6,6 +8,7 @@ import zope.interface
 import zmq
 from zmq.utils import z85
 
+from .common import read_forever
 from .interfaces import (AUTHENTICATED,
                          EMPTY_DELIMITER,
                          IAuthenticationBackend,
@@ -22,7 +25,7 @@ from .utils import register_auth_backend
 logger = logging.getLogger(__name__)
 
 
-class _BaseAuthBackend(object):
+class _BaseAuthBackend:
 
     def __init__(self, rpc):
         self.rpc = rpc
@@ -37,16 +40,16 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     """
     name = 'noop_auth_backend'
 
-    def stop(self):
+    async def stop(self):
         pass
 
     def configure(self):
         pass
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
     def is_authenticated(self, peer_id):
@@ -90,13 +93,13 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
         self.rpc.socket.curve_secretkey = self.rpc.secret_key
         assert self.rpc.socket.mechanism == zmq.CURVE
 
-    def stop(self):
+    async def stop(self):
         pass
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
     def save_last_work(self, message):
@@ -126,9 +129,6 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     """
     name = 'trusted_curve'
 
-    def __init__(self, rpc):
-        self.rpc = rpc
-
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
         self.rpc.socket.curve_secretkey = self.rpc.secret_key
@@ -138,13 +138,12 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
         zap_socket.bind(b'inproc://zeromq.zap.01')
-        self.reader = self.rpc.read_forever(zap_socket,
-                                            self._zap_handler,
-                                            copy=True)
+        self.reader = self.rpc.loop.create_task(
+            read_forever(zap_socket, self._zap_handler, copy=True))
         self.known_identities = {b'bob': zmq.curve_keypair(),
                                  b'alice': zmq.curve_keypair()}
 
-    def _zap_handler(self, message):
+    async def _zap_handler(self, message):
         """
         `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
@@ -164,12 +163,12 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
 
         reply = [zid, delimiter, version, sequence, response_code,
                  response_msg, known_identity, b'']
-        self.zap_socket.send_multipart(reply)
+        await self.zap_socket.send_multipart(reply)
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
     def save_last_work(self, message):
@@ -187,13 +186,10 @@ class CurveWithTrustedKeyForServer(_BaseAuthBackend):
     def register_routing_id(self, user_id, routing_id):
         pass
 
-    def stop(self):
-        try:
-            self.reader.kill()
-        except AttributeError:
-            self.reader.on_recv(None)
-            self.reader.flush()
-            self.reader.close()
+    async def stop(self):
+        self.reader.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.reader
         self.zap_socket.close()
         self.zap_socket = None
 
@@ -215,13 +211,13 @@ class PlainForClient(_BaseAuthBackend):
         self.rpc.socket.plain_password = self.rpc.password
         assert self.rpc.socket.mechanism == zmq.PLAIN
 
-    def stop(self):
+    async def stop(self):
         pass
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
     def save_last_work(self, message):
@@ -264,11 +260,10 @@ class PlainForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
-        self.reader = self.rpc.read_forever(zap_socket,
-                                            self._zap_handler,
-                                            copy=True)
+        self.reader = self.rpc.loop.create_task(
+            read_forever(zap_socket, self._zap_handler, copy=True))
 
-    def _zap_handler(self, message):
+    async def _zap_handler(self, message):
         """
         `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
@@ -287,12 +282,12 @@ class PlainForServer(_BaseAuthBackend):
 
         reply = [zid, delimiter, version, sequence, response_code,
                  response_msg, known_identity, b'']
-        self.zap_socket.send_multipart(reply)
+        await self.zap_socket.send_multipart(reply)
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
     def save_last_work(self, message):
@@ -310,13 +305,10 @@ class PlainForServer(_BaseAuthBackend):
     def register_routing_id(self, user_id, routing_id):
         self.routing_mapping[user_id] = routing_id
 
-    def stop(self):
-        try:
-            self.reader.kill()
-        except AttributeError:
-            self.reader.on_recv(None)
-            self.reader.flush()
-            self.reader.close()
+    async def stop(self):
+        self.reader.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.reader
         self.zap_socket.close()
         self.zap_socket = None
 
@@ -374,7 +366,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
         self.rpc.socket.curve_secretkey = self.rpc.secret_key
         assert self.rpc.socket.mechanism == zmq.CURVE
 
-    def handle_authentication(self, user_id, routing_id, message_uuid):
+    async def handle_authentication(self, user_id, routing_id, message_uuid):
         if next(self.counter) >= self.max_retries:
             try:
                 future = self.rpc.future_pool.pop(message_uuid)
@@ -384,17 +376,17 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
                 future.set_exception(UnauthorizedError('Max authentication'
                                                        ' retries reached'))
         else:
-            self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
-                                   message_uuid, HELLO,
-                                   self.packer.packb((self.rpc.user_id,
-                                                      self.rpc.password))])
+            await self.rpc.send_message(
+                [routing_id, EMPTY_DELIMITER, VERSION,
+                 message_uuid, HELLO,
+                 self.packer.packb((self.rpc.user_id, self.rpc.password))])
 
-    def handle_hello(self, *args):
+    async def handle_hello(self, *args):
         pass
 
-    def handle_authenticated(self, message_uuid):
+    async def handle_authenticated(self, message_uuid):
         try:
-            self.rpc.send_message(self.last_messages.pop(0))
+            await self.rpc.send_message(self.last_messages.pop(0))
         except IndexError:
             pass
         self.last_message = None
@@ -405,7 +397,7 @@ class CurveWithUntrustedKeyForClient(_BaseAuthBackend):
     def is_authenticated(self, peer_id):
         return True
 
-    def stop(self):
+    async def stop(self):
         pass
 
     def get_predicate_arguments(self, peer_id):
@@ -444,7 +436,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.login2peer_id_mapping = {}
         self.packer = Packer()
 
-    def _zap_handler(self, message):
+    async def _zap_handler(self, message):
         """
         http://rfc.zeromq.org/spec:27
         """
@@ -458,7 +450,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             user_id = z85.encode(key)
         reply = [zid, delimiter, version, sequence, b'200', b'OK',
                  user_id, b'']
-        self.zap_socket.send_multipart(reply)
+        await self.zap_socket.send_multipart(reply)
 
     def configure(self):
         self.rpc.socket.curve_publickey = self.rpc.public_key
@@ -469,9 +461,8 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
         self.zap_socket = zap_socket = self.rpc.context.socket(zmq.ROUTER)
         zap_socket.linger = 1
         zap_socket.bind(b'inproc://zeromq.zap.01')
-        self.reader = self.rpc.read_forever(zap_socket,
-                                            self._zap_handler,
-                                            copy=True)
+        self.reader = self.rpc.loop.create_task(
+            read_forever(zap_socket, self._zap_handler, copy=True))
 
     def get_routing_id(self, user_id):
         return self.login2peer_id_mapping[user_id]
@@ -479,7 +470,7 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
     def register_routing_id(self, user_id, routing_id):
         self.login2peer_id_mapping[user_id] = routing_id
 
-    def handle_hello(self, user_id, routing_id, message_uuid, message):
+    async def handle_hello(self, user_id, routing_id, message_uuid, message):
         login, password = self.packer.unpackb(message)
         if login in self.user_map and self.user_map[login] == password:
             key = z85.decode(self.pending_keys[routing_id])
@@ -495,18 +486,19 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             reply = b'Authentication Error'
             status = UNAUTHORIZED
         logger.debug('Sending Hello reply: {!r}'.format(reply))
-        self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
-                               message_uuid, status, reply])
+        await self.rpc.send_message(
+            [routing_id, EMPTY_DELIMITER, VERSION,
+             message_uuid, status, reply])
 
-    def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):
         pass
 
-    def handle_authentication(self, user_id, routing_id, message_uuid):
+    async def handle_authentication(self, user_id, routing_id, message_uuid):
         self.pending_keys[routing_id] = user_id  # this is the client pub key
         reply = b'Authentication Required'
         status = UNAUTHORIZED
-        self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
-                               message_uuid, status, reply])
+        await self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
+                                     message_uuid, status, reply])
 
     def is_authenticated(self, user_id):
         result = False
@@ -521,14 +513,12 @@ class CurveWithUntrustedKeyForServer(_BaseAuthBackend):
             result = True
         return result
 
-    def stop(self):
-        try:
-            self.reader.kill()
-        except AttributeError:
-            self.reader.on_recv(None)
-            self.reader.flush()
-            self.reader.close()
+    async def stop(self):
+        self.reader.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.reader
         self.zap_socket.close()
+        self.zap_socket = None
 
     def save_last_work(self, message):
         pass

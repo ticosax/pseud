@@ -1,8 +1,6 @@
 import zope.component
 import zope.interface
 
-from future.builtins import str
-
 from .interfaces import (IAuthenticationBackend,
                          IHeartbeatBackend,
                          IRPCCallable,
@@ -76,21 +74,15 @@ def register_rpc(func=None, name=None, domain='default', registry=registry,
                  with_identity=False):
     def wrapper(fn):
         if name is None:
-            try:
-                # PY3 or PY2+future
-                fn_name = fn.__name__
-            except AttributeError:
-                # PY2
-                fn_name = fn.func_name
-            endpoint_name = fn_name
+            endpoint_name = fn.__name__
         else:
             endpoint_name = name
-        registered_name = '{}:{}'.format(endpoint_name, domain)
-        registry.registerUtility(RPCCallable(fn, name=endpoint_name,
-                                             domain=domain,
-                                             with_identity=with_identity),
-                                 IRPCRoute,
-                                 name=registered_name)
+        registered_name = f'{endpoint_name}:{domain}'
+        registry.registerUtility(
+            RPCCallable(fn, name=endpoint_name, domain=domain,
+                        with_identity=with_identity),
+            IRPCRoute,
+            name=registered_name)
         return fn
 
     if callable(func):

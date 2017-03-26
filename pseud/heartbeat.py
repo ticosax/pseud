@@ -1,12 +1,12 @@
-from __future__ import unicode_literals
-import functools
+import asyncio
+import contextlib
 import logging
 
-from future.builtins import bytes
 import zmq
 import zope.component
 import zope.interface
 
+from .common import handle_result
 from .interfaces import (IClient,
                          IHeartbeatBackend,
                          IServer,
@@ -16,6 +16,8 @@ from .interfaces import (IClient,
 from .utils import register_heartbeat_backend
 
 logger = logging.getLogger(__name__)
+
+__all__ = ['NoOpHeartbeatBackendForClient', 'NoOpHeartbeatBackendForServer']
 
 
 class _BaseHeartbeatBackend(object):
@@ -33,16 +35,16 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     name = b'noop_heartbeat_backend'
 
-    def handle_heartbeat(self, *args):
+    async def handle_heartbeat(self, *args):
         pass
 
-    def handle_timeout(self, *args):
+    async def handle_timeout(self, *args):
         pass
 
     def configure(self):
         pass
 
-    def stop(self):
+    async def stop(self):
         pass
 
 
@@ -58,13 +60,13 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     def handle_timeout(self, *args):
         pass
 
-    def handle_heartbeat(self, *args):
+    async def handle_heartbeat(self, *args):
         pass
 
     def configure(self):
         pass
 
-    def stop(self):
+    async def stop(self):
         pass
 
 
@@ -77,20 +79,22 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
     def handle_timeout(self, user_id, routing_id):
         pass
 
-    def handle_heartbeat(self, user_id, routing_id):
-        self.rpc.send_message([routing_id, b'', VERSION,
-                               b'', HEARTBEAT, b''])
+    async def handle_heartbeat(self, user_id, routing_id):
+        while True:
+            await asyncio.shield(self.rpc.send_message(
+                [routing_id, b'', VERSION, b'', HEARTBEAT, b'']))
+            await asyncio.sleep(.1)
 
     def configure(self):
-        self.periodic_callback = self.rpc.create_periodic_callback(
-            functools.partial(self.handle_heartbeat, b'',
-                              self.rpc.peer_routing_id), .1)
+        self.task = self.rpc.loop.create_task(
+            self.handle_heartbeat(b'', self.rpc.peer_routing_id))
+        self.task.add_done_callback(handle_result)
 
-    def stop(self):
-        try:
-            self.periodic_callback.stop()
-        except AttributeError:
-            self.periodic_callback.kill()
+    async def stop(self):
+        self.task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.task
+        print('STOP done')
 
 
 @register_heartbeat_backend
@@ -99,34 +103,31 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     name = b'testing_heartbeat_backend'
     max_time_before_dead = .2
-    callback_pool = {}
+    task_pool = {}
 
-    def handle_timeout(self, user_id, routing_id):
-        logger.debug('Timeout detected for {!r}'.format(routing_id))
-        self.monitoring_socket.send(
-            'Gone {!r}'.format(bytes(user_id)).encode())
+    async def handle_timeout(self, user_id, routing_id):
+        logger.debug(f'Timeout detected for {routing_id}')
+        user_id_str = user_id.decode('utf-8')
+        await self.monitoring_socket.send(f'Gone {user_id_str}'.encode())
 
-    def handle_heartbeat(self, user_id, routing_id):
-        self.monitoring_socket.send(user_id)
-        previous = self.callback_pool.pop(user_id, None)
-        if previous is not None:
-            try:
-                self.rpc.io_loop.remove_timeout(previous)
-            except AttributeError:
-                previous.kill()
-        self.callback_pool[user_id] = self.rpc.create_later_callback(
-            functools.partial(self.handle_timeout, user_id, routing_id),
-            self.max_time_before_dead)
+    async def handle_heartbeat(self, user_id, routing_id):
+        await self.monitoring_socket.send(user_id)
+        try:
+            task = self.task_pool[user_id]
+        except KeyError:
+            pass
+        else:
+            task.cancel()
+
+        self.task_pool[user_id] = task = self.rpc.loop.call_later(
+            self.max_time_before_dead,
+            asyncio.ensure_future, self.handle_timeout(user_id, routing_id))
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
         self.monitoring_socket.bind(b'ipc://testing_heartbeating_backend')
 
-    def stop(self):
+    async def stop(self):
         self.monitoring_socket.close(linger=0)
-        for callback in self.callback_pool.values():
-            try:
-                self.rpc.io_loop.remove_timeout(callback)
-            except AttributeError:
-                callback.kill()
-        self.callback_pool.clear()
+        for task in self.task_pool.values():
+            task.cancel()

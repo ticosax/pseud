@@ -1,38 +1,23 @@
-import sys
-
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
-
-
-class PyTest(TestCommand):
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
 
 
 def read_that_file(path):
     with open(path) as open_file:
         return open_file.read()
 
+
 long_description = '\n'.join((read_that_file('README.rst'),
                               read_that_file('LICENSE.txt')))
 
-version = '0.1.0dev'
+version = '1.0.0-dev'
 
 
 setup(name='pseud',
       version=version,
       description='Bidirectionnal RPC Api on top of pyzmq',
       author='Nicolas Delaby',
-      author_email='nicolas.delaby@ezeep.com',
-      url='https://github.com/ezeep/pseud',
+      author_email='ticosax@free.fr',
+      url='https://github.com/ticosax/pseud',
       license='Apache Software License',
       packages=['pseud'],
       include_package_data=True,
@@ -41,29 +26,23 @@ setup(name='pseud',
           'pyzmq>=14.4',
           'msgpack-python',
           'zope.component',
-          'python-dateutil',
-          'future',
       ],
-      extras_require={'Tornado': ('tornado', 'futures'),
-                      'Gevent': ('gevent',),
-                      'doc': ('sphinx', 'repoze.sphinx.autointerface')},
+      extras_require={'doc': ('sphinx', 'repoze.sphinx.autointerface')},
       tests_require=[
           'pytest',
           'pytest-cov',
           'pytest-pep8',
           'pytest-capturelog',
-          'coveralls',
+          'pytest-asyncio',
           'tox',
       ],
-      cmdclass={'test': PyTest},
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',
           'Intended Audience :: System Administrators',
           'License :: OSI Approved :: Apache Software License',
           'Operating System :: OS Independent',
-          'Programming Language :: Python :: 2.7',
-          'Programming Language :: Python :: 3.4',
+          'Programming Language :: Python :: 3.6',
       ],
-      keywords='rpc zeromq pyzmq curve bidirectional tornado gevent',
+      keywords='rpc zeromq pyzmq curve bidirectional asyncio',
       )
