@@ -1,28 +1,18 @@
 language: python
+python: 3.6
 
 cache:
     apt
     pip
 
-env:
-    - TESTENV=py27
-    - TESTENV=py34
-
-before_install:
-    - sudo add-apt-repository -y ppa:shnatsel/dnscrypt
-    - sudo apt-get update && sudo apt-get install libsodium-dev
-    - curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1-master.zip
-    - unzip zeromq4-1-master.zip
-    - cd zeromq4-1-master && ./autogen.sh && ./configure && make -j && sudo make install && sudo ldconfig && cd -
-
 install:
-    - pip install tox coveralls
+    - pip install tox codecov
 
 script:
-    - tox -e $TESTENV -- --cov pseud
+    - tox -- --cov pseud
 
 after_success:
-    coveralls
+    codecov
 
 notifications:
     email: false

@@ -46,5 +46,4 @@ Exceptions
 ++++++++++
 
 .. autoexception:: pseud.interfaces.ServiceNotFoundError
-.. autoexception:: pseud.interfaces.TimeoutError
 .. autoexception:: pseud.interfaces.UnauthorizedError

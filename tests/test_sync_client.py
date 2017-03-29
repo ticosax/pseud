@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+import asyncio
 import threading
 import uuid
 
@@ -12,7 +12,7 @@ def test_client_creation():
     assert client.security_plugin == 'noop_auth_backend'
 
 
-def test_client_can_bind():
+def test_client_can_bind(loop):
     from pseud import SyncClient
     endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
@@ -20,7 +20,7 @@ def test_client_can_bind():
     client.stop()
 
 
-def test_client_can_connect():
+def test_client_can_connect(loop):
     from pseud import SyncClient
     endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
@@ -28,12 +28,13 @@ def test_client_can_connect():
     client.stop()
 
 
-def make_one_server_thread(context, identity, endpoint, callback):
-    router_sock = context.socket(zmq.ROUTER)
-    router_sock.identity = identity
-    router_sock.bind(endpoint)
-    response = router_sock.recv_multipart()
-    callback(router_sock, response)
+def make_one_server_thread(identity, endpoint, callback):
+    context = zmq.Context.instance()
+    socket = context.socket(zmq.ROUTER)
+    socket.identity = identity
+    socket.bind(endpoint)
+    response = socket.recv_multipart()
+    callback(socket, response)
 
 
 def make_one_client(timeout=5):
@@ -42,7 +43,7 @@ def make_one_client(timeout=5):
     return client
 
 
-def test_client_method_wrapper():
+def test_client_method_wrapper(loop):
     from pseud.common import AttributeWrapper
     endpoint = 'inproc://{}'.format(__name__)
     client = make_one_client()
@@ -60,10 +61,10 @@ def test_client_method_wrapper():
     client.stop()
 
 
-def test_job_executed():
+def test_job_executed(loop):
     from pseud.interfaces import OK, VERSION, WORK
     from pseud.packer import Packer
-    context = zmq.Context.instance()
+    zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -83,8 +84,9 @@ def test_job_executed():
         socket.send_multipart(reply)
 
     thread = threading.Thread(target=make_one_server_thread,
-                              args=(context, peer_identity, endpoint,
-                                    server_callback))
+                              args=(peer_identity, endpoint,
+                                    server_callback),
+                              daemon=True)
     thread.start()
     client = make_one_client()
     client.connect(endpoint)
@@ -95,10 +97,9 @@ def test_job_executed():
     thread.join()
 
 
-def test_job_failure():
+def test_job_failure(loop):
     from pseud.interfaces import ERROR, VERSION, WORK
     from pseud.packer import Packer
-    context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -119,7 +120,7 @@ def test_job_failure():
         socket.send_multipart(reply)
 
     thread = threading.Thread(target=make_one_server_thread,
-                              args=(context, peer_identity, endpoint,
+                              args=(peer_identity, endpoint,
                                     server_callback))
     thread.start()
     client = make_one_client()
@@ -131,10 +132,9 @@ def test_job_failure():
     thread.join()
 
 
-def test_job_failure_service_not_found():
+def test_job_failure_service_not_found(loop):
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
     from pseud.packer import Packer
-    context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -155,7 +155,7 @@ def test_job_failure_service_not_found():
         socket.send_multipart(reply)
 
     thread = threading.Thread(target=make_one_server_thread,
-                              args=(context, peer_identity, endpoint,
+                              args=(peer_identity, endpoint,
                                     server_callback))
     thread.start()
     client = make_one_client()
@@ -167,10 +167,9 @@ def test_job_failure_service_not_found():
     thread.join()
 
 
-def test_job_server_never_reply():
-    from pseud.interfaces import TimeoutError, VERSION, WORK
+def test_job_server_never_reply(loop):
+    from pseud.interfaces import VERSION, WORK
     from pseud.packer import Packer
-    context = zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -188,13 +187,13 @@ def test_job_server_never_reply():
         assert kw == {'b': 5}
 
     thread = threading.Thread(target=make_one_server_thread,
-                              args=(context, peer_identity, endpoint,
+                              args=(peer_identity, endpoint,
                                     server_callback))
     thread.start()
     client = make_one_client(timeout=.2)
     client.connect(endpoint)
 
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.TimeoutError):
         client.please.do_that_job(1, 2, b=5)
     client.stop()
     thread.join()

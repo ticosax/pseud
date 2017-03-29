@@ -1,7 +1,7 @@
 Changelog history
 =================
 
-0.1.0 - Not Yet Released
+1.0.0 - Not Yet Released
 ------------------------
 
 Features
@@ -10,8 +10,12 @@ ________
     - Add reliable authentication (thx to zmq_msg_gets())
       We can now reliably know who is sending messages, this feature is required
       with an authentication backend that use the zap handler.
-      Just PLAIN, and CURVE are can do the job.
+      Just PLAIN, and CURVE can do the job.
 
+Breaking Changes
+----------------
+    - Only python3.6 is supported
+    - Only asyncio is supported (tornado and gevent are dropped)
 
 .. note::
 
@@ -26,7 +30,6 @@ ________
 Bug Fixes
 _________
 
-    - Tornado 4 is supported
     - RPCCallable from local registry receive better priority if two registered RPCs share the same name.
 
 0.0.5 - 2014/08/27

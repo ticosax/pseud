@@ -15,10 +15,6 @@ VERSION = b'v1'
 EMPTY_DELIMITER = b''
 
 
-class TimeoutError(Exception):
-    pass
-
-
 class ServiceNotFoundError(Exception):
     pass
 
@@ -39,7 +35,7 @@ class IAuthenticationBackend(zope.interface.Interface):
         Must be used to start any service like a zap_handler
         """
 
-    def stop():
+    async def stop():
         """
         Hook to stop any service running in background.
         Can be either IOLoop, threading, or multiprocess.
@@ -184,30 +180,14 @@ class IBaseRPC(zope.interface.Interface):
         decorator to register rpc endpoint only for this RPC instance.
         """
 
-    def start():
+    async def start():
         """
         Run all background tasks, plugins included.
         """
 
-    def stop():
+    async def stop():
         """
         Stop all background tasks, plugins included.
-        """
-
-    def read_forever(socket, callback):
-        """
-        Helper method that plugins can use to
-        call callback each time the given socket receive a message
-        """
-
-    def create_periodic_callback(callback, timer):
-        """
-        Execute callback every `timer` seconds.
-        """
-
-    def create_later_callback(callback, timer):
-        """
-        Execute callback once in `timer` seconds.
         """
 
     def timeout_task(uuid):
