@@ -1,18 +1,10 @@
 pseud
 =====
-.. image:: https://travis-ci.org/ezeep/pseud.svg?branch=master
-   :target: https://travis-ci.org/ezeep/pseud
+.. image:: https://travis-ci.org/ticosax/pseud.svg?branch=master
+   :target: https://travis-ci.org/ticosax/pseud
 
-.. image:: https://coveralls.io/repos/ezeep/pseud/badge.png
-   :target: https://coveralls.io/r/ezeep/pseud
-
-.. image:: https://pypip.in/version/pseud/badge.svg
-   :target: https://pypi.python.org/pypi/pseud/
-   :alt: Latest Version
-
-.. image:: https://landscape.io/github/ezeep/pseud/master/landscape.png
-   :target: https://landscape.io/github/ezeep/pseud/master
-   :alt: Code Health
+.. image:: https://codecov.io/gh/ticosax/pseud/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/ticosax/pseud
 
 Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
