@@ -27,8 +27,6 @@ Prepare a client
 
 .. code-block:: python
 
-   # The tornado client
-   # Assume tornado IOLoop is running
    from pseud import Client
 
 

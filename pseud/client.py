@@ -27,10 +27,10 @@ class Client(BaseRPC):
 @zope.interface.implementer(IClient)
 class SyncClient(BaseRPC):
     """
-    Support limited features and run synchronously
-    Doesn't require tornado nor gevent
+    Support limited features and run synchronously.
+    Doesn't require a loop to be running.
     This is suitable to use in synchronous environment like
-    within wsgi process
+    within wsgi process.
     """
     socket_type = zmq.REQ
 

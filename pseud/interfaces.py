@@ -125,9 +125,8 @@ class IBaseRPC(zope.interface.Interface):
     registry = zope.interface.Attribute("""
         Give your own registry or a new one will be built
         """)
-    io_loop = zope.interface.Attribute("""
-        Only for Tornado based RPC implementation.
-        Use given io_loop instance or create a new one.
+    loop = zope.interface.Attribute("""
+        Use given loop instance or create a new one.
         """)
     timeout = zope.interface.Attribute("""
         Max allowed time to send, recv or to wait for a task.
