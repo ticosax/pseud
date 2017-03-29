@@ -31,14 +31,14 @@ Assuming we a have a Authentication Backend that is able to return a user
 instance and from this user instance we can know if he is admin.
 then we can assume the following behaviour ::
 
-    # gevent client + user lambda
+    # anonymous user
 
-    client.try_to_callme().get() == 'small power'
+    await client.try_to_callme() == 'small power'
 
 Then with user with admin rights ::
 
-    # gevent client + user admin
+    # user admin
 
-    client.try_to_callme().get() == 'great power'
+    await client.try_to_callme() == 'great power'
 
 From this behaviour we can perform routing based on user permissions.

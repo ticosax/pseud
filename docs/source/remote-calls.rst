@@ -11,7 +11,6 @@ function.
    # server.py
    import string
 
-   import gevent
    import pseud
    from pseud.utils import register_rpc
 
@@ -24,8 +23,7 @@ function.
    # register globally for all rpc instances
    register_rpc(string.upper)
 
-   server.start()
-   gevent.wait()
+   await server.start()
 
 .. code:: python
 
@@ -36,11 +34,11 @@ function.
    client = pseud.Client('remote')
    client.connect('tcp://127.0.0.1:5555')
 
-   future1 = client.lower('ABC')
-   future2 = client.upper('def')
+   res1 = await client.lower('ABC')
+   res2 = await client.upper('def')
 
-   assert future1.get() == 'abc'
-   assert future2.get() == 'DEF'
+   assert res1 == 'abc'
+   assert res2 == 'DEF'
 
 Registration
 ++++++++++++
@@ -66,7 +64,7 @@ register a callable for all workers of the current process.
 Local
 ~~~~~
 
-An RPC instance exposes its own `register_rpc` function, which is used to 
+An RPC instance exposes its own `register_rpc` function, which is used to
 register a callable only for that same RPC instance.
 
 .. code:: python
@@ -135,7 +133,7 @@ to the client:
    # server.py
    server = Server('service', security_plugin='trusted_peer')
    server.bind('tcp://127.0.0.1:5555')
-   server.start()
+   await server.start()
 
 .. code:: python
 
@@ -151,7 +149,7 @@ to the client:
    def addition(a, b):
        return a + b
 
-   client.hello('Me')  # perform a first call to register itself
+   await client.hello('Me')  # perform a first call to register itself
 
 .. note::
 
@@ -164,8 +162,8 @@ to the client:
 
    # server.py
 
-   # gevent api
-   server.send_to('client1').addition(2, 4).get() == 6
+   result = await server.send_to('client1').addition(2, 4)
+   assert result == 6
 
 .. note::
 

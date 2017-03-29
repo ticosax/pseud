@@ -19,7 +19,6 @@ Features
 #. Pluggable Authentication.
 #. Pluggable Heartbeating.
 #. Pluggable Remote Call Routing.
-#. Works with tornado ioloop or gevent.
 #. Built-in proxy support. A server can delegate the work to another one.
 #. SyncClient (using zmq.REQ) to use within non event based processes.
    (Heartbeating, Authentication and job execution are not supported with
@@ -59,44 +58,10 @@ Then you can install latest pyzmq from pypi
    $ pip install pyzmq --install-option="--zmq=/usr/local"
 
 
-Choose your backend
-~~~~~~~~~~~~~~~~~~~
-
-Pseud can be used with either tornado or gevent.
-As they can not be used both as the same time, you need to decide
-which one you want to use on installation time.
-
-Tornado
--------
-
-.. code-block:: console
-
-   $ pip install "pseud[Tornado]"
-
-Gevent
-------
-
-.. code-block:: console
-
-   $ pip install "pseud[Gevent]"
-
-
 Execution
 ~~~~~~~~~
 
-If both backends are installed (like in developer environment),
-tornado is used by default.
-To force gevent over tornado, set the environment variable `$NO_TORNADO` to
-something.
-
-.. code-block:: console
-
-   $ NO_TORNADO=1 python script.py
-
-Preview
-~~~~~~~
-
-The tornado Server
+The Server
 ------------------
 
 .. code-block:: python
@@ -111,15 +76,14 @@ The tornado Server
     def hello(name):
         return 'Hello {0}'.format(name)
 
-    server.start()  # this will block forever
+    await server.start()  # this will block forever
 
 
-The tornado Client
+The Client
 ------------------
 
 .. code-block:: python
 
-    # Assume the tornado IOLoop is running
     from pseud import Client
 
 
@@ -127,23 +91,10 @@ The tornado Client
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
-    response = yield client.hello('Charly')
+    response = await client.hello('Charly')
     assert response == 'Hello Charly'
 
 
-
-The gevent Client
------------------
-
-.. code-block:: python
-
-    from pseud import Client
-
-
-    client = Client('service')
-    client.connect('tcp://127.0.0.1:5555')
-
-    assert client.hello('Charly').get() == 'Hello Charly'
 
 The SyncClient
 --------------
@@ -181,7 +132,7 @@ It will register all peer id and be able to route messages to each of them.
    def hello(name):
        return 'Hello {0}'.format(name)
 
-   server.start()  # this will block forever
+   await server.start()  # this will block forever
 
 The client needs to send its identity to the server. This is why ``plain``
 security plugin is used. The server will not check the password, he will just
@@ -214,7 +165,7 @@ take into consideration the user_id to perform the routing.
    # to reconnect.
 
    # assume we are inside a coroutine
-   result = yield client.hello('alice')
+   result = await client.hello('alice')
    assert result == 'Hello alice'
 
 Back on server side, now the client as registered itself, we can send
@@ -223,7 +174,7 @@ to it any commands the client is able to do.
 .. code-block:: python
 
     # assume we are inside a coroutine
-    sheep = yield server.send_to('alice').draw.me.a.sheep()
+    sheep = await server.send_to('alice').draw.me.a.sheep()
     assert sheep == 'beeeh'
 
 
