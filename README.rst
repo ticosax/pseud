@@ -229,4 +229,4 @@ to it any commands the client is able to do.
 
 Documentation
 ~~~~~~~~~~~~~
-`Pseud on Readthedocs <http://pseud.readthedocs.org/en/latest/index.html>`_
+`Pseud on Readthedocs <https://pseud.readthedocs.io/en/latest/index.html>`_
