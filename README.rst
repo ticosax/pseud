@@ -29,27 +29,9 @@ Installation
 
 Dependencies are declared in setup.py and all automatically installed, but,
 pyzmq might build libzmq from bundled folder `OR` from your system wide libzmq.
-In later case you should make sure libzmq has been compiled with libsodium
-to take advantage of curve security features.
 
 libzmq 4.1 is now required. As it is not yet bundled within pyzmq you will
 need to compile it yourself.
-Also `libsodium <https://github.com/jedisct1/libsodium>`_ is a required
-dependency of pseud.
-
-For ubuntu distribution, a ppa exists.
-
-.. code-block:: console
-
-   $ sudo add-apt-repository -y ppa:shnatsel/dnscrypt
-   $ sudo apt-get update -q && sudo apt-get install -y libsodium-dev
-
-
-.. code-block:: console
-
-   $ curl https://github.com/zeromq/zeromq4-1/archive/master.zip -L > zeromq4-1.zip
-   $ sh -c 'unzip zeromq4-1.zip; cd zeromq4-1; sh autogen.sh; ./configure --with-libsodium; make -j; sudo make install; sudo ldconfig'
-
 
 Then you can install latest pyzmq from pypi
 
