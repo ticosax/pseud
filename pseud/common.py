@@ -399,3 +399,9 @@ class BaseRPC(object):
             self.socket.close(linger=0)
         await self.auth_backend.stop()
         await self.heartbeat_backend.stop()
+
+    async def __aenter__(self):
+        await self.start()
+
+    async def __aexit__(self, *args):
+        await self.stop()

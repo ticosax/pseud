@@ -91,8 +91,9 @@ The Client
     client.connect('tcp://127.0.0.1:5555')
 
     # Assume we are inside a coroutine
-    response = await client.hello('Charly')
-    assert response == 'Hello Charly'
+    async with client:
+        response = await client.hello('Charly')
+        assert response == 'Hello Charly'
 
 
 
@@ -108,7 +109,8 @@ The SyncClient
    client = SyncClient()
    client.connect('tcp://127.0.0.1:5555')
 
-   assert client.hello('Charly') == 'Hello Charly'
+   async with client:
+       assert client.hello('Charly') == 'Hello Charly'
 
 
 
@@ -165,8 +167,9 @@ take into consideration the user_id to perform the routing.
    # to reconnect.
 
    # assume we are inside a coroutine
-   result = await client.hello('alice')
-   assert result == 'Hello alice'
+   async with client:
+        result = await client.hello('alice')
+        assert result == 'Hello alice'
 
 Back on server side, now the client as registered itself, we can send
 to it any commands the client is able to do.

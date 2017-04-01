@@ -65,11 +65,10 @@ async def test_job_running(loop):
     work = Packer().packb(('job_success', (1, 2, 3), {'d': False}))
     await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'',
                                  WORK, work])
-    await server.start()
-    response = await socket.recv_multipart()
-    assert response == [user_id, EMPTY_DELIMITER, VERSION, b'',
-                        OK, Packer().packb(True)]
-    await server.stop()
+    async with server:
+        response = await socket.recv_multipart()
+        assert response == [user_id, EMPTY_DELIMITER, VERSION, b'',
+                            OK, Packer().packb(True)]
 
 
 @pytest.mark.asyncio
@@ -82,18 +81,16 @@ async def test_job_not_found(loop):
     server = make_one_server(user_id, endpoint, loop)
     socket = make_one_client_socket(endpoint)
     work = Packer().packb(('thisIsNotAFunction', (), {}))
-    await server.start()
-    await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'', WORK,
-                                 work])
-    response = await socket.recv_multipart()
-    assert response[:-1] == [user_id, EMPTY_DELIMITER, VERSION, b'',
-                             ERROR]
-    klass, message, traceback = Packer().unpackb(response[-1])
-    assert klass == 'ServiceNotFoundError'
-    assert message == 'thisIsNotAFunction'
-    # pseud.__file__ might ends with .pyc
-    assert os.path.dirname(pseud.__file__) in traceback
-    await server.stop()
+    async with server:
+        await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'',
+                                     WORK, work])
+        response = await socket.recv_multipart()
+        assert response[:-1] == [user_id, EMPTY_DELIMITER, VERSION, b'', ERROR]
+        klass, message, traceback = Packer().unpackb(response[-1])
+        assert klass == 'ServiceNotFoundError'
+        assert message == 'thisIsNotAFunction'
+        # pseud.__file__ might ends with .pyc
+        assert os.path.dirname(pseud.__file__) in traceback
 
 
 @pytest.mark.asyncio
@@ -112,12 +109,11 @@ async def test_job_raise(loop):
     server = make_one_server(user_id, endpoint, loop)
     socket = make_one_client_socket(endpoint)
     work = Packer().packb(('job_buggy', (), {}))
-    await server.start()
-    await socket.send_multipart([user_id, b'', VERSION, b'', WORK, work])
-    response = await socket.recv_multipart()
-    assert response[:-1] == [user_id, b'', VERSION, b'', ERROR]
-    klass, message, traceback = Packer().unpackb(response[-1])
-    assert klass == 'ValueError'
-    assert message == 'too bad'
-    assert __file__ in traceback
-    await server.stop()
+    async with server:
+        await socket.send_multipart([user_id, b'', VERSION, b'', WORK, work])
+        response = await socket.recv_multipart()
+        assert response[:-1] == [user_id, b'', VERSION, b'', ERROR]
+        klass, message, traceback = Packer().unpackb(response[-1])
+        assert klass == 'ValueError'
+        assert message == 'too bad'
+        assert __file__ in traceback

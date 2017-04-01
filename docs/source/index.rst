@@ -38,8 +38,9 @@ then make a remote procedure call (rpc)
 .. code-block:: python
 
    # Assume we are inside a coroutine
-   response = await client.hello('Charly')
-   assert response == 'Hello Charly'
+   async with client:
+        response = await client.hello('Charly')
+        assert response == 'Hello Charly'
 
 Narrative Documentation
 =======================
