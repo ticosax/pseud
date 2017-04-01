@@ -11,6 +11,15 @@ ________
       We can now reliably know who is sending messages, this feature is required
       with an authentication backend that use the zap handler.
       Just PLAIN, and CURVE can do the job.
+    - Add support for async context manager interface:
+
+.. code-block:: python
+
+    async with server:
+        # do something
+        ...
+    # socket is closed
+
 
 Breaking Changes
 ----------------

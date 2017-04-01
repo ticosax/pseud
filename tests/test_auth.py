@@ -78,15 +78,11 @@ async def test_trusted_curve(loop, unused_tcp_port):
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
 
-    await server.start()
-    await client.start()
-
     register_rpc(name='string.lower')(str.lower)
 
-    result = await client.string.lower('FOO')
-    assert result == 'foo'
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        result = await client.string.lower('FOO')
+        assert result == 'foo'
 
 
 @pytest.mark.asyncio
@@ -119,15 +115,11 @@ async def test_trusted_curve_with_wrong_peer_public_key(
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
 
-    await server.start()
-    await client.start()
-
     register_rpc(name='string.lower')(str.lower)
 
-    with pytest.raises(asyncio.TimeoutError):
-        await client.string.lower('BAR')
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        with pytest.raises(asyncio.TimeoutError):
+            await client.string.lower('BAR')
 
 
 @pytest.mark.asyncio
@@ -166,19 +158,15 @@ async def test_untrusted_curve_with_allowed_password(loop, unused_tcp_port):
     # configure manually authentication backend
     server.auth_backend.user_map[client_id] = password
 
-    await server.start()
-    await client.start()
-
     register_rpc(name='string.lower')(str.lower)
 
-    result = await client.string.lower('FOO')
-    result2 = await client.string.lower('FOO_JJ')
-    result3 = await server.send_to(client_id).string.lower('ABC')
-    assert result == 'foo'
-    assert result2 == 'foo_jj'
-    assert result3 == 'abc'
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        result = await client.string.lower('FOO')
+        result2 = await client.string.lower('FOO_JJ')
+        result3 = await server.send_to(client_id).string.lower('ABC')
+        assert result == 'foo'
+        assert result2 == 'foo_jj'
+        assert result3 == 'abc'
 
 
 @pytest.mark.asyncio
@@ -218,20 +206,16 @@ async def test_untrusted_curve_with_allowed_password_and_client_disconnect(
     # configure manually authentication backend
     server.auth_backend.user_map[client_id] = password
 
-    await server.start()
-    await client.start()
-
     server.register_rpc(name='string.lower')(str.lower)
 
-    result = await client.string.lower('FOO')
-    assert result == 'foo'
-    # Simulate disconnection and reconnection with new identity
-    client.disconnect(endpoint)
-    client.connect(endpoint)
-    result = await client.string.lower('ABC')
-    assert result == 'abc'
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        result = await client.string.lower('FOO')
+        assert result == 'foo'
+        # Simulate disconnection and reconnection with new identity
+        client.disconnect(endpoint)
+        client.connect(endpoint)
+        result = await client.string.lower('ABC')
+        assert result == 'abc'
 
 
 @pytest.mark.asyncio
@@ -271,15 +255,11 @@ async def test_untrusted_curve_with_wrong_password(loop, unused_tcp_port):
     # configure manually authentication backend
     server.auth_backend.user_map[client_id] = password + b'Looser'
 
-    await server.start()
-    await client.start()
-
     register_rpc(name='string.lower')(str.lower)
 
-    with pytest.raises(UnauthorizedError):
-        await client.string.lower(b'IMSCREAMING')
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        with pytest.raises(UnauthorizedError):
+            await client.string.lower(b'IMSCREAMING')
 
 
 @pytest.mark.asyncio
@@ -310,22 +290,18 @@ async def test_client_can_reconnect(loop, unused_tcp_port_factory):
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
 
-    await server.start()
-    await client.start()
-
     server.register_rpc(name='string.upper')(str.upper)
 
-    result = await client.string.upper('hello')
-    assert result == 'HELLO'
+    async with server, client:
+        result = await client.string.upper('hello')
+        assert result == 'HELLO'
 
-    client.disconnect(endpoint)
-    client.connect(endpoint)
+        client.disconnect(endpoint)
+        client.connect(endpoint)
+        await asyncio.sleep(.01)
 
-    result = await client.string.upper('hello2')
-    assert result == 'HELLO2'
-
-    await client.stop()
-    await server.stop()
+        result = await client.string.upper('hello2')
+        assert result == 'HELLO2'
 
 
 @pytest.mark.asyncio
@@ -359,17 +335,13 @@ async def test_server_can_send_to_trustable_peer_identity(loop,
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
 
-    await server.start()
-    await client.start()
-
     @server.register_rpc(with_identity=True)
     def echo(peer_identity, message):
         return peer_identity, message
 
-    result = await client.echo(b'one')
-    if zmq.zmq_version_info() >= (4, 1, 0):
-        assert result == (b'bob', b'one')
-    else:
-        assert result == (b'', b'one')
-    await server.stop()
-    await client.stop()
+    async with server, client:
+        result = await client.echo(b'one')
+        if zmq.zmq_version_info() >= (4, 1, 0):
+            assert result == (b'bob', b'one')
+        else:
+            assert result == (b'', b'one')

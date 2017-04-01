@@ -88,23 +88,20 @@ async def test_basic_heartbeating(loop):
     monitoring_socket = context.socket(zmq.SUB)
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
     monitoring_socket.connect('ipc://testing_heartbeating_backend')
-    await server.start()
-    await client.start()
+    async with server, client:
 
-    sink = []
+        sink = []
 
-    async def collector(sink):
-        while True:
-            sink.extend(await monitoring_socket.recv_multipart())
+        async def collector(sink):
+            while True:
+                sink.extend(await monitoring_socket.recv_multipart())
 
-    task = loop.create_task(collector(sink))
-    await asyncio.sleep(1.1)
-    task.cancel()
-    assert len(sink) >= 10
-    assert all([b'client' == i for i in sink]), sink
-    monitoring_socket.close()
-    await client.stop()
-    await server.stop()
+        task = loop.create_task(collector(sink))
+        await asyncio.sleep(1.1)
+        task.cancel()
+        assert len(sink) >= 10
+        assert all([b'client' == i for i in sink]), sink
+        monitoring_socket.close()
 
 
 @pytest.mark.asyncio
@@ -133,22 +130,19 @@ async def test_basic_heartbeating_with_disconnection(loop,
     monitoring_socket = context.socket(zmq.SUB)
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
     monitoring_socket.connect('ipc://testing_heartbeating_backend')
-    await server.start()
-    await client.start()
+    async with server, client:
 
-    sink = []
+        sink = []
 
-    async def collector(sink):
-        while True:
-            sink.extend(await monitoring_socket.recv_multipart())
+        async def collector(sink):
+            while True:
+                sink.extend(await monitoring_socket.recv_multipart())
 
-    task = loop.create_task(collector(sink))
-    loop.call_later(.5, asyncio.ensure_future, client.stop())
-    await asyncio.sleep(1.1)
-    task.cancel()
+        task = loop.create_task(collector(sink))
+        loop.call_later(.5, asyncio.ensure_future, client.stop())
+        await asyncio.sleep(1.1)
+        task.cancel()
 
-    assert len(sink) < 10
-    assert b"Gone client" in sink
-    monitoring_socket.close()
-    await server.stop()
-    await client.stop()
+        assert len(sink) < 10
+        assert b"Gone client" in sink
+        monitoring_socket.close()
