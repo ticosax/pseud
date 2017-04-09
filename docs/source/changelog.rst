@@ -15,6 +15,7 @@ ________
       with an authentication backend that use the zap handler.
       Just PLAIN, and CURVE can do the job.
     - Add support for async context manager interface:
+    - rely on PROBE_ROUTER socket option to let clients register themselves (instead of relying on heartbeat backend).
 
 .. code-block:: python
 

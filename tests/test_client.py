@@ -83,6 +83,8 @@ async def test_job_executed(loop, unused_tcp_port):
     client.connect(endpoint)
 
     async with client:
+        probing = await socket.recv_multipart()
+        assert len(probing) == 2
         future = asyncio.ensure_future(client.please.do_that_job(1, 2, 3, b=4))
         request = await socket.recv_multipart()
         client_routing_id, delimiter, version, uid, message_type, message =\
@@ -118,6 +120,8 @@ async def test_job_server_never_reply(loop):
     client.connect(endpoint)
 
     async with client:
+        probing = await socket.recv_multipart()
+        assert len(probing) == 2
         future = asyncio.ensure_future(client.please.do_that_job(1, 2, 3, b=4))
         await asyncio.sleep(.1)
         request = await socket.recv_multipart()

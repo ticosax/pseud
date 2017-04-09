@@ -138,21 +138,8 @@ take into consideration the user_id to perform the routing.
    def sheep():
        return 'beeeh'
 
-   # The client needs to perform a first call
-   # to the server in order to register itself.
-   # on production this will be handle automatically
-   # by the heartbeat backend. The first heartbeat will
-   # trigger the authentication. Then until the client
-   # disconnect the server will not ask the client
-   # to reconnect.
 
-   # assume we are inside a coroutine
-   async with client:
-        result = await client.hello('alice')
-        assert result == 'Hello alice'
-
-Back on server side, now the client as registered itself, we can send
-to it any commands the client is able to do.
+Back on server side, we can send to it any commands the client is able to do.
 
 .. code-block:: python
 
