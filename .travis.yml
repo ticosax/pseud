@@ -1,18 +1,19 @@
 language: python
 python: 3.6
-
-cache:
-    apt
-    pip
-
+cache: apt pip
 install:
-    - pip install tox codecov
-
+  - pip install tox codecov
 script:
-    - tox -- --cov pseud
-
-after_success:
-    codecov
-
+  - tox -- --cov pseud
+after_success: codecov
 notifications:
-    email: false
+  email: false
+deploy:
+  provider: pypi
+  user: nicolas_delaby
+  password:
+    secure: q2x5KI+rljYjKf16xZgxdT4uaDn0ArEJs2U7QHoAyuDOP7dAZy2KU9QPxPI+kKS5E6/Yvk6fbXDWPXOEkz75MbK4CsVlBD1JyyqA12OO8ltfGVRBo0SiZX9kmZoZOzuYQgnuOS2Db9AYv4b8Ey6DFeW4x6fh3J8If970nB9muOE=
+  on:
+    tags: true
+    all_branches: true
+    python: 3.6
