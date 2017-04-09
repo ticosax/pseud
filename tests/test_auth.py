@@ -214,6 +214,7 @@ async def test_untrusted_curve_with_allowed_password_and_client_disconnect(
         # Simulate disconnection and reconnection with new identity
         client.disconnect(endpoint)
         client.connect(endpoint)
+        await asyncio.sleep(.1)
         result = await client.string.lower('ABC')
         assert result == 'abc'
 

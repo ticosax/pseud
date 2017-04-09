@@ -397,8 +397,10 @@ class BaseRPC(object):
             self.reader = None
         if not self.socket.closed:
             self.socket.close(linger=0)
-        await self.auth_backend.stop()
-        await self.heartbeat_backend.stop()
+        await asyncio.gather(
+            self.auth_backend.stop(),
+            self.heartbeat_backend.stop(),
+        )
 
     async def __aenter__(self):
         await self.start()
