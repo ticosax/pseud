@@ -87,6 +87,10 @@ class SyncClient(BaseRPC):
     def _store_result_in_future(self, future, result):
         raise NotImplementedError('SyncClient can not do that')
 
+    def connect(self, endpoint):
+        self._setup_socket()
+        self.socket.connect(endpoint)
+
     def start(self):
         pass
 

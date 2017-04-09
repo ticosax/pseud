@@ -59,7 +59,7 @@ async def test_server_can_send(loop, unused_tcp_port):
     client.connect(endpoint)
     register_rpc(name='string.lower')(str.lower)
     async with server, client:
-        await client.string.lower('TATA')
+        await asyncio.sleep(.1)
         result = await server.send_to(b'alice').string.lower('SCREAM')
         assert result == 'scream'
 
@@ -85,9 +85,7 @@ async def test_server_can_send_to_several_client(loop, unused_tcp_port):
     client2.connect(endpoint)
     register_rpc(name='string.lower')(str.lower)
     async with server, client1, client2:
-        # call the server to register
-        await client1.string.lower('TATA')
-        await client2.string.lower('TATA')
+        await asyncio.sleep(.1)
         result1 = await server.send_to(b'alice').string.lower('SCREAM1')
         result2 = await server.send_to(b'bob').string.lower('SCREAM2')
         assert result1 == 'scream1'

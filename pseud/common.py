@@ -157,7 +157,7 @@ class BaseRPC(object):
     def send_to(self, user_id):
         return AttributeWrapper(self, user_id=user_id)
 
-    def _setup_socket(self):
+    def _setup_socket(self, probing=False):
         if self.socket is None:
             self.socket = self.context.socket(self.socket_type)
         if self.routing_id:
@@ -169,12 +169,13 @@ class BaseRPC(object):
         elif self.socket_type == zmq.REQ:
             self.socket.setsockopt(zmq.RCVTIMEO, int(self.timeout * 1000))
         self.socket.setsockopt(zmq.SNDTIMEO, int(self.timeout * 1000))
+        self.socket.setsockopt(zmq.PROBE_ROUTER, probing)
         self.auth_backend.configure()
         self.heartbeat_backend.configure()
         self.initialized = True
 
     def connect(self, endpoint):
-        self._setup_socket()
+        self._setup_socket(probing=True)
         self.socket.connect(endpoint)
 
     def bind(self, endpoint):
@@ -207,6 +208,12 @@ class BaseRPC(object):
             version, message_uuid, message_type = map(bytes, response[:-1])
             message = response[-1]
             routing_id = None
+        elif len(response) == 2:
+            # PROBING Messages
+            routing_id = bytes(response[0])
+            version = b''
+            message_type = None
+            message = response[-1]
         else:
             # from ROUTER socket
             routing_id, delimiter, version, message_uuid, message_type = map(
@@ -230,6 +237,9 @@ class BaseRPC(object):
                     pprint.pformat(self.packer.unpackb(response[-1]))
                     if message_type in (WORK, OK, HELLO)
                     else bytes(response[-1]).hex()))
+        if message_type is None:
+            # PROBING message
+            return
         assert version == VERSION
         if not self.auth_backend.is_authenticated(user_id):
             if message_type != HELLO:
