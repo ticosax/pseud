@@ -33,14 +33,9 @@ Features
 Installation
 ~~~~~~~~~~~~
 
-Dependencies are declared in setup.py and all automatically installed, but,
-pyzmq might build libzmq from bundled folder `OR` from your system wide libzmq.
-
-Then you can install latest pyzmq from pypi
-
 .. code-block:: console
 
-   $ pip install pyzmq --install-option="--zmq=/usr/local"
+   $ pip install pseud
 
 
 Execution
