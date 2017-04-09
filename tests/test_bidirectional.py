@@ -43,11 +43,11 @@ async def test_client_can_send(loop):
 
 
 @pytest.mark.asyncio
-async def test_server_can_send(loop):
+async def test_server_can_send(loop, unused_tcp_port):
     from pseud.utils import register_rpc
 
     server_id = b'server'
-    endpoint = b'tcp://127.0.0.1:5000'
+    endpoint = f'tcp://127.0.0.1:{unused_tcp_port}'
 
     server = make_one_server(server_id, loop, security_plugin='plain')
 
@@ -65,11 +65,11 @@ async def test_server_can_send(loop):
 
 
 @pytest.mark.asyncio
-async def test_server_can_send_to_several_client(loop):
+async def test_server_can_send_to_several_client(loop, unused_tcp_port):
     from pseud.utils import register_rpc
 
     server_id = b'server'
-    endpoint = b'tcp://127.0.0.1:5000'
+    endpoint = f'tcp://127.0.0.1:{unused_tcp_port}'
 
     server = make_one_server(server_id, loop, security_plugin='plain')
 
@@ -206,11 +206,11 @@ async def test_timeout_and_error_received_later(loop):
 
 
 @pytest.mark.asyncio
-async def test_client_can_reconnect(loop):
+async def test_client_can_reconnect(loop, unused_tcp_port):
     from pseud.utils import register_rpc
 
     server_id = b'server'
-    endpoint = b'tcp://127.0.0.1:8989'
+    endpoint = f'tcp://127.0.0.1:{unused_tcp_port}'
 
     server = make_one_server(server_id, loop)
     client = make_one_client(server_id, loop)

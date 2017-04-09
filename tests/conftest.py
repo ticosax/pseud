@@ -15,3 +15,10 @@ def event_loop():
 @pytest.fixture
 def loop(event_loop):
     return event_loop
+
+
+@pytest.fixture(autouse=True)
+def close_context():
+    yield
+    context = zmq.asyncio.Context.instance()
+    context.destroy(linger=0)
