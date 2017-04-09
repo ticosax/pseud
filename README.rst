@@ -36,9 +36,6 @@ Installation
 Dependencies are declared in setup.py and all automatically installed, but,
 pyzmq might build libzmq from bundled folder `OR` from your system wide libzmq.
 
-libzmq 4.1 is now required. As it is not yet bundled within pyzmq you will
-need to compile it yourself.
-
 Then you can install latest pyzmq from pypi
 
 .. code-block:: console
