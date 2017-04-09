@@ -2,9 +2,15 @@ pseud
 =====
 .. image:: https://travis-ci.org/ticosax/pseud.svg?branch=master
    :target: https://travis-ci.org/ticosax/pseud
+   :alt: Travis-CI Status
 
 .. image:: https://codecov.io/gh/ticosax/pseud/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/ticosax/pseud
+   :alt: Coverage Status
+
+.. image:: https://readthedocs.org/projects/pseud/badge/?version=latest
+   :target: http://pseud.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 
 Pythonic bidirectional-rpc API built on top of ØMQ with pluggable
 encryption, authentication and heartbeating support.
