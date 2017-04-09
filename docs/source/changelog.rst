@@ -23,7 +23,7 @@ ________
 
 Breaking Changes
 ----------------
-    - Only python3.6 is supported
+    - Only python3.6+ is supported
     - Only asyncio is supported (tornado and gevent are dropped)
 
 .. note::
@@ -34,7 +34,7 @@ Breaking Changes
 
 .. note::
 
-    pseud requires pyzmq 14.4.0 + libzmq-4.1.0 with ``zmq_msg_gets()``
+    pseud requires at least pyzmq 14.4.0 + libzmq-4.1.0 with ``zmq_msg_gets()``
 
 Bug Fixes
 _________
