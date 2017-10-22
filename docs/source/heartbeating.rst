@@ -36,7 +36,7 @@ You can start with the following snippet ::
         def handle_heartbeat(self, user_id, routing_id):
             pass
 
-        def handle_timeout(self, user_id, routing_id):
+        async def handle_timeout(self, user_id, routing_id):
             pass
 
         def configure(self):
