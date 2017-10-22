@@ -57,7 +57,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     name = 'noop_heartbeat_backend'
 
-    def handle_timeout(self, *args):
+    async def handle_timeout(self, *args):
         pass
 
     async def handle_heartbeat(self, *args):
@@ -76,7 +76,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
     name = 'testing_heartbeat_backend'
 
-    def handle_timeout(self, user_id, routing_id):
+    async def handle_timeout(self, user_id, routing_id):
         pass
 
     async def handle_heartbeat(self, user_id, routing_id):
@@ -94,7 +94,6 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
         self.task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await self.task
-        print('STOP done')
 
 
 @register_heartbeat_backend
@@ -106,6 +105,7 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     task_pool = {}
 
     async def handle_timeout(self, user_id, routing_id):
+        await asyncio.sleep(self.max_time_before_dead)
         logger.debug(f'Timeout detected for {routing_id}')
         user_id_str = user_id.decode('utf-8')
         await self.monitoring_socket.send(f'Gone {user_id_str}'.encode())
@@ -119,9 +119,8 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
         else:
             task.cancel()
 
-        self.task_pool[user_id] = task = self.rpc.loop.call_later(
-            self.max_time_before_dead,
-            asyncio.ensure_future, self.handle_timeout(user_id, routing_id))
+        self.task_pool[user_id] = self.rpc.loop.create_task(
+            self.handle_timeout(user_id, routing_id))
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)

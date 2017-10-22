@@ -233,7 +233,7 @@ class IHeartbeatBackend(zope.interface.Interface):
         peer_id
         """
 
-    def handle_timeout(user_id, routing_id):
+    async def handle_timeout(user_id, routing_id):
         """
         Called when a timeout is detected for given peer_id
         """
