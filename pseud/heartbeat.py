@@ -33,7 +33,7 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = b'noop_heartbeat_backend'
+    name = 'noop_heartbeat_backend'
 
     async def handle_heartbeat(self, *args):
         pass
@@ -55,7 +55,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = b'noop_heartbeat_backend'
+    name = 'noop_heartbeat_backend'
 
     def handle_timeout(self, *args):
         pass
@@ -74,7 +74,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IClient)
 class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
-    name = b'testing_heartbeat_backend'
+    name = 'testing_heartbeat_backend'
 
     def handle_timeout(self, user_id, routing_id):
         pass
@@ -101,7 +101,7 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
-    name = b'testing_heartbeat_backend'
+    name = 'testing_heartbeat_backend'
     max_time_before_dead = .2
     task_pool = {}
 
