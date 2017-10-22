@@ -1,0 +1,29 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+"e1839a8" = {path = ".", editable = true}
+pyzmq = "*"
+msgpack-python = "*"
+"zope.component" = "*"
+
+
+[dev-packages]
+
+pytest = "*"
+pytest-asyncio = "*"
+"pytest-pep8" = "*"
+pytest-capturelog = "*"
+tox = "*"
+flake8 = "*"
+pytest-cov = "*"
+
+
+[requires]
+
+python_version = "3.6"

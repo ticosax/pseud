@@ -1,10 +1,14 @@
 language: python
 python: 3.6
 cache: apt pip
+matrix:
+  include:
+    - env: TOXENV=py36
+    - env: TOXENV=qa
 install:
   - pip install tox codecov
 script:
-  - tox -- --cov pseud
+  - tox
 after_success: codecov
 notifications:
   email: false
