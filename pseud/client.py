@@ -91,9 +91,6 @@ class SyncClient(BaseRPC):
         self._setup_socket()
         self.socket.connect(endpoint)
 
-    def start(self):
-        pass
-
     def timeout_task(self, uuid):
         raise NotImplementedError('SyncClient can not do that')
 

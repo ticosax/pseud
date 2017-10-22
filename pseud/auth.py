@@ -46,10 +46,10 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     def configure(self):
         pass
 
-    async def handle_hello(self, *args):
+    async def handle_hello(self, *args):  # pragma: no cover
         pass
 
-    async def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):  # pragma: no cover
         pass
 
     def is_authenticated(self, peer_id):
@@ -64,7 +64,7 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     def get_routing_id(self, user_id):
         return user_id
 
-    def register_routing_id(self, user_id, routing_id):
+    def register_routing_id(self, user_id, routing_id):  # pragma: no cover
         pass
 
 
@@ -96,10 +96,10 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
     async def stop(self):
         pass
 
-    async def handle_hello(self, *args):
+    async def handle_hello(self, *args):  # pragma: no cover
         pass
 
-    async def handle_authenticated(self, message):
+    async def handle_authenticated(self, message):  # pragma: no cover
         pass
 
     def save_last_work(self, message):
@@ -108,13 +108,13 @@ class CurveWithTrustedKeyForClient(_BaseAuthBackend):
     def is_authenticated(self, peer_id):
         return True
 
-    def get_predicate_arguments(self, peer_id):
+    def get_predicate_arguments(self, peer_id):  # pragma: no cover
         return {}
 
     def get_routing_id(self, user_id):
         return user_id
 
-    def register_routing_id(self, user_id, routing_id):
+    def register_routing_id(self, user_id, routing_id):  # pragma: no cover
         pass
 
 
