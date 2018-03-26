@@ -18,10 +18,10 @@ msgpack-python = "*"
 pytest = "*"
 pytest-asyncio = "*"
 "pytest-pep8" = "*"
-pytest-capturelog = "*"
 tox = "*"
-flake8 = "*"
+"flake8" = "*"
 pytest-cov = "*"
+pdbpp = "*"
 
 
 [requires]
