@@ -33,7 +33,7 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = b'noop_heartbeat_backend'
+    name = 'noop_heartbeat_backend'
 
     async def handle_heartbeat(self, *args):
         pass
@@ -55,9 +55,9 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
-    name = b'noop_heartbeat_backend'
+    name = 'noop_heartbeat_backend'
 
-    def handle_timeout(self, *args):
+    async def handle_timeout(self, *args):
         pass
 
     async def handle_heartbeat(self, *args):
@@ -74,9 +74,9 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IClient)
 class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
-    name = b'testing_heartbeat_backend'
+    name = 'testing_heartbeat_backend'
 
-    def handle_timeout(self, user_id, routing_id):
+    async def handle_timeout(self, user_id, routing_id):
         pass
 
     async def handle_heartbeat(self, user_id, routing_id):
@@ -94,15 +94,14 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
         self.task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await self.task
-        print('STOP done')
 
 
 @register_heartbeat_backend
 @zope.interface.implementer(IHeartbeatBackend)
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
-    name = b'testing_heartbeat_backend'
-    max_time_before_dead = .2
+    name = 'testing_heartbeat_backend'
+    timeout = .2
     task_pool = {}
 
     async def handle_timeout(self, user_id, routing_id):
@@ -119,9 +118,10 @@ class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
         else:
             task.cancel()
 
-        self.task_pool[user_id] = task = self.rpc.loop.call_later(
-            self.max_time_before_dead,
-            asyncio.ensure_future, self.handle_timeout(user_id, routing_id))
+        self.task_pool[user_id] = self.rpc.loop.call_later(
+            self.timeout,
+            lambda: asyncio.ensure_future(
+                self.handle_timeout(user_id, routing_id)))
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
