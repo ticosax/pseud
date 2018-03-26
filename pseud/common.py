@@ -121,10 +121,11 @@ class BaseRPC(object):
         self.security_plugin = security_plugin
         self.future_pool = {}
         self.initialized = False
-        self.auth_backend = zope.component.getAdapter(self,
-                                                      IAuthenticationBackend,
-                                                      name=self.security_plugin
-                                                      )
+        self.auth_backend = zope.component.getAdapter(
+            self,
+            IAuthenticationBackend,
+            name=self.security_plugin
+        )
         self.public_key = public_key
         self.secret_key = secret_key
         self.peer_public_key = peer_public_key

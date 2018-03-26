@@ -21,22 +21,6 @@ def test_noop_heartbeat_backend_server():
                                       NoOpHeartbeatBackendForServer)
 
 
-def test_testing_heartbeat_backend_client():
-    from pseud.heartbeat import TestingHeartbeatBackendForClient
-    from pseud.interfaces import IHeartbeatBackend
-
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      TestingHeartbeatBackendForClient)
-
-
-def test_testing_heartbeat_backend_server():
-    from pseud.heartbeat import TestingHeartbeatBackendForServer
-    from pseud.interfaces import IHeartbeatBackend
-
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      TestingHeartbeatBackendForServer)
-
-
 def make_one_server(user_id, endpoint,
                     security_plugin='noop_auth_backend',
                     heartbeat_plugin=None,
@@ -65,7 +49,7 @@ def make_one_client(peer_routing_id,
 
 
 @pytest.mark.asyncio
-async def test_basic_heartbeating(loop):
+async def test_basic_heartbeating(loop, testing_heartbeat_backend):
     server_id = b'server'
     endpoint = b'ipc://here'
     heartbeat_backend = 'testing_heartbeat_backend'

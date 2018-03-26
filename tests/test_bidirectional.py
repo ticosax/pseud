@@ -43,7 +43,7 @@ async def test_client_can_send(loop):
 
 
 @pytest.mark.asyncio
-async def test_server_can_send(loop, unused_tcp_port):
+async def test_server_can_send(loop, unused_tcp_port, plain_auth_backend):
     from pseud.utils import register_rpc
 
     server_id = b'server'

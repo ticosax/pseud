@@ -4,8 +4,9 @@ import time
 import pytest
 import zmq
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_server_creation():
     from pseud import Server
     user_id = b'echo'
@@ -14,22 +15,24 @@ async def test_server_creation():
     assert server.security_plugin == 'noop_auth_backend'
 
 
-def test_server_can_bind():
+async def test_server_can_bind():
     from pseud import Server
     user_id = b'echo'
     endpoint = 'inproc://{}'.format(__name__).encode()
     server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.bind(endpoint)
+    await server.stop()
 
 
-def test_server_can_connect():
+async def test_server_can_connect():
     from pseud import Server
     user_id = b'echo'
     endpoint = b'tcp://127.0.0.1:5000'
     server = Server(user_id,
                     security_plugin='noop_auth_backend')
     server.connect(endpoint)
+    await server.stop()
 
 
 def make_one_client_socket(endpoint):
@@ -46,7 +49,6 @@ def make_one_server(user_id, endpoint, loop):
     return server
 
 
-@pytest.mark.asyncio
 async def test_job_running(loop):
     from pseud.interfaces import EMPTY_DELIMITER, OK, VERSION, WORK
     from pseud.packer import Packer
@@ -71,7 +73,6 @@ async def test_job_running(loop):
                             OK, Packer().packb(True)]
 
 
-@pytest.mark.asyncio
 async def test_job_not_found(loop):
     import pseud
     from pseud.interfaces import EMPTY_DELIMITER, ERROR, VERSION, WORK
@@ -93,7 +94,6 @@ async def test_job_not_found(loop):
         assert os.path.dirname(pseud.__file__) in traceback
 
 
-@pytest.mark.asyncio
 async def test_job_raise(loop):
     from pseud.interfaces import ERROR, VERSION, WORK
     from pseud.packer import Packer

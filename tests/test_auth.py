@@ -22,36 +22,9 @@ def test_noop_auth_backend_server():
                        NoOpAuthenticationBackendForServer)
 
 
-def test_trusted_curve_client():
-    from pseud.auth import CurveWithTrustedKeyForClient
-    from pseud.interfaces import IAuthenticationBackend
-
-    assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForClient)
-
-
-def test_trusted_curve_server():
-    from pseud.auth import CurveWithTrustedKeyForServer
-    from pseud.interfaces import IAuthenticationBackend
-
-    assert verifyClass(IAuthenticationBackend, CurveWithTrustedKeyForServer)
-
-
-def test_untrusted_curve_client():
-    from pseud.auth import CurveWithUntrustedKeyForClient
-    from pseud.interfaces import IAuthenticationBackend
-
-    assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForClient)
-
-
-def test_untrusted_curve_server():
-    from pseud.auth import CurveWithUntrustedKeyForServer
-    from pseud.interfaces import IAuthenticationBackend
-
-    assert verifyClass(IAuthenticationBackend, CurveWithUntrustedKeyForServer)
-
-
 @pytest.mark.asyncio
-async def test_trusted_curve(loop, unused_tcp_port):
+async def test_trusted_curve(loop, unused_tcp_port,
+                             trusted_curve_auth_backend):
     from pseud import Client, Server
     from pseud.utils import register_rpc
 
@@ -123,7 +96,8 @@ async def test_trusted_curve_with_wrong_peer_public_key(
 
 
 @pytest.mark.asyncio
-async def test_untrusted_curve_with_allowed_password(loop, unused_tcp_port):
+async def test_untrusted_curve_with_allowed_password(
+        loop, unused_tcp_port, untrusted_curve_auth_backend):
     from pseud import Client, Server
     from pseud.utils import register_rpc
 
