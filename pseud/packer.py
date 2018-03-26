@@ -64,7 +64,7 @@ class Packer:
         try:
             return msgpack.packb(data, encoding='utf-8', use_bin_type=True,
                                  default=self.ext_type_pack_hook)
-        except:
+        except Exception:
             logger.exception('Packing failed')
             raise
 
@@ -72,7 +72,7 @@ class Packer:
         try:
             return msgpack.unpackb(packed, use_list=False, encoding='utf-8',
                                    ext_hook=self.ext_type_unpack_hook)
-        except:
+        except Exception:
             logger.exception('Unpacking failed')
             raise
 
