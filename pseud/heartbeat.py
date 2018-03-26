@@ -101,11 +101,11 @@ class TestingHeartbeatBackendForClient(_BaseHeartbeatBackend):
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer(_BaseHeartbeatBackend):
     name = 'testing_heartbeat_backend'
-    max_time_before_dead = .2
+    timeout = .2
     task_pool = {}
 
     async def handle_timeout(self, user_id, routing_id):
-        await asyncio.sleep(self.max_time_before_dead)
+        await asyncio.sleep(self.timeout)
         logger.debug(f'Timeout detected for {routing_id}')
         user_id_str = user_id.decode('utf-8')
         await self.monitoring_socket.send(f'Gone {user_id_str}'.encode())
