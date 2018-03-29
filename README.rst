@@ -89,8 +89,7 @@ The SyncClient
    client = SyncClient()
    client.connect('tcp://127.0.0.1:5555')
 
-   async with client:
-       assert client.hello('Charly') == 'Hello Charly'
+   assert client.hello('Charly') == 'Hello Charly'
 
 
 
