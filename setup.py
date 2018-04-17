@@ -15,6 +15,7 @@ version = '1.0.0'
 setup(name='pseud',
       version=version,
       description='Bidirectionnal RPC Api on top of pyzmq',
+      long_description=long_description,
       author='Nicolas Delaby',
       author_email='ticosax@free.fr',
       url='https://github.com/ticosax/pseud',
