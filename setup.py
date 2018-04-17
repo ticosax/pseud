@@ -9,7 +9,7 @@ def read_that_file(path):
 long_description = '\n'.join((read_that_file('README.rst'),
                               read_that_file('LICENSE.txt')))
 
-version = '1.0.1'
+version = '1.0.2dev'
 
 
 setup(name='pseud',
