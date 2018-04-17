@@ -1,8 +1,15 @@
 Changelog history
 =================
 
-1.0.0 - Not Yet Released
-------------------------
+
+1.0.1dev - Not yet released
+---------------------------
+
+1.0.0 - 2018/04/17
+------------------
+  - enable PROBING
+  - Switch to pipenv
+  - maintenance of dependencies + tests cleanup
 
 1.0.0-a1 - 2017/04/09
 --------------------
