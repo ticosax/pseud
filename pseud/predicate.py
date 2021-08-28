@@ -13,6 +13,7 @@ class PassThrough(object):
 
     Allows all job to be executed.
     """
+
     name = 'default'
 
     def __init__(self, rpc_call):

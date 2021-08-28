@@ -4,10 +4,10 @@ import itertools
 import logging
 
 import pytest
-import zope.component
-import zope.interface
 import zmq
 import zmq.asyncio
+import zope.component
+import zope.interface
 from zmq.utils import z85
 
 import pseud
@@ -15,15 +15,15 @@ from pseud.common import handle_result, read_forever
 from pseud.interfaces import (
     AUTHENTICATED,
     EMPTY_DELIMITER,
+    HEARTBEAT,
+    HELLO,
+    UNAUTHORIZED,
+    VERSION,
     IAuthenticationBackend,
     IClient,
     IHeartbeatBackend,
     IServer,
-    HEARTBEAT,
-    HELLO,
-    VERSION,
     UnauthorizedError,
-    UNAUTHORIZED,
 )
 from pseud.packer import Packer
 from pseud.utils import register_auth_backend, register_heartbeat_backend
@@ -44,13 +44,15 @@ class TestingHeartbeatBackendForClient:
 
     async def handle_heartbeat(self, user_id, routing_id):
         while True:
-            await asyncio.shield(self.rpc.send_message(
-                [routing_id, b'', VERSION, b'', HEARTBEAT, b'']))
-            await asyncio.sleep(.1)
+            await asyncio.shield(
+                self.rpc.send_message([routing_id, b'', VERSION, b'', HEARTBEAT, b''])
+            )
+            await asyncio.sleep(0.1)
 
     def configure(self):
         self.task = self.rpc.loop.create_task(
-            self.handle_heartbeat(b'', self.rpc.peer_routing_id))
+            self.handle_heartbeat(b'', self.rpc.peer_routing_id)
+        )
         self.task.add_done_callback(handle_result)
 
     async def stop(self):
@@ -63,7 +65,7 @@ class TestingHeartbeatBackendForClient:
 @zope.component.adapter(IServer)
 class TestingHeartbeatBackendForServer:
     name = 'testing_heartbeat_backend'
-    timeout = .2
+    timeout = 0.2
     task_pool = {}
 
     def __init__(self, rpc):
@@ -85,7 +87,8 @@ class TestingHeartbeatBackendForServer:
             task.cancel()
 
         self.task_pool[user_id] = self.rpc.loop.create_task(
-            self.handle_timeout(user_id, routing_id))
+            self.handle_timeout(user_id, routing_id)
+        )
 
     def configure(self):
         self.monitoring_socket = self.rpc.context.socket(zmq.PUB)
@@ -103,6 +106,7 @@ class PlainForClient:
     """
     Simple username password auth
     """
+
     name = 'plain'
 
     def __init__(self, rpc):
@@ -148,6 +152,7 @@ class PlainForServer:
     .. note::
         For testing usage only
     """
+
     name = 'plain'
 
     def __init__(self, rpc):
@@ -162,14 +167,25 @@ class PlainForServer:
         zap_socket.linger = 1
         zap_socket.bind('inproc://zeromq.zap.01')
         self.reader = self.rpc.loop.create_task(
-            read_forever(zap_socket, self._zap_handler, copy=True))
+            read_forever(zap_socket, self._zap_handler, copy=True)
+        )
 
     async def _zap_handler(self, message):
         """
         `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
-        (zid, delimiter, version, sequence, domain, address, identity,
-         mechanism, login, password) = message
+        (
+            zid,
+            delimiter,
+            version,
+            sequence,
+            domain,
+            address,
+            identity,
+            mechanism,
+            login,
+            password,
+        ) = message
         assert version == b'1.0'
         assert mechanism == b'PLAIN'
         if login == password:
@@ -181,8 +197,16 @@ class PlainForServer:
             response_code = b'400'
             response_msg = b'Unauthorized'
 
-        reply = [zid, delimiter, version, sequence, response_code,
-                 response_msg, known_identity, b'']
+        reply = [
+            zid,
+            delimiter,
+            version,
+            sequence,
+            response_code,
+            response_msg,
+            known_identity,
+            b'',
+        ]
         await self.zap_socket.send_multipart(reply)
 
     async def handle_hello(self, *args):
@@ -221,22 +245,41 @@ class TrustedPeerForServer(PlainForServer):
     Trust id given by remote peer, using PLAIN mechanism.
     There is no password control.
     """
+
     name = 'trusted_peer'
 
     def _zap_handler(self, message):
         """
         `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
-        (zid, delimiter, version, sequence, domain, address, identity,
-         mechanism, login, password) = message
+        (
+            zid,
+            delimiter,
+            version,
+            sequence,
+            domain,
+            address,
+            identity,
+            mechanism,
+            login,
+            password,
+        ) = message
         assert version == b'1.0'
         assert mechanism == b'PLAIN'
         response_code = b'200'
         response_msg = b'OK'
         known_identity = login
 
-        reply = [zid, delimiter, version, sequence, response_code,
-                 response_msg, known_identity, b'']
+        reply = [
+            zid,
+            delimiter,
+            version,
+            sequence,
+            response_code,
+            response_msg,
+            known_identity,
+            b'',
+        ]
         self.zap_socket.send_multipart(reply)
 
 
@@ -246,6 +289,7 @@ class CurveWithTrustedKeyForClient:
     """
     Server trusts peer certificate and allows every peer.
     """
+
     name = 'trusted_curve'
 
     def __init__(self, rpc):
@@ -290,6 +334,7 @@ class CurveWithTrustedKeyForServer:
 
     Note: This is an example for testing only.
     """
+
     name = 'trusted_curve'
 
     def __init__(self, rpc):
@@ -305,16 +350,28 @@ class CurveWithTrustedKeyForServer:
         zap_socket.linger = 1
         zap_socket.bind(b'inproc://zeromq.zap.01')
         self.reader = self.rpc.loop.create_task(
-            read_forever(zap_socket, self._zap_handler, copy=True))
-        self.known_identities = {b'bob': zmq.curve_keypair(),
-                                 b'alice': zmq.curve_keypair()}
+            read_forever(zap_socket, self._zap_handler, copy=True)
+        )
+        self.known_identities = {
+            b'bob': zmq.curve_keypair(),
+            b'alice': zmq.curve_keypair(),
+        }
 
     async def _zap_handler(self, message):
         """
         `ZAP <http://rfc.zeromq.org/spec:27>`_
         """
-        (zid, delimiter, version, sequence, domain, address, identity,
-         mechanism, key) = message
+        (
+            zid,
+            delimiter,
+            version,
+            sequence,
+            domain,
+            address,
+            identity,
+            mechanism,
+            key,
+        ) = message
         assert version == b'1.0'
         assert mechanism == b'CURVE'
         for known_identity, pair in self.known_identities.items():
@@ -327,8 +384,16 @@ class CurveWithTrustedKeyForServer:
             response_code = b'400'
             response_msg = b'Unauthorized'
 
-        reply = [zid, delimiter, version, sequence, response_code,
-                 response_msg, known_identity, b'']
+        reply = [
+            zid,
+            delimiter,
+            version,
+            sequence,
+            response_code,
+            response_msg,
+            known_identity,
+            b'',
+        ]
         await self.zap_socket.send_multipart(reply)
 
     async def handle_hello(self, *args):
@@ -370,6 +435,7 @@ class CurveWithUntrustedKeyForClient:
     #. CURVE + PLAIN, then approve key if authenticated.
     #. CURVE (trusted version)
     """
+
     name = 'untrusted_curve'
     max_retries = 2
 
@@ -392,13 +458,20 @@ class CurveWithUntrustedKeyForClient:
             except KeyError:
                 pass
             else:
-                future.set_exception(UnauthorizedError('Max authentication'
-                                                       ' retries reached'))
+                future.set_exception(
+                    UnauthorizedError('Max authentication' ' retries reached')
+                )
         else:
             await self.rpc.send_message(
-                [routing_id, EMPTY_DELIMITER, VERSION,
-                 message_uuid, HELLO,
-                 self.packer.packb((self.rpc.user_id, self.rpc.password))])
+                [
+                    routing_id,
+                    EMPTY_DELIMITER,
+                    VERSION,
+                    message_uuid,
+                    HELLO,
+                    self.packer.packb((self.rpc.user_id, self.rpc.password)),
+                ]
+            )
 
     async def handle_hello(self, *args):
         pass
@@ -444,6 +517,7 @@ class CurveWithUntrustedKeyForServer:
         This implementation should not be used on production.
         It is just for the tests.
     """
+
     name = 'untrusted_curve'
 
     def __init__(self, rpc):
@@ -458,16 +532,24 @@ class CurveWithUntrustedKeyForServer:
         """
         http://rfc.zeromq.org/spec:27
         """
-        (zid, delimiter, version, sequence, domain, address, identity,
-         mechanism, key) = message
+        (
+            zid,
+            delimiter,
+            version,
+            sequence,
+            domain,
+            address,
+            identity,
+            mechanism,
+            key,
+        ) = message
         assert version == b'1.0'
         assert mechanism == b'CURVE'
         try:
             user_id = self.trusted_keys[key]
         except KeyError:
             user_id = z85.encode(key)
-        reply = [zid, delimiter, version, sequence, b'200', b'OK',
-                 user_id, b'']
+        reply = [zid, delimiter, version, sequence, b'200', b'OK', user_id, b'']
         await self.zap_socket.send_multipart(reply)
 
     def configure(self):
@@ -480,7 +562,8 @@ class CurveWithUntrustedKeyForServer:
         zap_socket.linger = 1
         zap_socket.bind(b'inproc://zeromq.zap.01')
         self.reader = self.rpc.loop.create_task(
-            read_forever(zap_socket, self._zap_handler, copy=True))
+            read_forever(zap_socket, self._zap_handler, copy=True)
+        )
 
     def get_routing_id(self, user_id):
         return self.login2peer_id_mapping[user_id]
@@ -505,8 +588,8 @@ class CurveWithUntrustedKeyForServer:
             status = UNAUTHORIZED
         logger.debug('Sending Hello reply: {!r}'.format(reply))
         await self.rpc.send_message(
-            [routing_id, EMPTY_DELIMITER, VERSION,
-             message_uuid, status, reply])
+            [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status, reply]
+        )
 
     async def handle_authenticated(self, message):
         pass
@@ -515,8 +598,9 @@ class CurveWithUntrustedKeyForServer:
         self.pending_keys[routing_id] = user_id  # this is the client pub key
         reply = b'Authentication Required'
         status = UNAUTHORIZED
-        await self.rpc.send_message([routing_id, EMPTY_DELIMITER, VERSION,
-                                     message_uuid, status, reply])
+        await self.rpc.send_message(
+            [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status, reply]
+        )
 
     def is_authenticated(self, user_id):
         result = False
@@ -569,10 +653,8 @@ def close_context():
 def testing_heartbeat_backend():
     register_heartbeat_backend(TestingHeartbeatBackendForClient)
     register_heartbeat_backend(TestingHeartbeatBackendForServer)
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      TestingHeartbeatBackendForClient)
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      TestingHeartbeatBackendForServer)
+    zope.interface.verify.verifyClass(IHeartbeatBackend, TestingHeartbeatBackendForClient)
+    zope.interface.verify.verifyClass(IHeartbeatBackend, TestingHeartbeatBackendForServer)
 
 
 @pytest.fixture(scope='session')
@@ -586,9 +668,7 @@ def plain_auth_backend():
 @pytest.fixture(scope='session')
 def trusted_peer_auth_backend():
     register_auth_backend(TrustedPeerForServer)
-    zope.interface.verify.verifyClass(
-        IAuthenticationBackend,
-        TrustedPeerForServer)
+    zope.interface.verify.verifyClass(IAuthenticationBackend, TrustedPeerForServer)
 
 
 @pytest.fixture(scope='session')
@@ -596,11 +676,11 @@ def trusted_curve_auth_backend():
     register_auth_backend(CurveWithTrustedKeyForClient)
     register_auth_backend(CurveWithTrustedKeyForServer)
     zope.interface.verify.verifyClass(
-        IAuthenticationBackend,
-        CurveWithTrustedKeyForClient)
+        IAuthenticationBackend, CurveWithTrustedKeyForClient
+    )
     zope.interface.verify.verifyClass(
-        IAuthenticationBackend,
-        CurveWithTrustedKeyForServer)
+        IAuthenticationBackend, CurveWithTrustedKeyForServer
+    )
 
 
 @pytest.fixture(scope='session')
@@ -608,8 +688,8 @@ def untrusted_curve_auth_backend():
     register_auth_backend(CurveWithUntrustedKeyForClient)
     register_auth_backend(CurveWithUntrustedKeyForServer)
     zope.interface.verify.verifyClass(
-        IAuthenticationBackend,
-        CurveWithUntrustedKeyForClient)
+        IAuthenticationBackend, CurveWithUntrustedKeyForClient
+    )
     zope.interface.verify.verifyClass(
-        IAuthenticationBackend,
-        CurveWithUntrustedKeyForServer)
+        IAuthenticationBackend, CurveWithUntrustedKeyForServer
+    )
