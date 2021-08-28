@@ -10,21 +10,18 @@ def test_noop_auth_backend_client():
     from pseud.auth import NoOpAuthenticationBackendForClient
     from pseud.interfaces import IAuthenticationBackend
 
-    assert verifyClass(IAuthenticationBackend,
-                       NoOpAuthenticationBackendForClient)
+    assert verifyClass(IAuthenticationBackend, NoOpAuthenticationBackendForClient)
 
 
 def test_noop_auth_backend_server():
     from pseud.auth import NoOpAuthenticationBackendForServer
     from pseud.interfaces import IAuthenticationBackend
 
-    assert verifyClass(IAuthenticationBackend,
-                       NoOpAuthenticationBackendForServer)
+    assert verifyClass(IAuthenticationBackend, NoOpAuthenticationBackendForServer)
 
 
 @pytest.mark.asyncio
-async def test_trusted_curve(loop, unused_tcp_port,
-                             trusted_curve_auth_backend):
+async def test_trusted_curve(loop, unused_tcp_port, trusted_curve_auth_backend):
     from pseud import Client, Server
     from pseud.utils import register_rpc
 
@@ -33,20 +30,25 @@ async def test_trusted_curve(loop, unused_tcp_port,
     server_public, server_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
-    server = Server(server_id, security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
     server.bind(endpoint)
 
     bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
-    client = Client(server_id,
-                    user_id=b'bob',
-                    security_plugin=security_plugin,
-                    public_key=bob_public,
-                    secret_key=bob_secret,
-                    peer_public_key=server_public,
-                    loop=loop)
+    client = Client(
+        server_id,
+        user_id=b'bob',
+        security_plugin=security_plugin,
+        public_key=bob_public,
+        secret_key=bob_secret,
+        peer_public_key=server_public,
+        loop=loop,
+    )
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
@@ -59,31 +61,35 @@ async def test_trusted_curve(loop, unused_tcp_port,
 
 
 @pytest.mark.asyncio
-async def test_trusted_curve_with_wrong_peer_public_key(
-        loop, unused_tcp_port_factory):
+async def test_trusted_curve_with_wrong_peer_public_key(loop, unused_tcp_port_factory):
     from pseud import Client, Server
     from pseud.utils import register_rpc
+
     server_id = b'server'
     port = unused_tcp_port_factory()
     endpoint = f'tcp://127.0.0.1:{port}'
     server_public, server_secret = zmq.curve_keypair()
 
-    server = Server(server_id, security_plugin='trusted_curve',
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin='trusted_curve',
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
     server.bind(endpoint)
 
-    alice_public, alice_secret = \
-        server.auth_backend.known_identities[b'alice']
-    client = Client(server_id,
-                    user_id=b'alice',
-                    security_plugin='trusted_curve',
-                    public_key=alice_public,
-                    secret_key=alice_secret,
-                    peer_public_key=z85.encode(b'R' * 32),
-                    timeout=.5,
-                    loop=loop)
+    alice_public, alice_secret = server.auth_backend.known_identities[b'alice']
+    client = Client(
+        server_id,
+        user_id=b'alice',
+        security_plugin='trusted_curve',
+        public_key=alice_public,
+        secret_key=alice_secret,
+        peer_public_key=z85.encode(b'R' * 32),
+        timeout=0.5,
+        loop=loop,
+    )
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
@@ -97,7 +103,8 @@ async def test_trusted_curve_with_wrong_peer_public_key(
 
 @pytest.mark.asyncio
 async def test_untrusted_curve_with_allowed_password(
-        loop, unused_tcp_port, untrusted_curve_auth_backend):
+    loop, unused_tcp_port, untrusted_curve_auth_backend
+):
     from pseud import Client, Server
     from pseud.utils import register_rpc
 
@@ -109,20 +116,24 @@ async def test_untrusted_curve_with_allowed_password(
     security_plugin = 'untrusted_curve'
     password = b's3cret!'
 
-    client = Client(server_id,
-                    security_plugin=security_plugin,
-                    public_key=client_public,
-                    secret_key=client_secret,
-                    peer_public_key=server_public,
-                    user_id=client_id,
-                    password=password,
-                    loop=loop)
+    client = Client(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=client_public,
+        secret_key=client_secret,
+        peer_public_key=server_public,
+        user_id=client_id,
+        password=password,
+        loop=loop,
+    )
 
-    server = Server(server_id,
-                    security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -145,7 +156,8 @@ async def test_untrusted_curve_with_allowed_password(
 
 @pytest.mark.asyncio
 async def test_untrusted_curve_with_allowed_password_and_client_disconnect(
-        loop, unused_tcp_port):
+    loop, unused_tcp_port
+):
     from pseud import Client, Server
 
     client_id = b'john'
@@ -156,21 +168,25 @@ async def test_untrusted_curve_with_allowed_password_and_client_disconnect(
     security_plugin = 'untrusted_curve'
     password = b's3cret!'
 
-    client = Client(server_id,
-                    security_plugin=security_plugin,
-                    public_key=client_public,
-                    secret_key=client_secret,
-                    peer_public_key=server_public,
-                    user_id=client_id,
-                    password=password,
-                    timeout=1,
-                    loop=loop)
+    client = Client(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=client_public,
+        secret_key=client_secret,
+        peer_public_key=server_public,
+        user_id=client_id,
+        password=password,
+        timeout=1,
+        loop=loop,
+    )
 
-    server = Server(server_id,
-                    security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -188,7 +204,7 @@ async def test_untrusted_curve_with_allowed_password_and_client_disconnect(
         # Simulate disconnection and reconnection with new identity
         client.disconnect(endpoint)
         client.connect(endpoint)
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
         result = await client.string.lower('ABC')
         assert result == 'abc'
 
@@ -207,20 +223,24 @@ async def test_untrusted_curve_with_wrong_password(loop, unused_tcp_port):
     security_plugin = 'untrusted_curve'
     password = b's3cret!'
 
-    client = Client(server_id,
-                    user_id=client_id,
-                    security_plugin=security_plugin,
-                    public_key=client_public,
-                    secret_key=client_secret,
-                    peer_public_key=server_public,
-                    password=password,
-                    loop=loop)
+    client = Client(
+        server_id,
+        user_id=client_id,
+        security_plugin=security_plugin,
+        public_key=client_public,
+        secret_key=client_secret,
+        peer_public_key=server_public,
+        password=password,
+        loop=loop,
+    )
 
-    server = Server(server_id,
-                    security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
 
     server.bind(endpoint)
     client.connect(endpoint)
@@ -247,20 +267,25 @@ async def test_client_can_reconnect(loop, unused_tcp_port_factory):
     server_public, server_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
-    server = Server(server_id, security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
     server.bind(endpoint)
 
     bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
-    client = Client(server_id,
-                    user_id=b'bob',
-                    security_plugin=security_plugin,
-                    public_key=bob_public,
-                    secret_key=bob_secret,
-                    peer_public_key=server_public,
-                    loop=loop)
+    client = Client(
+        server_id,
+        user_id=b'bob',
+        security_plugin=security_plugin,
+        public_key=bob_public,
+        secret_key=bob_secret,
+        peer_public_key=server_public,
+        loop=loop,
+    )
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE
@@ -273,15 +298,14 @@ async def test_client_can_reconnect(loop, unused_tcp_port_factory):
 
         client.disconnect(endpoint)
         client.connect(endpoint)
-        await asyncio.sleep(.01)
+        await asyncio.sleep(0.01)
 
         result = await client.string.upper('hello2')
         assert result == 'HELLO2'
 
 
 @pytest.mark.asyncio
-async def test_server_can_send_to_trustable_peer_identity(loop,
-                                                          unused_tcp_port):
+async def test_server_can_send_to_trustable_peer_identity(loop, unused_tcp_port):
     """
     Uses internal metadata of zmq.Frame.get() to fetch identity of sender
     """
@@ -292,20 +316,25 @@ async def test_server_can_send_to_trustable_peer_identity(loop,
     server_public, server_secret = zmq.curve_keypair()
     security_plugin = 'trusted_curve'
 
-    server = Server(server_id, security_plugin=security_plugin,
-                    public_key=server_public,
-                    secret_key=server_secret,
-                    loop=loop)
+    server = Server(
+        server_id,
+        security_plugin=security_plugin,
+        public_key=server_public,
+        secret_key=server_secret,
+        loop=loop,
+    )
     server.bind(endpoint)
 
     bob_public, bob_secret = server.auth_backend.known_identities[b'bob']
-    client = Client(server_id,
-                    user_id=b'bob',
-                    security_plugin=security_plugin,
-                    public_key=bob_public,
-                    secret_key=bob_secret,
-                    peer_public_key=server_public,
-                    loop=loop)
+    client = Client(
+        server_id,
+        user_id=b'bob',
+        security_plugin=security_plugin,
+        public_key=bob_public,
+        secret_key=bob_secret,
+        peer_public_key=server_public,
+        loop=loop,
+    )
     client.connect(endpoint)
     assert server.socket.mechanism == zmq.CURVE
     assert client.socket.mechanism == zmq.CURVE

@@ -9,42 +9,52 @@ def test_noop_heartbeat_backend_client():
     from pseud.heartbeat import NoOpHeartbeatBackendForClient
     from pseud.interfaces import IHeartbeatBackend
 
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      NoOpHeartbeatBackendForClient)
+    zope.interface.verify.verifyClass(IHeartbeatBackend, NoOpHeartbeatBackendForClient)
 
 
 def test_noop_heartbeat_backend_server():
     from pseud.heartbeat import NoOpHeartbeatBackendForServer
     from pseud.interfaces import IHeartbeatBackend
 
-    zope.interface.verify.verifyClass(IHeartbeatBackend,
-                                      NoOpHeartbeatBackendForServer)
+    zope.interface.verify.verifyClass(IHeartbeatBackend, NoOpHeartbeatBackendForServer)
 
 
-def make_one_server(user_id, endpoint,
-                    security_plugin='noop_auth_backend',
-                    heartbeat_plugin=None,
-                    loop=None):
+def make_one_server(
+    user_id,
+    endpoint,
+    security_plugin='noop_auth_backend',
+    heartbeat_plugin=None,
+    loop=None,
+):
     from pseud import Server
-    server = Server(user_id, heartbeat_plugin=heartbeat_plugin,
-                    security_plugin=security_plugin,
-                    loop=loop)
+
+    server = Server(
+        user_id,
+        heartbeat_plugin=heartbeat_plugin,
+        security_plugin=security_plugin,
+        loop=loop,
+    )
     return server
 
 
-def make_one_client(peer_routing_id,
-                    security_plugin='noop_auth_backend',
-                    heartbeat_plugin=None,
-                    user_id=None,
-                    password=None,
-                    loop=None):
+def make_one_client(
+    peer_routing_id,
+    security_plugin='noop_auth_backend',
+    heartbeat_plugin=None,
+    user_id=None,
+    password=None,
+    loop=None,
+):
     from pseud import Client
-    client = Client(peer_routing_id,
-                    security_plugin=security_plugin,
-                    heartbeat_plugin=heartbeat_plugin,
-                    user_id=user_id,
-                    password=password,
-                    loop=loop)
+
+    client = Client(
+        peer_routing_id,
+        security_plugin=security_plugin,
+        heartbeat_plugin=heartbeat_plugin,
+        user_id=user_id,
+        password=password,
+        loop=loop,
+    )
     return client
 
 
@@ -55,17 +65,21 @@ async def test_basic_heartbeating(loop, testing_heartbeat_backend):
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
-        server_id, endpoint,
+        server_id,
+        endpoint,
         security_plugin='plain',
         heartbeat_plugin=heartbeat_backend,
-        loop=loop)
+        loop=loop,
+    )
 
-    client = make_one_client(server_id,
-                             security_plugin='plain',
-                             heartbeat_plugin=heartbeat_backend,
-                             user_id=b'client',
-                             password=b'client',
-                             loop=loop)
+    client = make_one_client(
+        server_id,
+        security_plugin='plain',
+        heartbeat_plugin=heartbeat_backend,
+        user_id=b'client',
+        password=b'client',
+        loop=loop,
+    )
     server.bind(endpoint)
     client.connect(endpoint)
     context = zmq.asyncio.Context.instance()
@@ -89,25 +103,28 @@ async def test_basic_heartbeating(loop, testing_heartbeat_backend):
 
 
 @pytest.mark.asyncio
-async def test_basic_heartbeating_with_disconnection(loop,
-                                                     unused_tcp_port_factory):
+async def test_basic_heartbeating_with_disconnection(loop, unused_tcp_port_factory):
     port = unused_tcp_port_factory()
     server_id = b'server'
     endpoint = f'tcp://127.0.0.1:{port}'
     heartbeat_backend = 'testing_heartbeat_backend'
 
     server = make_one_server(
-        server_id, endpoint,
+        server_id,
+        endpoint,
         security_plugin='plain',
         heartbeat_plugin=heartbeat_backend,
-        loop=loop)
+        loop=loop,
+    )
 
-    client = make_one_client(server_id,
-                             security_plugin='plain',
-                             heartbeat_plugin=heartbeat_backend,
-                             user_id=b'client',
-                             password=b'client',
-                             loop=loop)
+    client = make_one_client(
+        server_id,
+        security_plugin='plain',
+        heartbeat_plugin=heartbeat_backend,
+        user_id=b'client',
+        password=b'client',
+        loop=loop,
+    )
     server.bind(endpoint)
     client.connect(endpoint)
     context = zmq.asyncio.Context.instance()
@@ -123,7 +140,7 @@ async def test_basic_heartbeating_with_disconnection(loop,
                 sink.extend(await monitoring_socket.recv_multipart())
 
         task = loop.create_task(collector(sink))
-        loop.call_later(.5, asyncio.ensure_future, client.stop())
+        loop.call_later(0.5, asyncio.ensure_future, client.stop())
         await asyncio.sleep(1.1)
         task.cancel()
 
