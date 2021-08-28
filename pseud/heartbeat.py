@@ -3,11 +3,7 @@ import logging
 import zope.component
 import zope.interface
 
-from .interfaces import (IClient,
-                         IHeartbeatBackend,
-                         IServer,
-                         )
-
+from .interfaces import IClient, IHeartbeatBackend, IServer
 from .utils import register_heartbeat_backend
 
 logger = logging.getLogger(__name__)
@@ -16,7 +12,6 @@ __all__ = ['NoOpHeartbeatBackendForClient', 'NoOpHeartbeatBackendForServer']
 
 
 class _BaseHeartbeatBackend:
-
     def __init__(self, rpc):
         self.rpc = rpc
 
@@ -28,6 +23,7 @@ class NoOpHeartbeatBackendForClient(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
+
     name = 'noop_heartbeat_backend'
 
     async def handle_heartbeat(self, *args):
@@ -50,6 +46,7 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
     """
     No op Heartbeat
     """
+
     name = 'noop_heartbeat_backend'
 
     async def handle_timeout(self, *args):

@@ -7,9 +7,9 @@ import uuid
 import zmq
 import zope.interface
 
-from .common import BaseRPC, format_remote_traceback, internal_exceptions
 from . import interfaces
-from .interfaces import IClient, VERSION, WORK
+from .common import BaseRPC, format_remote_traceback, internal_exceptions
+from .interfaces import VERSION, WORK, IClient
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class SyncClient(BaseRPC):
     This is suitable to use in synchronous environment like
     within wsgi process.
     """
+
     socket_type = zmq.REQ
 
     def _make_context(self):
@@ -40,9 +41,11 @@ class SyncClient(BaseRPC):
     def send_work(self, peer_identity, name, *args, **kw):
         message, uid = self._prepare_work(name, *args, **kw)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('Sending work: {!r} {}'.format(
-                message[:-1],
-                pprint.pformat(self.packer.unpackb(message[-1]))))
+            logger.debug(
+                'Sending work: {!r} {}'.format(
+                    message[:-1], pprint.pformat(self.packer.unpackb(message[-1]))
+                )
+            )
         response = self.send_message(message)
         return response
 
@@ -54,15 +57,13 @@ class SyncClient(BaseRPC):
 
     def _handle_ok(self, message, message_uuid):
         value = self.packer.unpackb(message)
-        logger.debug('SyncClient result {!r} from {!r}'.format(value,
-                                                               message_uuid))
+        logger.debug('SyncClient result {!r} from {!r}'.format(value, message_uuid))
         return value
 
     def _handle_error(self, message, message_uuid):
         value = self.packer.unpackb(message)
         klass, message, traceback = value
-        full_message = '\n'.join((format_remote_traceback(traceback),
-                                  message))
+        full_message = '\n'.join((format_remote_traceback(traceback), message))
         try:
             exception = getattr(builtins, klass)(full_message)
         except AttributeError:

@@ -3,23 +3,31 @@ import asyncio
 import pytest
 
 
-def make_one_server(user_id, loop, proxy_to=None,
-                    security_plugin='noop_auth_backend'):
+def make_one_server(user_id, loop, proxy_to=None, security_plugin='noop_auth_backend'):
     from pseud import Server
-    server = Server(user_id, proxy_to=proxy_to,
-                    security_plugin=security_plugin,
-                    loop=loop)
+
+    server = Server(
+        user_id, proxy_to=proxy_to, security_plugin=security_plugin, loop=loop
+    )
     return server
 
 
-def make_one_client(peer_routing_id, loop, user_id=None,
-                    password=None, security_plugin='noop_auth_backend'):
+def make_one_client(
+    peer_routing_id,
+    loop,
+    user_id=None,
+    password=None,
+    security_plugin='noop_auth_backend',
+):
     from pseud import Client
-    client = Client(peer_routing_id,
-                    user_id=user_id,
-                    password=password,
-                    security_plugin=security_plugin,
-                    loop=loop)
+
+    client = Client(
+        peer_routing_id,
+        user_id=user_id,
+        password=password,
+        security_plugin=security_plugin,
+        loop=loop,
+    )
     return client
 
 
@@ -51,15 +59,15 @@ async def test_server_can_send(loop, unused_tcp_port, plain_auth_backend):
 
     server = make_one_server(server_id, loop, security_plugin='plain')
 
-    client = make_one_client(server_id, loop, user_id=b'alice',
-                             password=b'alice',
-                             security_plugin='plain')
+    client = make_one_client(
+        server_id, loop, user_id=b'alice', password=b'alice', security_plugin='plain'
+    )
 
     server.bind(endpoint)
     client.connect(endpoint)
     register_rpc(name='string.lower')(str.lower)
     async with server, client:
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
         result = await server.send_to(b'alice').string.lower('SCREAM')
         assert result == 'scream'
 
@@ -73,19 +81,19 @@ async def test_server_can_send_to_several_client(loop, unused_tcp_port):
 
     server = make_one_server(server_id, loop, security_plugin='plain')
 
-    client1 = make_one_client(server_id, loop, user_id=b'alice',
-                              password=b'alice',
-                              security_plugin='plain')
-    client2 = make_one_client(server_id, loop, user_id=b'bob',
-                              password=b'bob',
-                              security_plugin='plain')
+    client1 = make_one_client(
+        server_id, loop, user_id=b'alice', password=b'alice', security_plugin='plain'
+    )
+    client2 = make_one_client(
+        server_id, loop, user_id=b'bob', password=b'bob', security_plugin='plain'
+    )
 
     server.bind(endpoint)
     client1.connect(endpoint)
     client2.connect(endpoint)
     register_rpc(name='string.lower')(str.lower)
     async with server, client1, client2:
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
         result1 = await server.send_to(b'alice').string.lower('SCREAM1')
         result2 = await server.send_to(b'bob').string.lower('SCREAM2')
         assert result1 == 'scream1'
@@ -150,8 +158,7 @@ async def test_server_can_proxy_another_server(loop):
         with pytest.raises(ServiceNotFoundError):
             assert get_rpc_callable('str.lower')
 
-        assert get_rpc_callable('str.lower',
-                                registry=server1.registry)('L') == 'l'
+        assert get_rpc_callable('str.lower', registry=server1.registry)('L') == 'l'
 
         result1 = await client1.str.lower('SCREAM')
         result2 = await client2.str.lower('SCREAM')
@@ -175,7 +182,7 @@ async def test_server_run_async_rpc(loop):
 
     @server.register_rpc
     async def aysnc_task():
-        await asyncio.sleep(.01)
+        await asyncio.sleep(0.01)
         return True
 
     async with server, client:
@@ -223,6 +230,6 @@ async def test_client_can_reconnect(loop, unused_tcp_port):
         client.disconnect(endpoint)
         client.connect(endpoint)
 
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
         result = await client.string.upper('hello')
         assert result == 'HELLO'
