@@ -1,3 +1,4 @@
+setuptools
 -e .
 repoze.sphinx.autointerface
 sphinx
