@@ -8,14 +8,12 @@ import zmq
 
 def test_client_creation():
     from pseud import SyncClient
-
     client = SyncClient()
     assert client.security_plugin == 'noop_auth_backend'
 
 
 def test_client_can_bind(loop):
     from pseud import SyncClient
-
     endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
     client.bind(endpoint)
@@ -24,7 +22,6 @@ def test_client_can_bind(loop):
 
 def test_client_can_connect(loop):
     from pseud import SyncClient
-
     endpoint = 'inproc://{}'.format(__name__).encode()
     client = SyncClient()
     client.connect(endpoint)
@@ -42,14 +39,12 @@ def make_one_server_thread(identity, endpoint, callback):
 
 def make_one_client(timeout=5):
     from pseud import SyncClient
-
     client = SyncClient(timeout=timeout)
     return client
 
 
 def test_client_method_wrapper(loop):
     from pseud.common import AttributeWrapper
-
     endpoint = 'inproc://{}'.format(__name__)
     client = make_one_client()
     method_name = 'a.b.c.d'
@@ -69,7 +64,6 @@ def test_client_method_wrapper(loop):
 def test_job_executed(loop):
     from pseud.interfaces import OK, VERSION, WORK
     from pseud.packer import Packer
-
     zmq.Context.instance()
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
@@ -89,11 +83,10 @@ def test_job_executed(loop):
         reply = [peer_id, _, version, uid, OK, Packer().packb(True)]
         socket.send_multipart(reply)
 
-    thread = threading.Thread(
-        target=make_one_server_thread,
-        args=(peer_identity, endpoint, server_callback),
-        daemon=True,
-    )
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(peer_identity, endpoint,
+                                    server_callback),
+                              daemon=True)
     thread.start()
     client = make_one_client()
     client.connect(endpoint)
@@ -107,7 +100,6 @@ def test_job_executed(loop):
 def test_job_failure(loop):
     from pseud.interfaces import ERROR, VERSION, WORK
     from pseud.packer import Packer
-
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -123,19 +115,13 @@ def test_job_failure(loop):
         assert locator == 'please.do_that_job'
         assert args == (1, 2, 3)
         assert kw == {'b': 4}
-        reply = [
-            peer_id,
-            _,
-            version,
-            uid,
-            ERROR,
-            Packer().packb(('ValueError', 'too bad', 'traceback')),
-        ]
+        reply = [peer_id, _, version, uid, ERROR, Packer().packb(
+            ('ValueError', 'too bad', 'traceback'))]
         socket.send_multipart(reply)
 
-    thread = threading.Thread(
-        target=make_one_server_thread, args=(peer_identity, endpoint, server_callback)
-    )
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(peer_identity, endpoint,
+                                    server_callback))
     thread.start()
     client = make_one_client()
     client.connect(endpoint)
@@ -149,7 +135,6 @@ def test_job_failure(loop):
 def test_job_failure_service_not_found(loop):
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
     from pseud.packer import Packer
-
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
@@ -165,19 +150,13 @@ def test_job_failure_service_not_found(loop):
         assert locator == 'please.do_that_job'
         assert args == (1, 2, 3)
         assert kw == {'b': 4}
-        reply = [
-            peer_id,
-            _,
-            version,
-            uid,
-            ERROR,
-            Packer().packb(('ServiceNotFoundError', 'too bad', 'traceback')),
-        ]
+        reply = [peer_id, _, version, uid, ERROR, Packer().packb(
+            ('ServiceNotFoundError', 'too bad', 'traceback'))]
         socket.send_multipart(reply)
 
-    thread = threading.Thread(
-        target=make_one_server_thread, args=(peer_identity, endpoint, server_callback)
-    )
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(peer_identity, endpoint,
+                                    server_callback))
     thread.start()
     client = make_one_client()
     client.connect(endpoint)
@@ -191,28 +170,27 @@ def test_job_failure_service_not_found(loop):
 def test_job_server_never_reply(loop):
     from pseud.interfaces import VERSION, WORK
     from pseud.packer import Packer
-
     endpoint = 'ipc://{}'.format(__name__)
     peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == b''
+        assert _ == ''
         assert version == VERSION
         assert uid
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
-        assert locator == 'please.do_that_job'
+        assert locator == b'please.do_that_job'
         assert args == (1, 2)
         assert kw == {'b': 5}
 
-    thread = threading.Thread(
-        target=make_one_server_thread, args=(peer_identity, endpoint, server_callback)
-    )
+    thread = threading.Thread(target=make_one_server_thread,
+                              args=(peer_identity, endpoint,
+                                    server_callback))
     thread.start()
-    client = make_one_client(timeout=0.2)
+    client = make_one_client(timeout=.2)
     client.connect(endpoint)
 
     with pytest.raises(asyncio.TimeoutError):

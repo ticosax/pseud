@@ -13,22 +13,20 @@ def test_datetime_without_timezone():
 def test_datetime_with_timezone():
     from pseud.packer import Packer
 
-    date = dt.datetime(2003, 9, 27, 9, 40, 1, 521290, tzinfo=dt.timezone.utc)
+    date = dt.datetime(2003, 9, 27, 9, 40, 1, 521290,
+                       tzinfo=dt.timezone.utc)
     assert Packer().unpackb(Packer().packb(date)) == date
 
 
 def test_packer_normal():
     from pseud.packer import Packer
-
     packer = Packer()
     assert packer.unpackb(packer.packb('data')) == 'data'
 
 
 def test_packer_failure():
     import msgpack
-
     from pseud.packer import Packer
-
     packer = Packer()
     with pytest.raises(msgpack.ExtraData):
         packer.unpackb(b'--')
@@ -36,7 +34,6 @@ def test_packer_failure():
 
 def test_packer_translation():
     import msgpack
-
     from pseud.packer import Packer
 
     class A(object):
@@ -46,18 +43,20 @@ def test_packer_translation():
         def __eq__(self, other):
             return self.arg == other.arg
 
-    table = {
-        5: (A, lambda obj: msgpack.packb(obj.arg), lambda data: A(msgpack.unpackb(data)))
-    }
+    table = {5: (A,
+                 lambda obj: msgpack.packb(obj.arg),
+                 lambda data: A(msgpack.unpackb(data)))}
     packer = Packer(translation_table=table)
-    assert packer.packb({b'key': A(b'--')}) == b'\x81\xc4\x03key\xd6\x05\xc4\x02--'
-    assert packer.unpackb(packer.packb({'key': A(b'arg')})) == {'key': A(b'arg')}
+    assert packer.packb({b'key': A(b'--')}) == (
+        b'\x81\xc4\x03key\xc7\x03\x05\xa2--')
+    assert packer.unpackb(
+        packer.packb({'key': A(b'arg')})) == {'key': A(b'arg')}
 
     packer.register_ext_handler(
-        0, A, lambda obj: b'overidden', lambda data: A(b'arbitrary')
-    )
+        0, A, lambda obj: b'overidden', lambda data: A(b'arbitrary'))
     # Checks pack_cache is valid
-    assert packer.unpackb(packer.packb({'key': A(b'arg')})) != {'key': A(b'arg')}
+    assert packer.unpackb(
+        packer.packb({'key': A(b'arg')})) != {'key': A(b'arg')}
 
     # Mostly for coverage of error paths.
     class B(object):

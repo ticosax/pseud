@@ -1,38 +1,3 @@
-[tool.poetry]
-name = "pseud"
-version = "1.0.2dev"
-description = "Bidirectionnal RPC Api on top of pyzmq"
-authors = ["Nicolas Delaby <ticosax@free.fr>"]
-license = "Apache Software License"
-repository = "https://github.com/ticosax/pseud"
-readme = "README.rst"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-pyzmq = "*"
-msgpack-python = "*"
-"zope.component" = "*"
-
-[tool.poetry.dev-dependencies]
-pytest = "*"
-pytest-asyncio = "*"
-pytest-pep8 = "*"
-tox = "*"
-flake8 = "*"
-pytest-cov = "*"
-pdbpp = "*"
-isort = "*"
-black = "*"
-
-[tool.black]
-line-length = 90
-skip-string-normalization = true
-exclude = "docs/source/conf.py|.tox/|.git/|dist/.pytest_cache/"
-
-[tool.isort]
-profile = "black"
-line_length = 90
-
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta:__legacy__"

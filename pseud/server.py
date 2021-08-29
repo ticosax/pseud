@@ -4,7 +4,10 @@ import zmq
 import zope.interface
 
 from .common import BaseRPC
-from .interfaces import IServer
+from .interfaces import (
+    IServer,
+)
+
 
 logger = logging.getLogger(__name__)
 
