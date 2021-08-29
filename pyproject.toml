@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pseud"
-version = "1.0.2dev"
+version = "2.0.0dev"
 description = "Bidirectionnal RPC Api on top of pyzmq"
 authors = ["Nicolas Delaby <ticosax@free.fr>"]
 license = "Apache Software License"
