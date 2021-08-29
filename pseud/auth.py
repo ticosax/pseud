@@ -3,13 +3,18 @@ import logging
 import zope.component
 import zope.interface
 
-from .interfaces import IAuthenticationBackend, IClient, IServer
+from .interfaces import (
+    IAuthenticationBackend,
+    IClient,
+    IServer,
+)
 from .utils import register_auth_backend
 
 logger = logging.getLogger(__name__)
 
 
 class _BaseAuthBackend:
+
     def __init__(self, rpc):
         self.rpc = rpc
 
@@ -21,7 +26,6 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
     """
     Just allow anything
     """
-
     name = 'noop_auth_backend'
 
     async def stop(self):
