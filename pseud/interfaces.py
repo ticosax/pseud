@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import zope.interface
 
-
 AUTHENTICATED = b'\x04'
 ERROR = b'\x10'
 HEARTBEAT = b'\x06'
@@ -25,9 +24,11 @@ class UnauthorizedError(Exception):
 
 class IAuthenticationBackend(zope.interface.Interface):
 
-    rpc = zope.interface.Attribute("""
+    rpc = zope.interface.Attribute(
+        """
         RPC instance
-        """)
+        """
+    )
 
     def configure():
         """
@@ -100,37 +101,58 @@ class IBaseRPC(zope.interface.Interface):
     All methods that an rpc service must support
     to handle pseud protocol
     """
-    user_id = zope.interface.Attribute("""
+
+    user_id = zope.interface.Attribute(
+        """
         identity of current RPC.
         Will be used as routing_id for server.
-        """)
-    context = zope.interface.Attribute("""
+        """
+    )
+    context = zope.interface.Attribute(
+        """
         ØMQ context
-        """)
-    security_plugin = zope.interface.Attribute("""
+        """
+    )
+    security_plugin = zope.interface.Attribute(
+        """
         name of security backend to load
-        """)
-    public_key = zope.interface.Attribute("""
+        """
+    )
+    public_key = zope.interface.Attribute(
+        """
         Z85 encoded public key of the zeromq curve keypair
-        """)
-    secret_key = zope.interface.Attribute("""
+        """
+    )
+    secret_key = zope.interface.Attribute(
+        """
         Z85 encoded private key of the zeromq curve keypair
-        """)
-    heartbeat_plugin = zope.interface.Attribute("""
+        """
+    )
+    heartbeat_plugin = zope.interface.Attribute(
+        """
         Name of the plugin used as heartbeat backend
-        """)
-    proxy_to = zope.interface.Attribute("""
+        """
+    )
+    proxy_to = zope.interface.Attribute(
+        """
         Must be another instance of RPC
-        """)
-    registry = zope.interface.Attribute("""
+        """
+    )
+    registry = zope.interface.Attribute(
+        """
         Give your own registry or a new one will be built
-        """)
-    loop = zope.interface.Attribute("""
+        """
+    )
+    loop = zope.interface.Attribute(
+        """
         Use given loop instance or create a new one.
-        """)
-    timeout = zope.interface.Attribute("""
+        """
+    )
+    timeout = zope.interface.Attribute(
+        """
         Max allowed time to send, recv or to wait for a task.
-        """)
+        """
+    )
 
     def connect(endpoint):
         """
@@ -173,8 +195,7 @@ class IBaseRPC(zope.interface.Interface):
         incomimg messages to the socket.
         """
 
-    def register_rpc(func=None, name=None, domain='default',
-                     registry=None):
+    def register_rpc(func=None, name=None, domain='default', registry=None):
         """
         decorator to register rpc endpoint only for this RPC instance.
         """
@@ -199,17 +220,24 @@ class IClient(IBaseRPC):
     """
     Interface for Clients
     """
-    peer_routing_id = zope.interface.Attribute("""
+
+    peer_routing_id = zope.interface.Attribute(
+        """
         routing_id of peer to communicate with
-        """)
-    peer_public_key = zope.interface.Attribute("""
+        """
+    )
+    peer_public_key = zope.interface.Attribute(
+        """
         Z85 encoded public key of the zeromq curve
         keypair from remote peer
-        """)
-    password = zope.interface.Attribute("""
+        """
+    )
+    password = zope.interface.Attribute(
+        """
         If authentication is required by remote peer.
         `user_id`` will be the login.
-        """)
+        """
+    )
 
 
 class IServer(IBaseRPC):
@@ -223,9 +251,11 @@ class IHeartbeatBackend(zope.interface.Interface):
     Interface for heartbeat backend
     """
 
-    rpc = zope.interface.Attribute("""
+    rpc = zope.interface.Attribute(
+        """
         RPC instance
-        """)
+        """
+    )
 
     def handle_heartbeat(user_id, routing_id):
         """
@@ -255,15 +285,22 @@ class IRPCCallable(zope.interface.Interface):
     Allow to specify a name for the rpc-callable
     and an applicable domain to check perimissions.
     """
-    func = zope.interface.Attribute("""
+
+    func = zope.interface.Attribute(
+        """
         Real callable
-        """)
-    name = zope.interface.Attribute("""
+        """
+    )
+    name = zope.interface.Attribute(
+        """
         Name of rpc-callable
-        """)
-    domain = zope.interface.Attribute("""
+        """
+    )
+    domain = zope.interface.Attribute(
+        """
         Name of Predicate domain
-        """)
+        """
+    )
 
     def __call__(*args, **kw):
         """
@@ -289,6 +326,7 @@ class IPredicate(zope.interface.Interface):
     Responsible to allow or discard execution of
     rpc-callable for given context
     """
+
     def test(*args, **kw):
         """
         Must return boolean

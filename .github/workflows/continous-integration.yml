@@ -1,0 +1,47 @@
+name: Continues Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  run-test:
+    name: Run CI checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PYTHON_VERSION:
+          - 3.9
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python ${{ matrix.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.PYTHON_VERSION }}
+      - name: Setup poetry
+        uses: Gr1N/setup-poetry@v7
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+      - name: Install dependencies
+        run: |
+          poetry install
+      - name: Run isort
+        run: |
+          poetry run isort . --check
+      - name: Run black
+        run: |
+          poetry run black --check --diff .
+      - name: Run flake8
+        run: |
+          poetry run flake8 .
+      - name: Run pytest
+        run: |
+          poetry run pytest --cov=pseud --cov-report=xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2.0.3
+        with:
+          fail_ci_if_error: true

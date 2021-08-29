@@ -2,8 +2,14 @@ Changelog history
 =================
 
 
-1.0.1dev - Not yet released
+2.0.0dev - Not yet released
 ---------------------------
+
+  - python>=3.9
+  - msgpack>1
+  - Use poetry instead of pipenv
+  - Switch CI to github actions
+  - integration with dependabot
 
 1.0.0 - 2018/04/17
 ------------------

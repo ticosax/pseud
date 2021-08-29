@@ -1,8 +1,8 @@
 pseud
 =====
-.. image:: https://travis-ci.org/ticosax/pseud.svg?branch=master
-   :target: https://travis-ci.org/ticosax/pseud
-   :alt: Travis-CI Status
+.. image:: https://github.com/ticosax/pseud/actions/workflows/continous-integration.yml/badge.svg
+   :target: https://github.com/ticosax/pseud/actions/workflows/continous-integration.yml
+   :alt: Continues Integration
 
 .. image:: https://codecov.io/gh/ticosax/pseud/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/ticosax/pseud

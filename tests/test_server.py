@@ -9,6 +9,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_server_creation():
     from pseud import Server
+
     user_id = b'echo'
     server = Server(user_id)
     assert server.user_id == user_id
@@ -17,20 +18,20 @@ async def test_server_creation():
 
 async def test_server_can_bind():
     from pseud import Server
+
     user_id = b'echo'
     endpoint = 'inproc://{}'.format(__name__).encode()
-    server = Server(user_id,
-                    security_plugin='noop_auth_backend')
+    server = Server(user_id, security_plugin='noop_auth_backend')
     server.bind(endpoint)
     await server.stop()
 
 
 async def test_server_can_connect():
     from pseud import Server
+
     user_id = b'echo'
     endpoint = b'tcp://127.0.0.1:5000'
-    server = Server(user_id,
-                    security_plugin='noop_auth_backend')
+    server = Server(user_id, security_plugin='noop_auth_backend')
     server.connect(endpoint)
     await server.stop()
 
@@ -44,6 +45,7 @@ def make_one_client_socket(endpoint):
 
 def make_one_server(user_id, endpoint, loop):
     from pseud import Server
+
     server = Server(user_id, loop=loop)
     server.bind(endpoint)
     return server
@@ -59,32 +61,37 @@ async def test_job_running(loop):
 
     @register_rpc
     def job_success(a, b, c, d=None):
-        time.sleep(.2)
+        time.sleep(0.2)
         return True
 
     server = make_one_server(user_id, endpoint, loop)
     socket = make_one_client_socket(endpoint)
     work = Packer().packb(('job_success', (1, 2, 3), {'d': False}))
-    await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'',
-                                 WORK, work])
+    await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'', WORK, work])
     async with server:
         response = await socket.recv_multipart()
-        assert response == [user_id, EMPTY_DELIMITER, VERSION, b'',
-                            OK, Packer().packb(True)]
+        assert response == [
+            user_id,
+            EMPTY_DELIMITER,
+            VERSION,
+            b'',
+            OK,
+            Packer().packb(True),
+        ]
 
 
 async def test_job_not_found(loop):
     import pseud
     from pseud.interfaces import EMPTY_DELIMITER, ERROR, VERSION, WORK
     from pseud.packer import Packer
+
     user_id = b'echo'
     endpoint = 'inproc://test_job_not_found'
     server = make_one_server(user_id, endpoint, loop)
     socket = make_one_client_socket(endpoint)
     work = Packer().packb(('thisIsNotAFunction', (), {}))
     async with server:
-        await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'',
-                                     WORK, work])
+        await socket.send_multipart([user_id, EMPTY_DELIMITER, VERSION, b'', WORK, work])
         response = await socket.recv_multipart()
         assert response[:-1] == [user_id, EMPTY_DELIMITER, VERSION, b'', ERROR]
         klass, message, traceback = Packer().unpackb(response[-1])

@@ -39,10 +39,8 @@ import msgpack
 
 logger = logging.getLogger(__name__)
 
-_pickle_dumps = functools.partial(
-    pickle.dumps, protocol=pickle.HIGHEST_PROTOCOL)
-_datetime_objs = (
-    datetime.tzinfo, datetime.timedelta, datetime.datetime, datetime.date)
+_pickle_dumps = functools.partial(pickle.dumps, protocol=pickle.HIGHEST_PROTOCOL)
+_datetime_objs = (datetime.tzinfo, datetime.timedelta, datetime.datetime, datetime.date)
 _default = {
     i: (cls, _pickle_dumps, pickle.loads)
     for i, cls in enumerate(_datetime_objs, start=123)
@@ -50,28 +48,33 @@ _default = {
 
 
 class Packer:
-
     def __init__(self, translation_table=None):
         if translation_table is None:
             translation_table = _default
         else:
             translation_table = dict(
-                itertools.chain(_default.items(), translation_table.items()))
+                itertools.chain(_default.items(), translation_table.items())
+            )
         self.translation_table = translation_table
         self._pack_cache = {}
 
     def packb(self, data):
         try:
-            return msgpack.packb(data, encoding='utf-8', use_bin_type=True,
-                                 default=self.ext_type_pack_hook)
+            return msgpack.packb(
+                data, use_bin_type=True, default=self.ext_type_pack_hook
+            )
         except Exception:
             logger.exception('Packing failed')
             raise
 
     def unpackb(self, packed):
         try:
-            return msgpack.unpackb(packed, use_list=False, encoding='utf-8',
-                                   ext_hook=self.ext_type_unpack_hook)
+            return msgpack.unpackb(
+                packed,
+                use_list=False,
+                ext_hook=self.ext_type_unpack_hook,
+                raw=False,
+            )
         except Exception:
             logger.exception('Unpacking failed')
             raise
@@ -106,7 +109,8 @@ class Packer:
 
     def register_ext_handler(self, code, base_class, packer, unpacker):
         if code in self.translation_table:
-            raise ValueError('Code %s is already in the table: %s' % (
-                code, self.translation_table))
+            raise ValueError(
+                'Code %s is already in the table: %s' % (code, self.translation_table)
+            )
         self.translation_table[code] = (base_class, packer, unpacker)
         self._pack_cache.pop(base_class, None)
