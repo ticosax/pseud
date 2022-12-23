@@ -8,7 +8,7 @@ repository = "https://github.com/ticosax/pseud"
 readme = "README.rst"
 
 [tool.poetry.group.main.dependencies]
-python = "^3.9"
+python = ">=3.9"
 pyzmq = "*"
 msgpack-python = "*"
 "zope.component" = "*"
