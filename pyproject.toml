@@ -7,13 +7,13 @@ license = "Apache Software License"
 repository = "https://github.com/ticosax/pseud"
 readme = "README.rst"
 
-[tool.poetry.dependencies]
+[tool.poetry.group.main.dependencies]
 python = "^3.9"
 pyzmq = "*"
 msgpack-python = "*"
 "zope.component" = "*"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-asyncio = "*"
 pytest-pep8 = "*"
