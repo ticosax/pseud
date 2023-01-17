@@ -897,14 +897,14 @@ files = [
 
 [[package]]
 name = "zope-component"
-version = "5.0.1"
+version = "5.1.0"
 description = "Zope Component Architecture"
 category = "main"
 optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
 files = [
-    {file = "zope.component-5.0.1-py2.py3-none-any.whl", hash = "sha256:e955eb9f1e55d30e2d8097c8baa9ee012c356887eef3b0d43e6bfcd4868221e5"},
-    {file = "zope.component-5.0.1.tar.gz", hash = "sha256:32cbe426ba8fa7b62ce5b211f80f0718a0c749cc7ff09e3f4b43a57f7ccdf5e5"},
+    {file = "zope.component-5.1.0-py2.py3-none-any.whl", hash = "sha256:cbd279e15a959f35a813b64ec4f1027c08b86fcca26f73250c0c912251df90dd"},
+    {file = "zope.component-5.1.0.tar.gz", hash = "sha256:a508f9fef1b6f5286462d3340cd89ffab5c7899dca0401337239cb6ba7c6bb0a"},
 ]
 
 [package.dependencies]
