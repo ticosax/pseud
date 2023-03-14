@@ -145,7 +145,6 @@ async def test_server_can_proxy_another_server(loop):
     # local registration only to proxy
     server2.register_rpc(name='bla.lower')(str.lower)
     async with server1, server2, client1, client2:
-
         with pytest.raises(ServiceNotFoundError):
             get_rpc_callable('str.lower', registry=server2.registry)
 
