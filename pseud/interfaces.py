@@ -23,7 +23,6 @@ class UnauthorizedError(Exception):
 
 
 class IAuthenticationBackend(zope.interface.Interface):
-
     rpc = zope.interface.Attribute(
         """
         RPC instance

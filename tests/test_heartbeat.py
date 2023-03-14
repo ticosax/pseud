@@ -87,7 +87,6 @@ async def test_basic_heartbeating(loop, testing_heartbeat_backend):
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
     monitoring_socket.connect('ipc://testing_heartbeating_backend')
     async with server, client:
-
         sink = []
 
         async def collector(sink):
@@ -132,7 +131,6 @@ async def test_basic_heartbeating_with_disconnection(loop, unused_tcp_port_facto
     monitoring_socket.setsockopt(zmq.SUBSCRIBE, b'')
     monitoring_socket.connect('ipc://testing_heartbeating_backend')
     async with server, client:
-
         sink = []
 
         async def collector(sink):
