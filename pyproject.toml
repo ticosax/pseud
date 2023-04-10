@@ -39,6 +39,8 @@ line-length = 89
 target-version = "py39"
 select = ["E", "F", "B", "UP", "I"]
 
+[tool.pytest.ini_options]
+
 [build-system]
 requires = ["poetry>=1.0.0"]
 build-backend = "poetry.masonry.api"
