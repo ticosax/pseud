@@ -47,6 +47,7 @@ _default = {
 }
 NOT_SET = object()
 
+
 class Packer:
     def __init__(self, translation_table=None):
         if translation_table is None:

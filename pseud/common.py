@@ -348,7 +348,7 @@ class BaseRPC:
         worker_callable = get_rpc_callable(
             locator,
             registry=self.registry,
-            **self.auth_backend.get_predicate_arguments(user_id)
+            **self.auth_backend.get_predicate_arguments(user_id),
         )
         if worker_callable.with_identity:
             result = worker_callable(user_id, *args, **kw)
@@ -385,9 +385,7 @@ class BaseRPC:
         response = self.packer.packb(result)
         message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status, response]
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(
-                f'Worker send reply {message[:-1]!r} {pprint.pformat(result)}'
-            )
+            logger.debug(f'Worker send reply {message[:-1]!r} {pprint.pformat(result)}')
         await self.send_message(message)
 
     async def send_work(self, user_id, name, *args, **kw):
