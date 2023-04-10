@@ -64,7 +64,7 @@ class DummyFuture:
 
 
 def format_remote_traceback(traceback):
-    pivot = '\n{}'.format(3 * 4 * ' ')  # like three tabs
+    pivot = f'\n{3 * 4 * " "}'  # like three tabs
     return textwrap.dedent(
         """
         -- Beginning of remote traceback --
@@ -167,7 +167,7 @@ class BaseRPC:
         self.registry = (
             registry if registry is not None else create_local_registry(user_id or '')
         )
-        self.socket = None
+        self.socket: zmq.Socket | None = None
         self.packer = Packer(translation_table)
 
     def __getattr__(self, name, default=_marker):
