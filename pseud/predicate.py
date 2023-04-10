@@ -36,3 +36,6 @@ class FilterByModule:
         if user is None:
             return False
         return user.has_permission('DoSomethingNasty')
+
+
+__all__ = ('PassThrough', 'FilterByModule')
