@@ -48,7 +48,7 @@ def test_rpc_restricted_registration():
     def callme_admin2(*args, **kw):
         return 'great power'
 
-    class User(object):
+    class User:
         def __init__(self, allowed):
             self.allowed = allowed
 

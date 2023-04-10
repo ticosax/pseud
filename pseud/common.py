@@ -95,7 +95,7 @@ async def read_forever(socket, callback, copy=False):
         await callback(result)
 
 
-class AttributeWrapper(object):
+class AttributeWrapper:
     def __init__(self, rpc, name=None, user_id=None):
         self.rpc = rpc
         self._part_names = name.split('.') if name is not None else []
@@ -123,7 +123,7 @@ class AttributeWrapper(object):
         return self.rpc.send_work(user_id, self.name, *args, **kw)
 
 
-class BaseRPC(object):
+class BaseRPC:
     def __init__(
         self,
         user_id=None,
@@ -175,12 +175,12 @@ class BaseRPC(object):
             if default is _marker:
                 return super().__getattr__(name)
             return super().__getattr__(name, default=default)
-        except AttributeError:
+        except AttributeError as err:
             if not self.initialized:
                 raise RuntimeError(
                     'You must connect or bind first'
                     ' in order to call {!r}'.format(name)
-                )
+                ) from err
             return AttributeWrapper(self, name=name)
 
     def send_to(self, user_id):
@@ -307,12 +307,12 @@ class BaseRPC(object):
         if message_type == HEARTBEAT:
             # Can ignore, because every message is an heartbeat
             return
-        logger.error('Unknown message_type received {!r}'.format(message_type))
+        logger.error(f'Unknown message_type received {message_type!r}')
         raise NotImplementedError
 
     def _handle_ok(self, message, message_uuid):
         value = self.packer.unpackb(message)
-        logger.debug('Client result {!r} from {!r}'.format(value, message_uuid))
+        logger.debug(f'Client result {value!r} from {message_uuid!r}')
         future = self.future_pool.pop(message_uuid)
         future.set_result(value)
 
@@ -386,7 +386,7 @@ class BaseRPC(object):
         message = [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status, response]
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
-                'Worker send reply {!r} {}'.format(message[:-1], pprint.pformat(result))
+                f'Worker send reply {message[:-1]!r} {pprint.pformat(result)}'
             )
         await self.send_message(message)
 

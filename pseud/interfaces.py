@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import zope.interface
 
 AUTHENTICATED = b'\x04'

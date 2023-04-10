@@ -20,7 +20,7 @@ async def test_server_can_bind():
     from pseud import Server
 
     user_id = b'echo'
-    endpoint = 'inproc://{}'.format(__name__).encode()
+    endpoint = f'inproc://{__name__}'.encode()
     server = Server(user_id, security_plugin='noop_auth_backend')
     server.bind(endpoint)
     await server.stop()

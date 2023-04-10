@@ -16,4 +16,4 @@ class Server(BaseRPC):
     def __init__(self, user_id, routing_id=None, **kw):
         if routing_id:
             raise TypeError('routing_id argument is prohibited')
-        super(Server, self).__init__(user_id=user_id, routing_id=user_id, **kw)
+        super().__init__(user_id=user_id, routing_id=user_id, **kw)

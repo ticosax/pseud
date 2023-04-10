@@ -31,15 +31,12 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
-      - name: Run isort
-        run: |
-          poetry run isort . --check
       - name: Run black
         run: |
           poetry run black --check --diff .
-      - name: Run flake8
+      - name: Run ruff
         run: |
-          poetry run flake8 .
+          poetry run ruff .
       - name: Run pytest
         run: |
           poetry run pytest --cov=pseud --cov-report=xml

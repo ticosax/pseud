@@ -39,7 +39,7 @@ def test_packer_translation():
 
     from pseud.packer import Packer
 
-    class A(object):
+    class A:
         def __init__(self, arg):
             self.arg = arg
 
@@ -60,7 +60,7 @@ def test_packer_translation():
     assert packer.unpackb(packer.packb({'key': A(b'arg')})) != {'key': A(b'arg')}
 
     # Mostly for coverage of error paths.
-    class B(object):
+    class B:
         pass
 
     # Two different error paths.

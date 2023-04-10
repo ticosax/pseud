@@ -7,7 +7,7 @@ from pseud.utils import register_predicate
 @register_predicate
 @zope.interface.implementer(IPredicate)
 @zope.component.adapter(IRPCCallable)
-class PassThrough(object):
+class PassThrough:
     """
     Default predicate associated with the `default` :term:`domain`.
 
@@ -26,7 +26,7 @@ class PassThrough(object):
 @register_predicate
 @zope.interface.implementer(IPredicate)
 @zope.component.adapter(IRPCCallable)
-class FilterByModule(object):
+class FilterByModule:
     name = 'restricted'
 
     def __init__(self, rpc_call):

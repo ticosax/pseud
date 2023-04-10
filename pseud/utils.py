@@ -50,7 +50,7 @@ def create_local_registry(name):
 
 
 @zope.interface.implementer(IRPCCallable)
-class RPCCallable(object):
+class RPCCallable:
     def __init__(self, func, name, domain='default', with_identity=False):
         self.func = func
         self.name = name

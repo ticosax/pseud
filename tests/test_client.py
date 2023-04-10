@@ -35,7 +35,7 @@ def test_client_creation():
 async def test_client_can_bind():
     from pseud import Client
 
-    endpoint = 'ipc://{}'.format(__name__).encode()
+    endpoint = f'ipc://{__name__}'.encode()
     peer_routing_id = b'echo'
     client = Client(peer_routing_id)
     client.bind(endpoint)

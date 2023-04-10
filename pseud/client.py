@@ -57,7 +57,7 @@ class SyncClient(BaseRPC):
 
     def _handle_ok(self, message, message_uuid):
         value = self.packer.unpackb(message)
-        logger.debug('SyncClient result {!r} from {!r}'.format(value, message_uuid))
+        logger.debug(f'SyncClient result {value!r} from {message_uuid!r}')
         return value
 
     def _handle_error(self, message, message_uuid):
@@ -66,14 +66,14 @@ class SyncClient(BaseRPC):
         full_message = '\n'.join((format_remote_traceback(traceback), message))
         try:
             exception = getattr(builtins, klass)(full_message)
-        except AttributeError:
+        except AttributeError as err:
             if klass in internal_exceptions:
-                raise getattr(interfaces, klass)(full_message)
+                raise getattr(interfaces, klass)(full_message) from err
             else:
                 # Not stdlib Exception
                 # fallback on something that expose informations received
                 # from remote worker
-                raise Exception('\n'.join((klass, full_message)))
+                raise Exception('\n'.join((klass, full_message))) from err
         else:
             raise exception
 
@@ -81,8 +81,8 @@ class SyncClient(BaseRPC):
         self.socket.send_multipart(message)
         try:
             response = self.socket.recv_multipart(copy=False)
-        except zmq.Again:
-            raise asyncio.TimeoutError()
+        except zmq.Again as err:
+            raise asyncio.TimeoutError() from err
         return self.loop.run_until_complete(self.on_socket_ready(response))
 
     def _store_result_in_future(self, future, result):
