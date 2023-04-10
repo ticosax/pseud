@@ -57,3 +57,6 @@ class NoOpAuthenticationBackendForClient(_BaseAuthBackend):
 @zope.component.adapter(IServer)
 class NoOpAuthenticationBackendForServer(NoOpAuthenticationBackendForClient):
     pass
+
+
+__all__ = ('NoOpAuthenticationBackendForClient', 'NoOpAuthenticationBackendForServer')

@@ -60,3 +60,6 @@ class NoOpHeartbeatBackendForServer(_BaseHeartbeatBackend):
 
     async def stop(self):
         pass
+
+
+__all__ = ('NoOpHeartbeatBackendForClient', 'NoOpHeartbeatBackendForServer')
