@@ -45,7 +45,7 @@ _default = {
     i: (cls, _pickle_dumps, pickle.loads)
     for i, cls in enumerate(_datetime_objs, start=123)
 }
-
+NOT_SET = object()
 
 class Packer:
     def __init__(self, translation_table=None):
@@ -79,12 +79,12 @@ class Packer:
             logger.exception('Unpacking failed')
             raise
 
-    def ext_type_pack_hook(self, obj, _sentinel=object()):
+    def ext_type_pack_hook(self, obj, _sentinel=NOT_SET):
         obj_class = obj.__class__
         hit = self._pack_cache.get(obj_class, _sentinel)
         if hit is None:
             # packer has been not found by previous long-lookup
-            raise TypeError("Unknown type: {!r}".format(obj))
+            raise TypeError(f"Unknown type: {obj!r}")
         elif hit is _sentinel:
             # do long-lookup
             for code in sorted(self.translation_table):
@@ -94,7 +94,7 @@ class Packer:
                     return msgpack.ExtType(code, packer(obj))
             else:
                 self._pack_cache[obj_class] = None
-                raise TypeError("Unknown type: {!r}".format(obj))
+                raise TypeError(f"Unknown type: {obj!r}")
         else:
             # do shortcut
             code, packer = hit
@@ -110,7 +110,7 @@ class Packer:
     def register_ext_handler(self, code, base_class, packer, unpacker):
         if code in self.translation_table:
             raise ValueError(
-                'Code %s is already in the table: %s' % (code, self.translation_table)
+                f'Code {code} is already in the table: {self.translation_table}'
             )
         self.translation_table[code] = (base_class, packer, unpacker)
         self._pack_cache.pop(base_class, None)

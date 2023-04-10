@@ -374,7 +374,7 @@ class CurveWithTrustedKeyForServer:
         ) = message
         assert version == b"1.0"
         assert mechanism == b"CURVE"
-        for known_identity, pair in self.known_identities.items():
+        for known_identity, pair in self.known_identities.items():  # noqa: B007
             if key == z85.decode(pair[0]):
                 response_code = b"200"
                 response_msg = b"OK"
@@ -581,12 +581,12 @@ class CurveWithUntrustedKeyForServer:
                 del self.login2peer_id_mapping[self.pending_keys[routing_id]]
             except KeyError:
                 pass
-            reply = "Welcome {!r}".format(login).encode()
+            reply = f"Welcome {login!r}".encode()
             status = AUTHENTICATED
         else:
             reply = b"Authentication Error"
             status = UNAUTHORIZED
-        logger.debug("Sending Hello reply: {!r}".format(reply))
+        logger.debug(f"Sending Hello reply: {reply!r}")
         await self.rpc.send_message(
             [routing_id, EMPTY_DELIMITER, VERSION, message_uuid, status, reply]
         )

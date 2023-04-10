@@ -16,7 +16,7 @@ def test_client_creation():
 def test_client_can_bind(loop):
     from pseud import SyncClient
 
-    endpoint = 'inproc://{}'.format(__name__).encode()
+    endpoint = f'inproc://{__name__}'.encode()
     client = SyncClient()
     client.bind(endpoint)
     client.stop()
@@ -25,7 +25,7 @@ def test_client_can_bind(loop):
 def test_client_can_connect(loop):
     from pseud import SyncClient
 
-    endpoint = 'inproc://{}'.format(__name__).encode()
+    endpoint = f'inproc://{__name__}'.encode()
     client = SyncClient()
     client.connect(endpoint)
     client.stop()
@@ -50,7 +50,7 @@ def make_one_client(timeout=5):
 def test_client_method_wrapper(loop):
     from pseud.common import AttributeWrapper
 
-    endpoint = 'inproc://{}'.format(__name__)
+    endpoint = f'inproc://{__name__}'
     client = make_one_client()
     method_name = 'a.b.c.d'
     with pytest.raises(RuntimeError):
@@ -71,7 +71,7 @@ def test_job_executed(loop):
     from pseud.packer import Packer
 
     zmq.Context.instance()
-    endpoint = 'ipc://{}'.format(__name__)
+    endpoint = f'ipc://{__name__}'
     peer_identity = b'server'
 
     def server_callback(socket, request):
@@ -108,7 +108,7 @@ def test_job_failure(loop):
     from pseud.interfaces import ERROR, VERSION, WORK
     from pseud.packer import Packer
 
-    endpoint = 'ipc://{}'.format(__name__)
+    endpoint = f'ipc://{__name__}'
     peer_identity = b'server'
 
     def server_callback(socket, request):
@@ -150,7 +150,7 @@ def test_job_failure_service_not_found(loop):
     from pseud.interfaces import ERROR, VERSION, WORK, ServiceNotFoundError
     from pseud.packer import Packer
 
-    endpoint = 'ipc://{}'.format(__name__)
+    endpoint = f'ipc://{__name__}'
     peer_identity = b'server'
 
     def server_callback(socket, request):
@@ -192,19 +192,19 @@ def test_job_server_never_reply(loop):
     from pseud.interfaces import VERSION, WORK
     from pseud.packer import Packer
 
-    endpoint = 'ipc://{}'.format(__name__)
+    endpoint = f'ipc://{__name__}'
     peer_identity = b'server'
 
     def server_callback(socket, request):
         peer_id, _, version, uid, message_type, message = request
-        assert _ == ''
+        assert _ == b''
         assert version == VERSION
         assert uid
         # check it is a real uuid
         uuid.UUID(bytes=uid)
         assert message_type == WORK
         locator, args, kw = Packer().unpackb(message)
-        assert locator == b'please.do_that_job'
+        assert locator == 'please.do_that_job'
         assert args == (1, 2)
         assert kw == {'b': 5}
 
