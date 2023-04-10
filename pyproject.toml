@@ -16,7 +16,6 @@ msgpack-python = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-asyncio = "*"
-pytest-pep8 = "*"
 tox = "*"
 pytest-cov = "*"
 pdbpp = "*"
