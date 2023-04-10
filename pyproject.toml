@@ -21,7 +21,6 @@ pytest-cov = "*"
 pdbpp = "*"
 black = "*"
 tox-pyenv = "*"
-tox-poetry = "*"
 ruff = "*"
 
 [tool.black]
