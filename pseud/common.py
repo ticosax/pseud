@@ -18,7 +18,7 @@ import zope.component
 import zope.interface
 
 from . import interfaces
-from .interfaces import (  # NOQA
+from .interfaces import (
     AUTHENTICATED,
     EMPTY_DELIMITER,
     ERROR,
@@ -32,8 +32,8 @@ from .interfaces import (  # NOQA
     IHeartbeatBackend,
     ServiceNotFoundError,
 )
-from .packer import Packer  # NOQA
-from .utils import create_local_registry, get_rpc_callable, register_rpc  # NOQA
+from .packer import Packer
+from .utils import create_local_registry, get_rpc_callable, register_rpc
 
 logger = logging.getLogger(__name__)
 
